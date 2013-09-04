@@ -24,6 +24,9 @@
 #include <itkThresholdImageFilter.h>
 #include <itkOrientImageFilter.h>
 
+#include <itkCompositeTransform.h>
+#include <itkTransform.h>
+
 #include "itkGtractImageIO.h"
 #include "BRAINSFitHelper.h"
 
@@ -224,6 +227,9 @@ int main(int argc, char *argv[])
   std::vector<int>         iterations;
   iterations.push_back(numberOfIterations);
 
+  typedef itk::Transform<double, 3, 3>       TransformType;
+  typedef itk::CompositeTransform<double, 3> CompositeTransformType;
+
   if( transformType == "Bspline" )
     {
     transformTypes.push_back("BSpline");
@@ -237,7 +243,14 @@ int main(int argc, char *argv[])
     registerImageFilter->SetInitializeTransformMode(localInitializeTransformMode);
     if( inputRigidTransform.size() > 0 )
       {
-      registerImageFilter->SetCurrentGenericTransform(itk::ReadTransformFromDisk(inputRigidTransform) );
+      TransformType::Pointer inputTransform = itk::ReadTransformFromDisk(inputRigidTransform);
+      CompositeTransformType::Pointer inputCompositeTransform = dynamic_cast<CompositeTransformType *>( inputTransform.GetPointer() );
+      if( inputCompositeTransform.IsNull() )
+        {
+        inputCompositeTransform = CompositeTransformType::New();
+        inputCompositeTransform->AddTransform( inputTransform );
+        }
+      registerImageFilter->SetCurrentGenericTransform( inputCompositeTransform );
       }
     }
 
@@ -248,7 +261,7 @@ int main(int argc, char *argv[])
     minStepLength.push_back( (double)minimumStepSize);
     registerImageFilter->SetTranslationScale( translationScale );
     registerImageFilter->SetMaximumStepLength( maximumStepSize );
-    registerImageFilter->SetMinimumStepLength(minStepLength  );
+    //registerImageFilter->SetMinimumStepLength(minStepLength  );
     registerImageFilter->SetRelaxationFactor( relaxationFactor );
     registerImageFilter->SetNumberOfSamples( numberOfSamples );
     registerImageFilter->SetInitializeTransformMode(localInitializeTransformMode);
@@ -266,7 +279,7 @@ int main(int argc, char *argv[])
     throw;
     }
 
-  GenericTransformType::Pointer outputTransform = registerImageFilter->GetCurrentGenericTransform();
+  GenericTransformType::Pointer outputTransform = registerImageFilter->GetCurrentGenericTransform()->GetNthTransform(0);
   itk::WriteTransformToDisk<double>(outputTransform, outputTransformName);
   return EXIT_SUCCESS;
 }
