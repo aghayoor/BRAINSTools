@@ -1056,6 +1056,7 @@ int main(int argc, char * *argv)
 
   atlasToSubjectPreSegmentationTransform =
     atlasreg->GetAtlasToSubjectTransform();
+  /*
   if( debuglevel > 9 )
     { // NOTE THIS IS REALLY ANNOYING FOR LARGE BSPLINE REGISTRATIONS!
     muLogMacro( << __FILE__ << " " << __LINE__ << " "
@@ -1063,6 +1064,7 @@ int main(int argc, char * *argv)
     muLogMacro( << __FILE__ << " " << __LINE__ << " "
                 << atlasToSubjectPreSegmentationTransform->GetParameters() << std::endl );
     }
+  */
   if( debuglevel > 4 )
     {
     // Write the registered template and images

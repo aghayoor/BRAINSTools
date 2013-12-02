@@ -113,6 +113,9 @@ public:
 
   typedef itk::Transform<double, 3, 3>  GenericTransformType;
 
+  typedef std::vector< FloatingPrecision >                      MeasurementVectorType;
+  typedef itk::Statistics::ListSample< MeasurementVectorType >  SampleType;
+
   // Set/Get the maximum polynomial degree of the bias field estimate
   itkSetMacro(MaxBiasDegree, unsigned int);
   itkGetMacro(MaxBiasDegree, unsigned int);
@@ -283,6 +286,26 @@ private:
   unsigned int ComputePriorLookupTable(void);
 
   void InitializePosteriors(void);
+
+  typename TInputImage::Pointer
+  NormalizeInputIntensityImage(const typename TInputImage::Pointer inputImage);
+
+  void
+  kNNCore( SampleType * trainMatrix,
+           const vnl_vector<FloatingPrecision> & labelVector,
+           const vnl_matrix<FloatingPrecision> & testMatrix,
+           vnl_matrix<FloatingPrecision> & liklihoodMatrix,
+           unsigned int K );
+
+  typename TProbabilityImage::Pointer
+  assignVectorToImage(const typename TProbabilityImage::Pointer prior,
+                      const vnl_vector<FloatingPrecision> & vector);
+
+  std::vector<typename TProbabilityImage::Pointer>
+  ComputekNNPosteriors(const ProbabilityImageVectorType & Priors,
+                        const MapOfInputImageVectors & IntensityImages,
+                        ByteImagePointer & CleanedLabels,
+                        const unsigned int numberOfSamples);
 
   typename TProbabilityImage::Pointer
   ComputeOnePosterior(const FloatingPrecision priorScale,
