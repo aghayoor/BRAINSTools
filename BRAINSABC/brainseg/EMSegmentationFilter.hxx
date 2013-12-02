@@ -1751,159 +1751,161 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                 this->m_OutputDebugDir);
   WriteDebugCorrectedImages(this->m_CorrectedImages, 0);
 
-  // IPEK -- this is the place where the covariance is generated
-  this->m_ListOfClassStatistics = this->ComputeDistributions(SubjectCandidateRegions, this->m_WarpedPriors);
-  this->WritePartitionTable(0);
-  {
-  // Now check that the intraSubjectOriginalImageList has positive definite
-  // covariance matrix.
-  // The algorithm is not stable if the covariance matrix is not positive
-  // definite, and this
-  // occurs when two or more of the images are linearly dependant (i.e. nearly
-  // the same image).
-  for( unsigned int q = 0; q < this->m_ListOfClassStatistics.size(); q++ )
-    {
-    try
-      {
-      ComputeCovarianceDeterminant( this->m_ListOfClassStatistics[q].m_Covariance );
-      }
-    catch( itk::ExceptionObject &excp)
-      {
-      std::cerr << "Error computing covariance " << std::endl;
-      std::cerr << excp << std::endl;
-      throw;
-      }
-    catch( ... )
-      {
-      itkExceptionMacro( << "ERROR:\nERROR:\nERROR:\nERROR:"
-                         << " Linearly dependant input images detected. "
-                         << "Please remove the images in the above table that show very similar values images."
-                         << "ERROR:\nERROR:\nERROR:\nERROR:" );
-      }
-    }
-  }
-
-  this->CheckInput();
-
-  // FloatingPrecision logLikelihood = vnl_huge_val(1.0);
-  FloatingPrecision logLikelihood = 1.0 / vnl_math::eps;
-  FloatingPrecision deltaLogLikelihood = 1.0;
-
-  unsigned int biasdegree = 0;
-
-  // EM loop
-  bool   converged = false;
-  double priorWeighting = 1.00;       // NOTE:  This turns off blending of
-                                      // posteriors and priors when set to 1.0,
-                                      // thus short-circuting the system.
-  unsigned int CurrentEMIteration = 1;
-  while( !converged && ( CurrentEMIteration <= m_MaximumIterations ) )
-    {
+//
+//  // IPEK -- this is the place where the covariance is generated
+//  this->m_ListOfClassStatistics = this->ComputeDistributions(SubjectCandidateRegions, this->m_WarpedPriors);
+//  this->WritePartitionTable(0);
+//  {
+//  // Now check that the intraSubjectOriginalImageList has positive definite
+//  // covariance matrix.
+//  // The algorithm is not stable if the covariance matrix is not positive
+//  // definite, and this
+//  // occurs when two or more of the images are linearly dependant (i.e. nearly
+//  // the same image).
+//  for( unsigned int q = 0; q < this->m_ListOfClassStatistics.size(); q++ )
+//    {
+//    try
+//      {
+//      ComputeCovarianceDeterminant( this->m_ListOfClassStatistics[q].m_Covariance );
+//      }
+//    catch( itk::ExceptionObject &excp)
+//      {
+//      std::cerr << "Error computing covariance " << std::endl;
+//      std::cerr << excp << std::endl;
+//      throw;
+//      }
+//    catch( ... )
+//      {
+//      itkExceptionMacro( << "ERROR:\nERROR:\nERROR:\nERROR:"
+//                         << " Linearly dependant input images detected. "
+//                         << "Please remove the images in the above table that show very similar values images."
+//                         << "ERROR:\nERROR:\nERROR:\nERROR:" );
+//      }
+//    }
+//  }
+//
+//  this->CheckInput();
+//
+//  // FloatingPrecision logLikelihood = vnl_huge_val(1.0);
+//  FloatingPrecision logLikelihood = 1.0 / vnl_math::eps;
+//  FloatingPrecision deltaLogLikelihood = 1.0;
+//
+//  unsigned int biasdegree = 0;
+//
+//  // EM loop
+//  bool   converged = false;
+//  double priorWeighting = 1.00;       // NOTE:  This turns off blending of
+//                                      // posteriors and priors when set to 1.0,
+//                                      // thus short-circuting the system.
+    unsigned int CurrentEMIteration = 1;
+//  while( !converged && ( CurrentEMIteration <= m_MaximumIterations ) )
+//    {
     // Recompute posteriors, not at full resolution
-    this->m_Posteriors =
-      this->ComputePosteriors(this->m_WarpedPriors, this->m_PriorWeights,
-                              this->m_CorrectedImages,
-                              this->m_ListOfClassStatistics);
-    NormalizeProbListInPlace<TProbabilityImage>(this->m_Posteriors);
-    this->WriteDebugPosteriors(CurrentEMIteration);
-    ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
-                                                            this->m_PriorLabelCodeVector, this->m_NonAirRegion,
-                                                            this->m_DirtyLabels,
-                                                            this->m_CleanedLabels);
-    this->WriteDebugLabels(CurrentEMIteration);
-    this->m_CorrectedImages =
-      CorrectBias(this->m_MaxBiasDegree, CurrentEMIteration, SubjectCandidateRegions, this->m_InputImages,
-                  this->m_CleanedLabels, this->m_NonAirRegion, this->m_Posteriors, this->m_PriorUseForBiasVector,
-                  this->m_SampleSpacing, this->m_DebugLevel,
-                  this->m_OutputDebugDir);
-    WriteDebugCorrectedImages(this->m_CorrectedImages, CurrentEMIteration);
-    this->m_ListOfClassStatistics.resize(0); // Reset this to empty for
-                                             // debugging purposes to induce
-                                             // failures when being re-used.
-    this->m_ListOfClassStatistics = this->ComputeDistributions(SubjectCandidateRegions, this->m_Posteriors);
-    this->WritePartitionTable(CurrentEMIteration);
-
-    // Now update transformation and estimates of probability regions based on
-    // current knowledge.
-    {
-    this->UpdateTransformation(CurrentEMIteration); // This changes the class
-    // value of
-    //
-    // m_TemplateGenericTransform.
-    this->m_WarpedPriors =
-      WarpImageList(this->m_OriginalSpacePriors,
-                    this->GetFirstInputImage(),
-                    this->m_PriorsBackgroundValues,
-                    this->m_TemplateGenericTransform);
-    if( this->m_DebugLevel > 9 )
-      {
-      this->WriteDebugWarpedAtlasPriors(CurrentEMIteration);
-      this->m_WarpedAtlasImages =
-        WarpImageList(this->m_OriginalAtlasImages,
-                      this->GetFirstInputImage(),
-                      this->m_TemplateGenericTransform);
-      this->WriteDebugWarpedAtlasImages(CurrentEMIteration);
-      }
-    SubjectCandidateRegions = this->ForceToOne(CurrentEMIteration,
-                                               // this->m_CorrectedImages,
-                                               this->m_WarpedPriors,
-                                               this->m_CleanedLabels);
-    {
-    this->BlendPosteriorsAndPriors(1.0 - priorWeighting, this->m_Posteriors, this->m_WarpedPriors,
-                                   this->m_WarpedPriors);
-    priorWeighting *= priorWeighting;
-    NormalizeProbListInPlace<TProbabilityImage>(this->m_WarpedPriors);
-    this->WriteDebugBlendClippedPriors(CurrentEMIteration);
-    }
-    }
-
-    FloatingPrecision prevLogLikelihood = ( logLikelihood < vnl_math::eps ) ? vnl_math::eps : logLikelihood;
-    // Compute log-likelihood and normalize posteriors
-    logLikelihood = this->ComputeLogLikelihood();
-    muLogMacro(<< "log(likelihood) = " << logLikelihood <<  std::endl);
-    // TODO: move to before prevL update
-    deltaLogLikelihood = vcl_fabs( (logLikelihood - prevLogLikelihood) / prevLogLikelihood);
-    // (logLikelihood - prevLogLikelihood) / vcl_fabs(prevLogLikelihood);
-    CHECK_NAN(deltaLogLikelihood, __FILE__, __LINE__,
-              "\n logLikelihood: " << logLikelihood << "\n prevLogLikelihood: " << prevLogLikelihood );
-    muLogMacro(
-      << "delta vcl_log(likelihood) = " << deltaLogLikelihood << "  Convergence Tolerance: "
-      << m_WarpLikelihoodTolerance <<  std::endl);
-
-    // Convergence check
-    converged = (CurrentEMIteration >= m_MaximumIterations)
-      // Ignore jumps in the vcl_log likelihood
-      //    ||
-      //    (deltaLogLikelihood < 0)
-      ||
-      ( (deltaLogLikelihood < m_LikelihoodTolerance)
-        &&
-        (biasdegree == m_MaxBiasDegree) );
-
-    CurrentEMIteration++;
-    const float biasIncrementInterval = (m_MaximumIterations / (m_MaxBiasDegree + 1) );
-    CHECK_NAN(biasIncrementInterval, __FILE__, __LINE__,
-              "\n m_MaximumIterations: " << m_MaximumIterations << "\n  m_MaxBiasDegree: " << m_MaxBiasDegree );
-    // Bias correction
-    if( m_MaxBiasDegree > 0 )
-      {
-      if( (
-            (deltaLogLikelihood < m_BiasLikelihoodTolerance)
-            || ( CurrentEMIteration > (biasdegree + 1) * biasIncrementInterval) )
-          &&
-          (biasdegree < m_MaxBiasDegree)
-        )
-        {
-        biasdegree++;
-        }
-      }
-    } // end EM loop
-
-  muLogMacro(<< "Done computing posteriors with " << CurrentEMIteration << " iterations" << std::endl);
-
+//    this->m_Posteriors =
+//      this->ComputePosteriors(this->m_WarpedPriors, this->m_PriorWeights,
+//                              this->m_CorrectedImages,
+//                              this->m_ListOfClassStatistics);
+//    NormalizeProbListInPlace<TProbabilityImage>(this->m_Posteriors);
+//    this->WriteDebugPosteriors(CurrentEMIteration);
+//    ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
+//                                                            this->m_PriorLabelCodeVector, this->m_NonAirRegion,
+//                                                            this->m_DirtyLabels,
+//                                                            this->m_CleanedLabels);
+//    this->WriteDebugLabels(CurrentEMIteration);
+//    this->m_CorrectedImages =
+//      CorrectBias(this->m_MaxBiasDegree, CurrentEMIteration, SubjectCandidateRegions, this->m_InputImages,
+//                  this->m_CleanedLabels, this->m_NonAirRegion, this->m_Posteriors, this->m_PriorUseForBiasVector,
+//                  this->m_SampleSpacing, this->m_DebugLevel,
+//                  this->m_OutputDebugDir);
+//    WriteDebugCorrectedImages(this->m_CorrectedImages, CurrentEMIteration);
+//    this->m_ListOfClassStatistics.resize(0); // Reset this to empty for
+//                                             // debugging purposes to induce
+//                                             // failures when being re-used.
+//    this->m_ListOfClassStatistics = this->ComputeDistributions(SubjectCandidateRegions, this->m_Posteriors);
+//    this->WritePartitionTable(CurrentEMIteration);
+//
+//    // Now update transformation and estimates of probability regions based on
+//    // current knowledge.
+//    {
+//    this->UpdateTransformation(CurrentEMIteration); // This changes the class
+//    // value of
+//    //
+//    // m_TemplateGenericTransform.
+//    this->m_WarpedPriors =
+//      WarpImageList(this->m_OriginalSpacePriors,
+//                    this->GetFirstInputImage(),
+//                    this->m_PriorsBackgroundValues,
+//                    this->m_TemplateGenericTransform);
+//    if( this->m_DebugLevel > 9 )
+//      {
+//      this->WriteDebugWarpedAtlasPriors(CurrentEMIteration);
+//      this->m_WarpedAtlasImages =
+//        WarpImageList(this->m_OriginalAtlasImages,
+//                      this->GetFirstInputImage(),
+//                      this->m_TemplateGenericTransform);
+//      this->WriteDebugWarpedAtlasImages(CurrentEMIteration);
+//      }
+//    SubjectCandidateRegions = this->ForceToOne(CurrentEMIteration,
+//                                               // this->m_CorrectedImages,
+//                                               this->m_WarpedPriors,
+//                                               this->m_CleanedLabels);
+//    {
+//    this->BlendPosteriorsAndPriors(1.0 - priorWeighting, this->m_Posteriors, this->m_WarpedPriors,
+//                                   this->m_WarpedPriors);
+//    priorWeighting *= priorWeighting;
+//    NormalizeProbListInPlace<TProbabilityImage>(this->m_WarpedPriors);
+//    this->WriteDebugBlendClippedPriors(CurrentEMIteration);
+//    }
+//    }
+//
+//    FloatingPrecision prevLogLikelihood = ( logLikelihood < vnl_math::eps ) ? vnl_math::eps : logLikelihood;
+//    // Compute log-likelihood and normalize posteriors
+//    logLikelihood = this->ComputeLogLikelihood();
+//    muLogMacro(<< "log(likelihood) = " << logLikelihood <<  std::endl);
+//    // TODO: move to before prevL update
+//    deltaLogLikelihood = vcl_fabs( (logLikelihood - prevLogLikelihood) / prevLogLikelihood);
+//    // (logLikelihood - prevLogLikelihood) / vcl_fabs(prevLogLikelihood);
+//    CHECK_NAN(deltaLogLikelihood, __FILE__, __LINE__,
+//              "\n logLikelihood: " << logLikelihood << "\n prevLogLikelihood: " << prevLogLikelihood );
+//    muLogMacro(
+//      << "delta vcl_log(likelihood) = " << deltaLogLikelihood << "  Convergence Tolerance: "
+//      << m_WarpLikelihoodTolerance <<  std::endl);
+//
+//    // Convergence check
+//    converged = (CurrentEMIteration >= m_MaximumIterations)
+//      // Ignore jumps in the vcl_log likelihood
+//      //    ||
+//      //    (deltaLogLikelihood < 0)
+//      ||
+//      ( (deltaLogLikelihood < m_LikelihoodTolerance)
+//        &&
+//        (biasdegree == m_MaxBiasDegree) );
+//
+//    CurrentEMIteration++;
+//    const float biasIncrementInterval = (m_MaximumIterations / (m_MaxBiasDegree + 1) );
+//    CHECK_NAN(biasIncrementInterval, __FILE__, __LINE__,
+//              "\n m_MaximumIterations: " << m_MaximumIterations << "\n  m_MaxBiasDegree: " << m_MaxBiasDegree );
+//    // Bias correction
+//    if( m_MaxBiasDegree > 0 )
+//      {
+//      if( (
+//            (deltaLogLikelihood < m_BiasLikelihoodTolerance)
+//            || ( CurrentEMIteration > (biasdegree + 1) * biasIncrementInterval) )
+//          &&
+//          (biasdegree < m_MaxBiasDegree)
+//        )
+//        {
+//        biasdegree++;
+//        }
+//      }
+//    } // end EM loop
+//
+//  muLogMacro(<< "Done computing posteriors with " << CurrentEMIteration << " iterations" << std::endl);
+####### compute posteriors using kNN
   this->m_Posteriors = this->ComputePosteriors(this->m_WarpedPriors, this->m_PriorWeights,
                                                this->m_CorrectedImages,
                                                this->m_ListOfClassStatistics);
+#######
   NormalizeProbListInPlace<TProbabilityImage>(this->m_Posteriors);
   this->WriteDebugPosteriors(CurrentEMIteration + 100);
   ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
@@ -1930,17 +1932,18 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     this->m_ListOfClassStatistics.resize(0); // Reset this to empty for
                                              // debugging purposes to induce
                                              // failures when being re-used.
-    this->m_ListOfClassStatistics = this->ComputeDistributions(SubjectCandidateRegions, this->m_Posteriors);
+//    this->m_ListOfClassStatistics = this->ComputeDistributions(SubjectCandidateRegions, this->m_Posteriors);
     this->m_RawCorrectedImages =
       CorrectBias(biasdegree, CurrentEMIteration + 100, SubjectCandidateRegions, this->m_RawInputImages,
                   this->m_CleanedLabels, this->m_NonAirRegion, this->m_Posteriors, this->m_PriorUseForBiasVector,
                   this->m_SampleSpacing, this->m_DebugLevel,
                   this->m_OutputDebugDir);
     }
-  this->m_ListOfClassStatistics.resize(0); // Reset this to empty for debugging
+//  this->m_ListOfClassStatistics.resize(0); // Reset this to empty for debugging
                                            // purposes to induce failures when
                                            // being re-used.
-  this->m_ListOfClassStatistics = this->ComputeDistributions(SubjectCandidateRegions, this->m_Posteriors);
+//  this->m_ListOfClassStatistics = this->ComputeDistributions(SubjectCandidateRegions, this->m_Posteriors);
+
   this->WritePartitionTable(0 + 100);
 }
 
