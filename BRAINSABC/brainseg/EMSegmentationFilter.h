@@ -261,6 +261,22 @@ private:
 
   void InitializePosteriors(void);
 
+  void
+  kNNCore( const vnl_matrix<FloatingPrecision> & trainMatrix,
+           const vnl_vector<FloatingPrecision> & labelVector,
+           const vnl_matrix<FloatingPrecision> & testMatrix,
+           vnl_matrix<FloatingPrecision> & liklihoodMatrix,
+           unsigned int K );
+
+  typename TProbabilityImage::Pointer
+  assignVectorToImage(const typename TProbabilityImage::Pointer prior,
+                      const vnl_vector<FloatingPrecision> & vector);
+
+  std::vector<typename TProbabilityImage::Pointer>
+  ComputekNNPosteriors(const ProbabilityImageVectorType & Priors,
+                         const MapOfInputImageVectors & IntensityImages,
+                         typename TByteImage::Pointer & CleanedLabels);
+
   typename TProbabilityImage::Pointer
   ComputeOnePosterior(const FloatingPrecision priorScale,
                       const typename TProbabilityImage::Pointer prior,

@@ -49,6 +49,8 @@
 #include "PrettyPrintTable.h"
 #include "ComputeDistributions.h"
 
+#include "itkImageRandomNonRepeatingConstIteratorWithIndex.h"
+
 template <class TInputImage, class TProbabilityImage>
 EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::EMSegmentationFilter()
@@ -610,6 +612,225 @@ static double ComputeCovarianceDeterminant( const vnl_matrix<FloatingPrecision> 
     }
   return detcov;
 }
+
+///////////////////////////////////////////////// Posterior computation by kNN //////////////////////////////////////////////
+template <class TInputImage, class TProbabilityImage>
+void
+EMSegmentationFilter<TInputImage, TProbabilityImage>
+::kNNCore( const vnl_matrix<FloatingPrecision> & trainMatrix,
+          const vnl_vector<FloatingPrecision> & labelVector,
+          const vnl_matrix<FloatingPrecision> & testMatrix,
+          vnl_matrix<FloatingPrecision> & liklihoodMatrix,
+          unsigned int K )
+{
+  unsigned int numClasses = labelVector.max_value() + 1; // index starts from zero
+  unsigned int numTraining = trainMatrix.rows(); // number of training data
+  unsigned int numTest = testMatrix.rows(); // number of test data
+  unsigned int numFeatures = trainMatrix.columns(); // number of features
+
+    // represent each class label as an array
+  vnl_matrix<FloatingPrecision> localLabels(numTraining, numClasses, 0);
+  for( unsigned int iTrain = 0; iTrain < numTraining; ++iTrain )
+    {
+    localLabels( iTrain, labelVector(iTrain) ) = 1;
+    }
+
+    // compute the distances
+  for( unsigned int iTest = 0; iTest < numTest; ++iTest )
+    {
+    vnl_matrix<FloatingPrecision> tempDataMatrix( numTraining, numFeatures, 0 );
+    for( unsigned int iRow = 0; iRow < numTraining; ++iRow )
+      {
+      tempDataMatrix.update( testMatrix.get_row( iTest ), iRow, 0 ); // repeat the current testData, #trainingDataNumber times
+      }
+    vnl_matrix<FloatingPrecision> diffMat = tempDataMatrix - trainMatrix;
+    vnl_vector<FloatingPrecision> distances( numTraining, 0 ); // distance vector for ith test data
+      //Return square root of sum of squared absolute element values of each row as a distant element
+    for( unsigned int iRow = 0; iRow < numTraining; ++iRow )
+      {
+      distances(iRow) = ( diffMat.get_row(iRow) ).two_norm();
+      }
+      // sort distances
+    vnl_vector<unsigned int> sortedIndexed( numTraining, 0 );
+    vnl_index_sort<FloatingPrecision, unsigned int>( distances, sortedIndexed );
+
+      // First K indeces
+    vnl_vector<unsigned int> neighborIndeces(K, 0);
+    neighborIndeces = sortedIndexed.extract(K, 0); // indeces of first K neighbors
+      // Now we should find K labels correspondence to K neighbors
+    vnl_matrix<FloatingPrecision> neighborLabels( K, numClasses);
+    for( unsigned int n = 0; n < K; ++n )
+      {
+      neighborLabels.set_row( n, localLabels.get_row( neighborIndeces(n) ) );
+      }
+
+    vnl_matrix<FloatingPrecision> weights(1,K,0);
+    FloatingPrecision sumOfWeights = 0;
+    for( unsigned int n = 0; n < K; ++n )
+      {
+      weights(n) = 1/( pow( distances( neighborIndeces(n) ), 2) );
+      sumOfWeights += weights(n);
+      }
+    weights = weights / sumOfWeights;
+
+    vnl_vector<FloatingPrecision> likelihoodRow = weights * neighborLabels; // a 1xC vector
+    liklihoodMatrix.set_row(iTest, likelihoodRow);
+    } // end of main loop
+}
+
+template <class TInputImage, class TProbabilityImage>
+typename TProbabilityImage::Pointer
+EMSegmentationFilter<TInputImage, TProbabilityImage>
+::assignVectorToImage(const typename TProbabilityImage::Pointer prior,
+                      const vnl_vector<FloatingPrecision> & vector)
+{
+  typename TProbabilityImage::Pointer post = TProbabilityImage::New();
+  post->CopyInformation(prior);
+  post->SetRegions(prior->GetLargestPossibleRegion() );
+  post->Allocate();
+
+  const typename TProbabilityImage::SizeType size = post->GetLargestPossibleRegion().GetSize();
+  unsigned int vindex = 0;
+  for( LOOPITERTYPE kk = 0; kk < (LOOPITERTYPE)size[2]; kk++ )
+    {
+    for( LOOPITERTYPE jj = 0; jj < (LOOPITERTYPE)size[1]; jj++ )
+      {
+      for( LOOPITERTYPE ii = 0; ii < (LOOPITERTYPE)size[0]; ii++ )
+        {
+        const typename TProbabilityImage::IndexType currIndex = {{ii, jj, kk}};
+        post->SetPixel(currIndex, vector(vindex) );
+        ++vindex;
+        }
+      }
+    }
+  return post;
+}
+
+template <class TInputImage, class TProbabilityImage>
+typename EMSegmentationFilter<TInputImage, TProbabilityImage>::ProbabilityImageVectorType
+EMSegmentationFilter<TInputImage, TProbabilityImage>
+::ComputekNNPosteriors(const ProbabilityImageVectorType & Priors,
+                       const MapOfInputImageVectors & IntensityImages, // input corrected images
+                       typename TByteImage::Pointer & CleanedLabels) // new input
+
+{
+    // Phase 1: create train vector, label vector, input test vector
+    // Phase 2: pass the above vectors to the "dokNNClassification" function
+
+    // we have 15 classes. We pick 32000 samples from all classes.
+  const unsigned int numClasses = PriorWeights.size();
+
+    // change the map of input image vectors to a probability image vector type
+  typedef std::vector<TInputImage::Pointer>       InputImageVectorType;
+  InputImageVectorType                            inputImagesVector;
+  for(typename MapOfInputImageVectors::const_iterator mapIt = intensityImages.begin(); mapIt != intensityImages.end(); ++mapIt)
+    {
+    const double numCurModality = static_cast<double>(mapIt->second.size());
+    for(unsigned m = 0; m < numCurModality; ++m)
+      {
+      inputImagesVector.push_back( mapIt->second[m] );
+      }
+    }
+  const unsigned int numOfInputImages = inputImagesVector.size();
+
+    // randomly iterate through the label image
+  const unsigned int numberOfSamples = 32000; // why?
+
+    // set train matrix and label vector by picking samples from label image.
+    // set kNN train matrix. it has #numberOfSamples training cases with #numOfInputImages features
+  vnl_matrix<FloatingPrecision> trainMatrix(numberOfSamples, numOfInputImages);
+  vnl_vector<FloatingPrecision> labelVector(numberOfSamples);
+
+  itk::ImageRandomNonRepeatingConstIteratorWithIndex<TByteImage> NRit( CleanedLabels,
+                                                                      CleanedLabels->GetBufferedRegion() );
+  NRit.SetNumberOfSamples( CleanedLabels->GetBufferedRegion().GetNumberOfPixels() );
+  NRit.GoToBegin();
+
+  unsigned int i = 0;
+  while( ( !NRit.IsAtEnd() ) && ( i < numberOfSamples ) )
+    {
+    TByteImage::IndexType currentIndex = NRit->GetIndex();
+    unsigned int currLabelCode = NRit->GetValue();
+
+      // find the index of current label code (can we do that in a more efficient way?)
+    unsigned int currLabelIndex = 1000;
+    for( unsigned int iclass = 0; iclass < numClasses; iclass++ )
+      {
+      if( currLabelCode = PriorLabelCodeVector(iclass) )
+        {
+        currLabelIndex = iclass;
+        }
+      else
+        {
+        itkGenericExceptionMacro( << "Class index of the current label is not found!" << std::endl );
+        }
+      }
+    if( currLabelIndex >= numClasses ) // check the validity of index
+      {
+      itkGenericExceptionMacro( << "Index value cannot be more than the number of classes." << std::endl );
+      }
+    labelVector(i) = currLabelIndex;
+
+    InputImageVectorType::const_iterator inIt = inputImagesVector.begin();
+    unsigned int j = 0;
+    while( (inIt != inputImagesVector.end()) && (j < numOfInputImages) )
+      {
+      trainMatrix(i,j) = inIt->GetValue( currentIndex );
+      ++j;
+      ++inIt;
+      }
+    ++i;
+    ++NRit;
+    }
+
+    // set kNN input test matrix of size : #OfVoxels x #OfInputImages
+  const typename TInputImage::SizeType size = inputImagesVector[0]->GetLargestPossibleRegion().GetSize();
+  vnl_matrix<FloatingPrecision> testMatrix(size, numOfInputImages);
+  unsigned int i = 0;
+  for( LOOPITERTYPE kk = 0; kk < (LOOPITERTYPE)size[2]; kk++ )
+    {
+    for( LOOPITERTYPE jj = 0; jj < (LOOPITERTYPE)size[1]; jj++ )
+      {
+      for( LOOPITERTYPE ii = 0; ii < (LOOPITERTYPE)size[0]; ii++ )
+        {
+        const typename TInputImage::IndexType currIndex = {{ii, jj, kk}};
+        unsigned int j = 0;
+        ProbabilityImageVectorType::const_iterator inIt = inputImagesVector.begin();
+        while( ( !inIt.IsAtEnd() ) && ( j < numOfInputImages ) )
+          {
+          testMatrix(i,j) = inIt->GetValue( currIndex );
+          ++j;
+          ++inIt;
+          }
+        ++i;
+        }
+      }
+    }
+
+  const unsigned int K = 45;
+    // each column of the memberShip matrix contains the voxel values of a posterior image.
+  vnl_matrix<FloatingPrecision> liklihoodMatrix(size, numClasses, 1000);
+
+    // Run kNN algorithm on test data
+  this->kNNCore( trainMatrix, labelVector, testMatrix, liklihoodMatrix, K );
+
+    // For validation
+  if( liklihoodMatrix.max_value() == 1000 )
+    {
+    itkGenericExceptionMacro( << "The liklihood matrix is not valid." << std::endl );
+    }
+
+    // create posteriors
+  ProbabilityImageVectorType Posteriors;
+  Posteriors.resize(numClasses);
+  for( unsigned int iclass = 0; iclass < numClasses; iclass++ )
+    {
+    Posteriors[iclass] = this->assignVectorToImage( Priors[iclass], liklihoodMatrix.get_column(iclass) );
+    }
+
+  return Posteriors;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <class TInputImage, class TProbabilityImage>
 typename TProbabilityImage::Pointer
