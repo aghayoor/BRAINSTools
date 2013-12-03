@@ -1901,11 +1901,20 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 //    } // end EM loop
 //
 //  muLogMacro(<< "Done computing posteriors with " << CurrentEMIteration << " iterations" << std::endl);
-####### compute posteriors using kNN
-  this->m_Posteriors = this->ComputePosteriors(this->m_WarpedPriors, this->m_PriorWeights,
-                                               this->m_CorrectedImages,
-                                               this->m_ListOfClassStatistics);
-#######
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////// compute posteriors using kNN ///////////////////////////////////////////////
+  FloatingPrecision inclusionThreshold = 0.75F;
+  ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
+                                                          this->m_PriorLabelCodeVector, this->m_NonAirRegion,
+                                                          this->m_DirtyThresholdedLabels,
+                                                          this->m_ThresholdedLabels, inclusionThreshold);
+
+  this->m_Posteriors = this->ComputekNNPosteriors(this->m_CorrectedImages,
+                                                  this->m_ThresholdedLabels);
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   NormalizeProbListInPlace<TProbabilityImage>(this->m_Posteriors);
   this->WriteDebugPosteriors(CurrentEMIteration + 100);
   ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
