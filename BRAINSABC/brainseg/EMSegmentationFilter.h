@@ -274,8 +274,8 @@ private:
 
   std::vector<typename TProbabilityImage::Pointer>
   ComputekNNPosteriors(const ProbabilityImageVectorType & Priors,
-                         const MapOfInputImageVectors & IntensityImages,
-                         typename TByteImage::Pointer & CleanedLabels);
+                        const MapOfInputImageVectors & IntensityImages,
+                        ByteImagePointer & CleanedLabels);
 
   typename TProbabilityImage::Pointer
   ComputeOnePosterior(const FloatingPrecision priorScale,

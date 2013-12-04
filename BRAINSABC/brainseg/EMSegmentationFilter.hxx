@@ -32,6 +32,7 @@
 
 #include "vnl/algo/vnl_determinant.h"
 #include "vnl/vnl_math.h"
+#include "vnl_index_sort.h"
 
 #include "itkBRAINSROIAutoImageFilter.h"
 #include "BRAINSFitBSpline.h"
@@ -636,12 +637,12 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     }
 
     // compute the distances
-  for( unsigned int iTest = 0; iTest < numTest; ++iTest )
+  for( unsigned int iTest = 0; iTest < numTest; ++iTest ) ///////
     {
     vnl_matrix<FloatingPrecision> tempDataMatrix( numTraining, numFeatures, 0 );
     for( unsigned int iRow = 0; iRow < numTraining; ++iRow )
       {
-      tempDataMatrix.update( testMatrix.get_row( iTest ), iRow, 0 ); // repeat the current testData, #trainingDataNumber times
+      tempDataMatrix.set_row( iRow, testMatrix.get_row( iTest ) ); // repeat the current testData, #trainingDataNumber times
       }
     vnl_matrix<FloatingPrecision> diffMat = tempDataMatrix - trainMatrix;
     vnl_vector<FloatingPrecision> distances( numTraining, 0 ); // distance vector for ith test data
@@ -652,7 +653,10 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       }
       // sort distances
     vnl_vector<unsigned int> sortedIndexed( numTraining, 0 );
-    vnl_index_sort<FloatingPrecision, unsigned int>( distances, sortedIndexed );
+
+    typedef vnl_index_sort<FloatingPrecision, unsigned int>   IndexSortType;
+    IndexSortType                                             indexSort;
+    indexSort.vector_sort( distances, sortedIndexed );
 
       // First K indeces
     vnl_vector<unsigned int> neighborIndeces(K, 0);
@@ -668,13 +672,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     FloatingPrecision sumOfWeights = 0;
     for( unsigned int n = 0; n < K; ++n )
       {
-      weights(n) = 1/( pow( distances( neighborIndeces(n) ), 2) );
-      sumOfWeights += weights(n);
+      weights(1,n) = 1/( pow( distances( neighborIndeces(n) ), 2) );
+      sumOfWeights += weights(1,n);
       }
     weights = weights / sumOfWeights;
 
-    vnl_vector<FloatingPrecision> likelihoodRow = weights * neighborLabels; // a 1xC vector
-    liklihoodMatrix.set_row(iTest, likelihoodRow);
+    vnl_matrix<FloatingPrecision> likelihoodRow = weights * neighborLabels; // a 1xC vector
+    liklihoodMatrix.set_row(iTest, likelihoodRow.get_row(1) );
     } // end of main loop
 }
 
@@ -710,18 +714,18 @@ template <class TInputImage, class TProbabilityImage>
 typename EMSegmentationFilter<TInputImage, TProbabilityImage>::ProbabilityImageVectorType
 EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::ComputekNNPosteriors(const ProbabilityImageVectorType & Priors,
-                       const MapOfInputImageVectors & IntensityImages, // input corrected images
-                       typename TByteImage::Pointer & CleanedLabels) // new input
+                       const MapOfInputImageVectors & intensityImages, // input corrected images
+                       ByteImagePointer & CleanedLabels) // new input
 
 {
     // Phase 1: create train vector, label vector, input test vector
     // Phase 2: pass the above vectors to the "dokNNClassification" function
 
     // we have 15 classes. We pick 32000 samples from all classes.
-  const unsigned int numClasses = PriorWeights.size();
+  const unsigned int numClasses = Priors.size();
 
     // change the map of input image vectors to a probability image vector type
-  typedef std::vector<TInputImage::Pointer>       InputImageVectorType;
+  typedef std::vector<InputImagePointer>       InputImageVectorType;
   InputImageVectorType                            inputImagesVector;
   for(typename MapOfInputImageVectors::const_iterator mapIt = intensityImages.begin(); mapIt != intensityImages.end(); ++mapIt)
     {
@@ -741,22 +745,22 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   vnl_matrix<FloatingPrecision> trainMatrix(numberOfSamples, numOfInputImages);
   vnl_vector<FloatingPrecision> labelVector(numberOfSamples);
 
-  itk::ImageRandomNonRepeatingConstIteratorWithIndex<TByteImage> NRit( CleanedLabels,
-                                                                      CleanedLabels->GetBufferedRegion() );
+  itk::ImageRandomNonRepeatingConstIteratorWithIndex<ByteImageType> NRit( CleanedLabels,
+                                                                          CleanedLabels->GetBufferedRegion() );
   NRit.SetNumberOfSamples( CleanedLabels->GetBufferedRegion().GetNumberOfPixels() );
   NRit.GoToBegin();
 
-  unsigned int i = 0;
-  while( ( !NRit.IsAtEnd() ) && ( i < numberOfSamples ) )
+  unsigned int rowIndx = 0;
+  while( ( !NRit.IsAtEnd() ) && ( rowIndx < numberOfSamples ) )
     {
-    TByteImage::IndexType currentIndex = NRit->GetIndex();
-    unsigned int currLabelCode = NRit->GetValue();
+    ByteImageType::IndexType currentIndex = NRit.GetIndex();
+    unsigned int currLabelCode = NRit.Get();
 
       // find the index of current label code (can we do that in a more efficient way?)
     unsigned int currLabelIndex = 1000;
     for( unsigned int iclass = 0; iclass < numClasses; iclass++ )
       {
-      if( currLabelCode = PriorLabelCodeVector(iclass) )
+      if( currLabelCode == this->m_PriorLabelCodeVector(iclass) )
         {
         currLabelIndex = iclass;
         }
@@ -769,47 +773,48 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       {
       itkGenericExceptionMacro( << "Index value cannot be more than the number of classes." << std::endl );
       }
-    labelVector(i) = currLabelIndex;
+    labelVector(rowIndx) = currLabelIndex;
 
-    InputImageVectorType::const_iterator inIt = inputImagesVector.begin();
-    unsigned int j = 0;
-    while( (inIt != inputImagesVector.end()) && (j < numOfInputImages) )
+    typename InputImageVectorType::const_iterator inIt = inputImagesVector.begin();
+    unsigned int colIndx = 0;
+    while( ( inIt != inputImagesVector.end() ) && ( colIndx < numOfInputImages ) )
       {
-      trainMatrix(i,j) = inIt->GetValue( currentIndex );
-      ++j;
+      trainMatrix(rowIndx,colIndx) = inIt->GetPointer()->GetPixel( currentIndex );
+      ++colIndx;
       ++inIt;
       }
-    ++i;
+    ++rowIndx;
     ++NRit;
     }
 
     // set kNN input test matrix of size : #OfVoxels x #OfInputImages
-  const typename TInputImage::SizeType size = inputImagesVector[0]->GetLargestPossibleRegion().GetSize();
-  vnl_matrix<FloatingPrecision> testMatrix(size, numOfInputImages);
-  unsigned int i = 0;
+  const typename InputImageType::SizeType size = inputImagesVector[0]->GetLargestPossibleRegion().GetSize();
+  unsigned int numOfVoxels = inputImagesVector[0]->GetLargestPossibleRegion().GetNumberOfPixels();
+  vnl_matrix<FloatingPrecision> testMatrix(numOfVoxels, numOfInputImages);
+  unsigned int rowIndex = 0;
   for( LOOPITERTYPE kk = 0; kk < (LOOPITERTYPE)size[2]; kk++ )
     {
     for( LOOPITERTYPE jj = 0; jj < (LOOPITERTYPE)size[1]; jj++ )
       {
       for( LOOPITERTYPE ii = 0; ii < (LOOPITERTYPE)size[0]; ii++ )
         {
-        const typename TInputImage::IndexType currIndex = {{ii, jj, kk}};
-        unsigned int j = 0;
-        ProbabilityImageVectorType::const_iterator inIt = inputImagesVector.begin();
-        while( ( !inIt.IsAtEnd() ) && ( j < numOfInputImages ) )
+        const typename InputImageType::IndexType currIndex = {{ii, jj, kk}};
+        unsigned int colIndex = 0;
+        typename ProbabilityImageVectorType::const_iterator inIt = inputImagesVector.begin();
+        while( ( inIt != inputImagesVector.end() ) && ( colIndex < numOfInputImages ) )
           {
-          testMatrix(i,j) = inIt->GetValue( currIndex );
-          ++j;
+          testMatrix(rowIndex,colIndex) = inIt->GetPointer()->GetPixel( currIndex );
+          ++colIndex;
           ++inIt;
           }
-        ++i;
+        ++rowIndex;
         }
       }
     }
 
   const unsigned int K = 45;
     // each column of the memberShip matrix contains the voxel values of a posterior image.
-  vnl_matrix<FloatingPrecision> liklihoodMatrix(size, numClasses, 1000);
+  vnl_matrix<FloatingPrecision> liklihoodMatrix(numOfVoxels, numClasses, 1000);
 
     // Run kNN algorithm on test data
   this->kNNCore( trainMatrix, labelVector, testMatrix, liklihoodMatrix, K );
@@ -2126,12 +2131,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////// compute posteriors using kNN ///////////////////////////////////////////////
   FloatingPrecision inclusionThreshold = 0.75F;
-  ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
+  ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_WarpedPriors, this->m_PriorIsForegroundPriorVector,
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyThresholdedLabels,
                                                           this->m_ThresholdedLabels, inclusionThreshold);
 
-  this->m_Posteriors = this->ComputekNNPosteriors(this->m_CorrectedImages,
+  this->m_Posteriors = this->ComputekNNPosteriors(this->m_WarpedPriors,
+                                                  this->m_CorrectedImages,
                                                   this->m_ThresholdedLabels);
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2142,7 +2148,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyLabels,
                                                           this->m_CleanedLabels);
-  FloatingPrecision inclusionThreshold = 0.75F;
+
   ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyThresholdedLabels,
@@ -2154,7 +2160,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   if( m_MaxBiasDegree > 0 )
     {
     this->m_CorrectedImages =
-      CorrectBias(biasdegree, CurrentEMIteration + 100, SubjectCandidateRegions, this->m_InputImages,
+      CorrectBias(m_MaxBiasDegree, CurrentEMIteration + 100, SubjectCandidateRegions, this->m_InputImages,
                   this->m_CleanedLabels, this->m_NonAirRegion, this->m_Posteriors, this->m_PriorUseForBiasVector,
                   this->m_SampleSpacing, this->m_DebugLevel,
                   this->m_OutputDebugDir);
@@ -2164,7 +2170,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                              // failures when being re-used.
 //    this->m_ListOfClassStatistics = this->ComputeDistributions(SubjectCandidateRegions, this->m_Posteriors);
     this->m_RawCorrectedImages =
-      CorrectBias(biasdegree, CurrentEMIteration + 100, SubjectCandidateRegions, this->m_RawInputImages,
+      CorrectBias(m_MaxBiasDegree, CurrentEMIteration + 100, SubjectCandidateRegions, this->m_RawInputImages,
                   this->m_CleanedLabels, this->m_NonAirRegion, this->m_Posteriors, this->m_PriorUseForBiasVector,
                   this->m_SampleSpacing, this->m_DebugLevel,
                   this->m_OutputDebugDir);
