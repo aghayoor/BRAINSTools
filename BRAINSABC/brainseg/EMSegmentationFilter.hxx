@@ -763,15 +763,12 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       if( currLabelCode == this->m_PriorLabelCodeVector(iclass) )
         {
         currLabelIndex = iclass;
-        }
-      else
-        {
-        itkGenericExceptionMacro( << "Class index of the current label is not found!" << std::endl );
+        break;
         }
       }
-    if( currLabelIndex >= numClasses ) // check the validity of index
+    if( currLabelIndex == 1000 ) // if class index of the current label has not changed
       {
-      itkGenericExceptionMacro( << "Index value cannot be more than the number of classes." << std::endl );
+      itkGenericExceptionMacro( << "Class index of the current label is not found!" << std::endl );
       }
     labelVector(rowIndx) = currLabelIndex;
 
