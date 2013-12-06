@@ -672,13 +672,21 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     FloatingPrecision sumOfWeights = 0;
     for( unsigned int n = 0; n < K; ++n )
       {
-      weights(1,n) = 1/( pow( distances( neighborIndeces(n) ), 2) );
-      sumOfWeights += weights(1,n);
+      FloatingPrecision distSqr = pow( distances( neighborIndeces(n) ), 2);
+      if( distSqr == 0 )
+        {
+        weights(0,n) = 1; // avoids inf weights
+        }
+      else
+        {
+        weights(0,n) = 1/distSqr;
+        }
+      sumOfWeights += weights(0,n);
       }
     weights = weights / sumOfWeights;
 
     vnl_matrix<FloatingPrecision> likelihoodRow = weights * neighborLabels; // a 1xC vector
-    liklihoodMatrix.set_row(iTest, likelihoodRow.get_row(1) );
+    liklihoodMatrix.set_row(iTest, likelihoodRow.get_row(0) );
     } // end of main loop
 }
 
@@ -726,7 +734,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
     // change the map of input image vectors to a probability image vector type
   typedef std::vector<InputImagePointer>       InputImageVectorType;
-  InputImageVectorType                            inputImagesVector;
+  InputImageVectorType                         inputImagesVector;
   for(typename MapOfInputImageVectors::const_iterator mapIt = intensityImages.begin(); mapIt != intensityImages.end(); ++mapIt)
     {
     const double numCurModality = static_cast<double>(mapIt->second.size());
@@ -750,37 +758,50 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   NRit.SetNumberOfSamples( CleanedLabels->GetBufferedRegion().GetNumberOfPixels() );
   NRit.GoToBegin();
 
+  unsigned int maxAirSamples = 2000;
+  unsigned int numAirSamples = 0;
   unsigned int rowIndx = 0;
   while( ( !NRit.IsAtEnd() ) && ( rowIndx < numberOfSamples ) )
     {
     ByteImageType::IndexType currentIndex = NRit.GetIndex();
     unsigned int currLabelCode = NRit.Get();
-
-      // find the index of current label code (can we do that in a more efficient way?)
-    unsigned int currLabelIndex = 1000;
-    for( unsigned int iclass = 0; iclass < numClasses; iclass++ )
+    if( currLabelCode != 99 )
       {
-      if( currLabelCode == this->m_PriorLabelCodeVector(iclass) )
+      if( (currLabelCode != 0) || ((currLabelCode == 0) && (numAirSamples < maxAirSamples)) )
         {
-        currLabelIndex = iclass;
-        break;
+        std::cout << "Current label code #" << rowIndx << "is: " << currLabelCode << std::endl;
+
+          // find the index of current label code (can we do that in a more efficient way?)
+        unsigned int currLabelIndex = 1000;
+        for( unsigned int iclass = 0; iclass < numClasses; iclass++ )
+          {
+          if( currLabelCode == this->m_PriorLabelCodeVector(iclass) )
+            {
+            currLabelIndex = iclass;
+            break;
+            }
+          }
+        if( currLabelIndex == 1000 ) // if class index of the current label has not changed
+          {
+          itkGenericExceptionMacro( << "Class index of the current label is not found!" << std::endl );
+          }
+        labelVector(rowIndx) = currLabelIndex;
+
+        typename InputImageVectorType::const_iterator inIt = inputImagesVector.begin();
+        unsigned int colIndx = 0;
+        while( ( inIt != inputImagesVector.end() ) && ( colIndx < numOfInputImages ) )
+          {
+          trainMatrix(rowIndx,colIndx) = inIt->GetPointer()->GetPixel( currentIndex );
+          ++colIndx;
+          ++inIt;
+          }
+        ++rowIndx;
+        if( currLabelCode == 0 )
+          {
+          ++numAirSamples;
+          }
         }
       }
-    if( currLabelIndex == 1000 ) // if class index of the current label has not changed
-      {
-      itkGenericExceptionMacro( << "Class index of the current label is not found!" << std::endl );
-      }
-    labelVector(rowIndx) = currLabelIndex;
-
-    typename InputImageVectorType::const_iterator inIt = inputImagesVector.begin();
-    unsigned int colIndx = 0;
-    while( ( inIt != inputImagesVector.end() ) && ( colIndx < numOfInputImages ) )
-      {
-      trainMatrix(rowIndx,colIndx) = inIt->GetPointer()->GetPixel( currentIndex );
-      ++colIndx;
-      ++inIt;
-      }
-    ++rowIndx;
     ++NRit;
     }
 
