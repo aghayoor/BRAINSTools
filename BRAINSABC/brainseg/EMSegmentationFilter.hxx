@@ -769,9 +769,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       {
       if( (currLabelCode != 0) || ((currLabelCode == 0) && (numAirSamples < maxAirSamples)) )
         {
-        std::cout << "Current label code #" << rowIndx << "is: " << currLabelCode << std::endl;
-
-          // find the index of current label code (can we do that in a more efficient way?)
+        // find the index of current label code (can we do that in a more efficient way?)
         unsigned int currLabelIndex = 1000;
         for( unsigned int iclass = 0; iclass < numClasses; iclass++ )
           {
