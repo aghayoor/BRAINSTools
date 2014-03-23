@@ -2145,16 +2145,12 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 //  muLogMacro(<< "Done computing posteriors with " << CurrentEMIteration << " iterations" << std::endl);
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////// compute posteriors using kNN ///////////////////////////////////////////////
-  FloatingPrecision inclusionThreshold = 0.75F;
-  ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_WarpedPriors, this->m_PriorIsForegroundPriorVector,
-                                                          this->m_PriorLabelCodeVector, this->m_NonAirRegion,
-                                                          this->m_DirtyThresholdedLabels,
-                                                          this->m_ThresholdedLabels, inclusionThreshold);
+/////////////////////////////////////////////// compute posteriors using kNN ////////////////////////////////////////////////
 
   this->m_Posteriors = this->ComputekNNPosteriors(this->m_WarpedPriors,
                                                   this->m_CorrectedImages,
                                                   this->m_ThresholdedLabels);
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2164,7 +2160,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyLabels,
                                                           this->m_CleanedLabels);
-
+  FloatingPrecision inclusionThreshold = 0.75F;
   ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyThresholdedLabels,
@@ -2181,7 +2177,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                   this->m_SampleSpacing, this->m_DebugLevel,
                   this->m_OutputDebugDir);
     WriteDebugCorrectedImages(this->m_CorrectedImages, CurrentEMIteration + 100);
-    this->m_ListOfClassStatistics.resize(0); // Reset this to empty for
+//    this->m_ListOfClassStatistics.resize(0); // Reset this to empty for
                                              // debugging purposes to induce
                                              // failures when being re-used.
 //    this->m_ListOfClassStatistics = this->ComputeDistributions(SubjectCandidateRegions, this->m_Posteriors);
