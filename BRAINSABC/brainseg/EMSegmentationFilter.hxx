@@ -2052,7 +2052,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 //=======================================================
 
   unsigned int NumberOfSamples =  this->m_ThresholdedLabels->GetBufferedRegion().GetNumberOfPixels();
-  NumberOfSamples = NumberOfSamples * 0.15;
+  muLogMacro(<< "\nTotal number of pixels: " << NumberOfSamples << std::endl);
+  NumberOfSamples = NumberOfSamples * 0.01;
 
   while( !converged && ( CurrentEMIteration <= m_MaximumIterations ) )
     {
@@ -2061,6 +2062,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 //      this->ComputePosteriors(this->m_WarpedPriors, this->m_PriorWeights,
 //                              this->m_CorrectedImages,
 //                              this->m_ListOfClassStatistics);
+    muLogMacro(<< "Start computing posteriors at iteration " << CurrentEMIteration
+              << " using " << NumberOfSamples << " samples.\n" << std::endl);
+
     this->m_Posteriors = this->ComputekNNPosteriors(this->m_WarpedPriors,
                                                     this->m_CorrectedImages,
                                                     this->m_ThresholdedLabels,
