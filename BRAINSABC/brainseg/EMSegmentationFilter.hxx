@@ -688,6 +688,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     vnl_matrix<FloatingPrecision> likelihoodRow = weights * neighborLabels; // a 1xC vector
     liklihoodMatrix.set_row(iTest, likelihoodRow.get_row(0) );
     } // end of main loop
+  muLogMacro(<< "\n--------------------------------" << std::endl);
+  muLogMacro(<< "LiklihoodMatrix is calculated: [ " << liklihoodMatrix.rows() << " x " << liklihoodMatrix.cols() << " ]" << std::endl);
+  muLogMacro(<< "--------------------------------" << std::endl);
 }
 
 template <class TInputImage, class TProbabilityImage>
@@ -745,6 +748,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       }
     }
   const unsigned int numOfInputImages = inputImagesVector.size();
+  muLogMacro(<< "Number of input images: " << numOfInputImages << std::endl);
 
     // randomly iterate through the label image
   //const unsigned int numberOfSamples = 32000; // why?
@@ -753,6 +757,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     // set kNN train matrix. it has #numberOfSamples training cases with #numOfInputImages features
   vnl_matrix<FloatingPrecision> trainMatrix(numberOfSamples, numOfInputImages);
   vnl_vector<FloatingPrecision> labelVector(numberOfSamples);
+
+  muLogMacro(<< "Computing the label vector with " << numberOfSamples << " samples..." << std::endl);
 
   itk::ImageRandomNonRepeatingConstIteratorWithIndex<ByteImageType> NRit( CleanedLabels,
                                                                           CleanedLabels->GetBufferedRegion() );
@@ -807,7 +813,10 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     // set kNN input test matrix of size : #OfVoxels x #OfInputImages
   const typename InputImageType::SizeType size = inputImagesVector[0]->GetLargestPossibleRegion().GetSize();
   unsigned int numOfVoxels = inputImagesVector[0]->GetLargestPossibleRegion().GetNumberOfPixels();
+
+  muLogMacro(<< "Computing test matrix (" << numOfVoxels << "x" << numOfInputImages << ")" << std::endl);
   vnl_matrix<FloatingPrecision> testMatrix(numOfVoxels, numOfInputImages);
+
   unsigned int rowIndex = 0;
   for( LOOPITERTYPE kk = 0; kk < (LOOPITERTYPE)size[2]; kk++ )
     {
@@ -829,11 +838,11 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       }
     }
 
-  const unsigned int K = 45;
+  const unsigned int K = 25;
     // each column of the memberShip matrix contains the voxel values of a posterior image.
   vnl_matrix<FloatingPrecision> liklihoodMatrix(numOfVoxels, numClasses, 1000);
 
-    // Run kNN algorithm on test data
+  muLogMacro(<< "Run k-NN algorithm on test data" << std::endl);
   this->kNNCore( trainMatrix, labelVector, testMatrix, liklihoodMatrix, K );
 
     // For validation
@@ -843,6 +852,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     }
 
     // create posteriors
+  muLogMacro(<< "Create posteriors from likelihood matrix..." << std::endl);
   ProbabilityImageVectorType Posteriors;
   Posteriors.resize(numClasses);
   for( unsigned int iclass = 0; iclass < numClasses; iclass++ )
@@ -2005,7 +2015,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 //
 //  // IPEK -- this is the place where the covariance is generated
 //  this->m_ListOfClassStatistics = this->ComputeDistributions(SubjectCandidateRegions, this->m_WarpedPriors);
-//  this->WritePartitionTable(0);
+  //this->WritePartitionTable(0);
 //  {
 //  // Now check that the intraSubjectOriginalImageList has positive definite
 //  // covariance matrix.
@@ -2035,6 +2045,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 //    }
 //  }
 //
+  muLogMacro(<< "\n\nEM iteration 0" << std::endl);
+  muLogMacro(<< "---------------------" << std::endl);
   this->CheckInput();
 
   // FloatingPrecision logLikelihood = vnl_huge_val(1.0);
@@ -2087,7 +2099,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                              // debugging purposes to induce
                                              // failures when being re-used.
 //    this->m_ListOfClassStatistics = this->ComputeDistributions(SubjectCandidateRegions, this->m_Posteriors);
-    this->WritePartitionTable(CurrentEMIteration);
+//    this->WritePartitionTable(CurrentEMIteration);
+    muLogMacro(<< "\n\nEM iteration " << CurrentEMIteration <<  std::endl);
+    muLogMacro(<< "---------------------" << std::endl);
 
     // Now update transformation and estimates of probability regions based on
     // current knowledge.
@@ -2184,12 +2198,12 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyThresholdedLabels,
                                                           this->m_ThresholdedLabels, inclusionThreshold);
-
+/*
   this->m_Posteriors = this->ComputekNNPosteriors(this->m_WarpedPriors,
                                                   this->m_CorrectedImages,
                                                   this->m_ThresholdedLabels,
                                                   NumberOfSamples); //// ??????????????? again needed???
-
+*/
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2223,7 +2237,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                            // being re-used.
 //  this->m_ListOfClassStatistics = this->ComputeDistributions(SubjectCandidateRegions, this->m_Posteriors);
 
-  this->WritePartitionTable(0 + 100);
+//  this->WritePartitionTable(0 + 100);
+  muLogMacro(<< "\n\nEM iteration " << CurrentEMIteration + 100 <<  std::endl);
+  muLogMacro(<< "---------------------" << std::endl);
 }
 
 template <class TInputImage, class TProbabilityImage>
