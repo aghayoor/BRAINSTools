@@ -654,9 +654,18 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     localLabels( iTrain, labelVector(iTrain) ) = 1;
     }
 
-    // compute the distances
+  // Compute Likelihood matrix
   for( unsigned int iTest = 0; iTest < numTest; ++iTest ) ///////
     {
+
+    // compute the distances
+    vnl_vector<FloatingPrecision> distances( numTraining, 0 ); // distance vector for ith test data
+    for( unsigned int train_i = 0; train_i < numTraining; ++train_i )
+      {
+      distances(train_i) = ( testMatrix.get_row(iTest) - testMatrix.get_row(train_i) ).two_norm();
+      }
+/*
+////////////
     vnl_matrix<FloatingPrecision> tempDataMatrix( numTraining, numFeatures, 0 );
     for( unsigned int iRow = 0; iRow < numTraining; ++iRow )
       {
@@ -669,7 +678,10 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       {
       distances(iRow) = ( diffMat.get_row(iRow) ).two_norm();
       }
-      // sort distances
+///////////////////
+*/
+
+    // sort distances
     vnl_vector<unsigned int> sortedIndexed( numTraining, 0 );
 
     typedef vnl_index_sort<FloatingPrecision, unsigned int>   IndexSortType;
@@ -832,7 +844,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   const typename InputImageType::SizeType size = inputImagesVector[0]->GetLargestPossibleRegion().GetSize();
   unsigned int numOfVoxels = inputImagesVector[0]->GetLargestPossibleRegion().GetNumberOfPixels();
 
-  muLogMacro(<< "Computing test matrix (" << numOfVoxels << "x" << numOfInputImages << ")" << std::endl);
+  muLogMacro(<< "Computing test matrix ( " << numOfVoxels << " x " << numOfInputImages << " )" << std::endl);
   vnl_matrix<FloatingPrecision> testMatrix(numOfVoxels, numOfInputImages);
 
   unsigned int rowIndex = 0;
@@ -856,7 +868,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       }
     }
 
-  const unsigned int K = 25;
+  const unsigned int K = 45;
     // each column of the memberShip matrix contains the voxel values of a posterior image.
   vnl_matrix<FloatingPrecision> liklihoodMatrix(numOfVoxels, numClasses, 1000);
 
