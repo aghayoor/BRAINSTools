@@ -751,6 +751,54 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   return post;
 }
 
+// Input: input image (InputImagePointer)
+// Output: downsample input image (InputImagePointer)
+template <class TInputImage, class TProbabilityImage>
+const InputImagePointer
+EMSegmentationFilter<TInputImage, TProbabilityImage>
+::DownSampleInputIntensityImages(const InputImage * inputIntesityImage,
+                                 const double resamplingFactor)
+{
+  muLogMacro(<< "Downsampling the input images..." << std::endl);
+
+  const typename InputImageType::SizeType inputSize = inputIntesityImage->GetLargestPossibleRegion().GetSize();
+  typename InputImageType::SizeType outputSize;
+  outputSize[0] = inputSize[0]/ resamplingFactor;
+  outputSize[1] = inputSize[1]/ resamplingFactor;
+  outputSize[2] = inputSize[2]/ resamplingFactor;
+
+  typename InputImageType::::SpacingType outputSpacing;
+  outputSpacing[0] = inputIntesityImage->GetSpacing[0] * resamplingFactor;
+  outputSpacing[1] = inputIntesityImage->GetSpacing[1] * resamplingFactor;
+  outputSpacing[2] = inputIntesityImage->GetSpacing[2] * resamplingFactor;
+
+  typedef itk::IdentityTransform<double, 3> IdentityTransformType;
+  typedef itk::ResampleImageFilter<ImageType, ImageType> ResampleImageFilterType;
+
+  ResampleImageFilterType::Pointer resampler = ResampleImageFilterType::New();
+  resampler->SetInput( inputIntesityImage );
+  resampler->SetSize( outputSize );
+  resampler->SetOutputSpacing( outputSpacing );
+  resampler->SetTransform( IdentityTransformType::New() );
+  resampler->UpdateLargestPossibleRegion();
+
+  const InputImagePointer downsampledInputImage = resampler->GetOutput();
+
+  muLogMacro(<< "Downsampled test image size:" << downsampledInputImage->GetLargestPossibleRegion().GetSize() << std::endl);
+
+  return downsampledInputImage;
+}
+
+// Input: probability image (TProbabilityImage::Pointer)
+// Output: Upsampled probability image (TProbabilityImage::Pointer)
+template <class TInputImage, class TProbabilityImage>
+typename TProbabilityImage::Pointer
+EMSegmentationFilter<TInputImage, TProbabilityImage>
+::UpSamplePosteriorImages( typename TProbabilityImage * downSampledPosteriors)
+{
+
+}
+
 template <class TInputImage, class TProbabilityImage>
 typename EMSegmentationFilter<TInputImage, TProbabilityImage>::ProbabilityImageVectorType
 EMSegmentationFilter<TInputImage, TProbabilityImage>
@@ -769,12 +817,18 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     // change the map of input image vectors to a probability image vector type
   typedef std::vector<InputImagePointer>       InputImageVectorType;
   InputImageVectorType                         inputImagesVector;
-  for(typename MapOfInputImageVectors::const_iterator mapIt = intensityImages.begin(); mapIt != intensityImages.end(); ++mapIt)
+
+  typename MapOfInputImageVectors::const_iterator mapIt = intensityImages.begin();
+  unsigned int sizeBeforeDwSmpl = mapIt->second->GetLargestPossibleRegion().GetSize();
+  muLogMacro(<< "Size of test image before downsampling: ( " << sizeBeforeDwSmpl << " )" << std::endl);
+
+  for(mapIt = intensityImages.begin(); mapIt != intensityImages.end(); ++mapIt)
     {
     const double numCurModality = static_cast<double>(mapIt->second.size());
     for(unsigned m = 0; m < numCurModality; ++m)
       {
-      inputImagesVector.push_back( mapIt->second[m] );
+      // Test cases are downsampled input image intensities e.g. downsampled T1, T2.
+      inputImagesVector.push_back( this->DownSampleInputIntensityImages( mapIt->second[m], 3.0 ) );
       }
     }
   const unsigned int numOfInputImages = inputImagesVector.size();
@@ -883,11 +937,18 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
     // create posteriors
   muLogMacro(<< "Create posteriors from likelihood matrix..." << std::endl);
+  ProbabilityImageVectorType downSampledPosteriors;
+  downSampledPosteriors.resize(numClasses);
+  for( unsigned int iclass = 0; iclass < numClasses; iclass++ )
+    {
+    downSampledPosteriors[iclass] = this->assignVectorToImage( Priors[iclass], liklihoodMatrix.get_column(iclass) );
+    }
+
   ProbabilityImageVectorType Posteriors;
   Posteriors.resize(numClasses);
   for( unsigned int iclass = 0; iclass < numClasses; iclass++ )
     {
-    Posteriors[iclass] = this->assignVectorToImage( Priors[iclass], liklihoodMatrix.get_column(iclass) );
+    Posteriors[iclass] = this->UpSamplePosteriorImages( downSampledPosteriors[iclass] );
     }
 
   return Posteriors;
