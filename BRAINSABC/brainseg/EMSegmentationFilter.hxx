@@ -804,11 +804,11 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   typename ResampleImageFilterType::Pointer resampler = ResampleImageFilterType::New();
   resampler->SetInput( downSampledPosteriors );
 
-  //resampler->SetOutputOrigin ( refPrior->GetOrigin() );
-  //resampler->SetSize( refPrior->GetLargestPossibleRegion().GetSize() );
-  //resampler->SetOutputSpacing( refPrior->GetSpacing() );
-  //resampler->SetOutputDirection( refPrior->GetDirection() )
-  resampler->SetReferenceImage( refPrior );
+  resampler->SetOutputOrigin ( refPrior->GetOrigin() );
+  resampler->SetSize( refPrior->GetLargestPossibleRegion().GetSize() );
+  resampler->SetOutputSpacing( refPrior->GetSpacing() );
+  resampler->SetOutputDirection( refPrior->GetDirection() );
+  //resampler->SetReferenceImage( refPrior );
 
   resampler->SetTransform( IdentityTransformType::New() );
   resampler->UpdateLargestPossibleRegion();
@@ -987,7 +987,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   const typename InputImageType::SizeType finalPosteriorSize = Posteriors[0]->GetLargestPossibleRegion().GetSize();
   muLogMacro(<< "Size of return posteriors: " << finalPosteriorSize  << std::endl);
 
-  return dynamic_cast<ProbabilityImageVectorType>( Posteriors );
+  return Posteriors;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2221,13 +2221,17 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                                     NumberOfSamples,
                                                     DownSamplingFactor);
 
+    muLogMacro(<< "NormalizeProbListInPlace " << std::endl);
     NormalizeProbListInPlace<TProbabilityImage>(this->m_Posteriors);
+    muLogMacro(<< "WriteDebugPosteriors " << std::endl);
     this->WriteDebugPosteriors(CurrentEMIteration);
+    muLogMacro(<< "ComputeLabels " << std::endl);
     ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
                                                             this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                             this->m_DirtyLabels,
                                                             this->m_CleanedLabels);
     this->WriteDebugLabels(CurrentEMIteration);
+    muLogMacro(<< "m_CorrectedImages " << std::endl);
     this->m_CorrectedImages =
       CorrectBias(this->m_MaxBiasDegree, CurrentEMIteration, SubjectCandidateRegions, this->m_InputImages,
                   this->m_CleanedLabels, this->m_NonAirRegion, this->m_Posteriors, this->m_PriorUseForBiasVector,
