@@ -290,11 +290,20 @@ private:
   assignVectorToImage(const typename TProbabilityImage::Pointer prior,
                       const vnl_vector<FloatingPrecision> & vector);
 
+  const typename TInputImage::Pointer
+  DownSampleInputIntensityImages(const TInputImage * inputIntesityImage,
+                                 const double resamplingFactor);
+
+  typename TProbabilityImage::Pointer
+  UpSamplePosteriorImages( const TProbabilityImage * downSampledPosteriors,
+                           const TProbabilityImage * refPrior);
+
   std::vector<typename TProbabilityImage::Pointer>
   ComputekNNPosteriors(const ProbabilityImageVectorType & Priors,
                         const MapOfInputImageVectors & IntensityImages,
                         ByteImagePointer & CleanedLabels,
-                        const unsigned int numberOfSamples);
+                        const unsigned int numberOfSamples,
+                        const double DownSamplingFactor);
 
   typename TProbabilityImage::Pointer
   ComputeOnePosterior(const FloatingPrecision priorScale,
