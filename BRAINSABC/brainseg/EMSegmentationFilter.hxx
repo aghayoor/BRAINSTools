@@ -797,6 +797,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::UpSamplePosteriorImages( const TProbabilityImage * downSampledPosteriors,
                            const TProbabilityImage * refPrior)
 {
+  muLogMacro(<< "UPsampling the input images..." << std::endl);
   typedef itk::IdentityTransform<double, 3> IdentityTransformType;
   typedef itk::ResampleImageFilter<TProbabilityImage, TProbabilityImage> ResampleImageFilterType;
 
@@ -983,7 +984,10 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     Posteriors[iclass] = this->UpSamplePosteriorImages( downSampledPosteriors[iclass], Priors[iclass] );
     }
 
-  return Posteriors;
+  const typename InputImageType::SizeType finalPosteriorSize = Posteriors[0]->GetLargestPossibleRegion().GetSize();
+  muLogMacro(<< "Size of return posteriors: " << finalPosteriorSize  << std::endl);
+
+  return dynamic_cast<ProbabilityImageVectorType>( Posteriors );
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
