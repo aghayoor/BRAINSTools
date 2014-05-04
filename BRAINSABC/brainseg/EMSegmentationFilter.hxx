@@ -657,12 +657,11 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   // Compute Likelihood matrix
   for( unsigned int iTest = 0; iTest < numTest; ++iTest ) ///////
     {
-
     // compute the distances
     vnl_vector<FloatingPrecision> distances( numTraining, 0 ); // distance vector for ith test data
     for( unsigned int train_i = 0; train_i < numTraining; ++train_i )
       {
-      distances(train_i) = ( testMatrix.get_row(iTest) - testMatrix.get_row(train_i) ).two_norm();
+      distances(train_i) = ( testMatrix.get_row(iTest) - trainMatrix.get_row(train_i) ).two_norm();
       }
 /*
 ////////////
@@ -680,7 +679,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       }
 ///////////////////
 */
-
     // sort distances
     vnl_vector<unsigned int> sortedIndexed( numTraining, 0 );
 
@@ -691,6 +689,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       // First K indeces
     vnl_vector<unsigned int> neighborIndeces(K, 0);
     neighborIndeces = sortedIndexed.extract(K, 0); // indeces of first K neighbors
+
       // Now we should find K labels correspondence to K neighbors
     vnl_matrix<FloatingPrecision> neighborLabels( K, numClasses);
     for( unsigned int n = 0; n < K; ++n )
@@ -735,6 +734,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   post->Allocate();
 
   const typename TProbabilityImage::SizeType size = post->GetLargestPossibleRegion().GetSize();
+  //muLogMacro(<< "DEBUG: size of posterior inside the assign vector: " << size << std::endl);
+
   unsigned int vindex = 0;
   for( LOOPITERTYPE kk = 0; kk < (LOOPITERTYPE)size[2]; kk++ )
     {
@@ -759,8 +760,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::DownSampleInputIntensityImages(const TInputImage * inputIntesityImage,
                                  const double resamplingFactor)
 {
-  muLogMacro(<< "Downsampling the input images..." << std::endl);
-
   const typename InputImageType::SizeType inputSize = inputIntesityImage->GetLargestPossibleRegion().GetSize();
   typename InputImageType::SizeType outputSize;
   outputSize[0] = inputSize[0]/ resamplingFactor;
@@ -777,14 +776,15 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   typename ResampleImageFilterType::Pointer resampler = ResampleImageFilterType::New();
   resampler->SetInput( inputIntesityImage );
+
+  resampler->SetOutputOrigin ( inputIntesityImage->GetOrigin() );
   resampler->SetSize( outputSize );
   resampler->SetOutputSpacing( outputSpacing );
+  resampler->SetOutputDirection( inputIntesityImage->GetDirection() );
   resampler->SetTransform( IdentityTransformType::New() );
   resampler->UpdateLargestPossibleRegion();
 
   const InputImagePointer downsampledInputImage = resampler->GetOutput();
-
-  muLogMacro(<< "Downsampled test image size:" << downsampledInputImage->GetLargestPossibleRegion().GetSize() << std::endl);
 
   return downsampledInputImage;
 }
@@ -797,7 +797,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::UpSamplePosteriorImages( const TProbabilityImage * downSampledPosteriors,
                            const TProbabilityImage * refPrior)
 {
-  muLogMacro(<< "UPsampling the input images..." << std::endl);
   typedef itk::IdentityTransform<double, 3> IdentityTransformType;
   typedef itk::ResampleImageFilter<TProbabilityImage, TProbabilityImage> ResampleImageFilterType;
 
@@ -861,8 +860,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   vnl_matrix<FloatingPrecision> trainMatrix(numberOfSamples, numOfInputImages);
   vnl_vector<FloatingPrecision> labelVector(numberOfSamples);
 
-  muLogMacro(<< "Computing the label vector with " << numberOfSamples << " samples..." << std::endl);
-  muLogMacro(<< "Computing train matrix ( " << numberOfSamples << " x " << numOfInputImages << " )" << std::endl);
+  muLogMacro(<< "\n* Computing the label vector with " << numberOfSamples << " samples..." << std::endl);
+  muLogMacro(<< "* Computing train matrix ( " << numberOfSamples << " x " << numOfInputImages << " )" << std::endl);
 
   itk::ImageRandomNonRepeatingConstIteratorWithIndex<ByteImageType> NRit( CleanedLabels,
                                                                           CleanedLabels->GetBufferedRegion() );
@@ -916,6 +915,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   //  Downsample input images for speed up posterior computations
   //  We do downsampling here because input images are needed for computing train matrix
+  muLogMacro(<< "Downsampling the input images..." << std::endl);
   InputImageVectorType       DownSampledInputImagesVector;
 
   typename InputImageVectorType::const_iterator dsIt = inputImagesVector.begin();
@@ -925,11 +925,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       ++dsIt;
     }
 
+  muLogMacro(<< "Downsampled test image size:" << DownSampledInputImagesVector[0]->GetLargestPossibleRegion().GetSize() << std::endl);
+
     // set kNN input test matrix of size : #OfVoxels x #OfInputImages
   const typename InputImageType::SizeType size = DownSampledInputImagesVector[0]->GetLargestPossibleRegion().GetSize();
   unsigned int numOfVoxels = DownSampledInputImagesVector[0]->GetLargestPossibleRegion().GetNumberOfPixels();
 
-  muLogMacro(<< "Computing test matrix ( " << numOfVoxels << " x " << numOfInputImages << " )" << std::endl);
+  muLogMacro(<< "\n* Computing test matrix ( " << numOfVoxels << " x " << numOfInputImages << " )" << std::endl);
   vnl_matrix<FloatingPrecision> testMatrix(numOfVoxels, numOfInputImages);
 
   unsigned int rowIndex = 0;
@@ -957,7 +959,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     // each column of the memberShip matrix contains the voxel values of a posterior image.
   vnl_matrix<FloatingPrecision> liklihoodMatrix(numOfVoxels, numClasses, 1000);
 
-  muLogMacro(<< "Run k-NN algorithm on test data" << std::endl);
+  muLogMacro(<< "\n* Computing Liklihood Matrix ( " << numOfVoxels << " x " << numClasses << " )" << std::endl);
+  muLogMacro(<< "Run k-NN algorithm on test data..." << std::endl);
+
   this->kNNCore( trainMatrix, labelVector, testMatrix, liklihoodMatrix, K );
 
     // For validation
@@ -976,7 +980,14 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                                     this->DownSampleInputIntensityImages(Priors[iclass],DownSamplingFactor),
                                                     liklihoodMatrix.get_column(iclass) );
     }
-
+  /*
+  typedef itk::ImageFileWriter<TProbabilityImage> PostImageWriterType;
+  typename PostImageWriterType::Pointer dwposetriorwriter = PostImageWriterType::New();
+  dwposetriorwriter->SetInput(downSampledPosteriors[14]);
+  dwposetriorwriter->SetFileName("DEBUG_WHITE_MATTER_DWSmpled.nii.gz");
+  dwposetriorwriter->Update();
+   */
+  muLogMacro(<< "Upsampling posterior to the original size..." << std::endl);
   ProbabilityImageVectorType Posteriors;
   Posteriors.resize(numClasses);
   for( unsigned int iclass = 0; iclass < numClasses; iclass++ )
@@ -986,7 +997,12 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   const typename InputImageType::SizeType finalPosteriorSize = Posteriors[0]->GetLargestPossibleRegion().GetSize();
   muLogMacro(<< "Size of return posteriors: " << finalPosteriorSize  << std::endl);
-
+  /*
+  typename PostImageWriterType::Pointer posetriorwriter = PostImageWriterType::New();
+  posetriorwriter->SetInput(Posteriors[14]);
+  posetriorwriter->SetFileName("DEBUG_WHITE_MATTER.nii.gz");
+  posetriorwriter->Update();
+  */
   return Posteriors;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2200,11 +2216,12 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   unsigned int NumberOfSamples =  this->m_ThresholdedLabels->GetBufferedRegion().GetNumberOfPixels();
   muLogMacro(<< "\nTotal number of voxels: " << NumberOfSamples << std::endl);
-  NumberOfSamples = NumberOfSamples * 0.001;
+  NumberOfSamples = NumberOfSamples * 0.1;
   muLogMacro(<< "\nNumber of samples used to make train matrix: " << NumberOfSamples << std::endl);
-  double DownSamplingFactor = 5;
+  double DownSamplingFactor = 3;
   muLogMacro(<< "\nDownsampling Factor: " << DownSamplingFactor << std::endl);
 
+  m_MaximumIterations = 2; ////////DEBUG
   while( !converged && ( CurrentEMIteration <= m_MaximumIterations ) )
     {
     // Recompute posteriors, not at full resolution
@@ -2324,6 +2341,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       }
 
     NumberOfSamples = NumberOfSamples * 1.5;
+    DownSamplingFactor = DownSamplingFactor / 1.2;
 
     } // end EM loop
 
