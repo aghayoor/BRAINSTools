@@ -875,7 +875,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     {
     ByteImageType::IndexType currentIndex = NRit.GetIndex();
     unsigned int currLabelCode = NRit.Get();
-    if( currLabelCode != 99 )
+    if( currLabelCode != 99 ) // 99 is the label code of the voxels that their value is less than threshold
+                              // so they are not used in our computations.
       {
       if( (currLabelCode != 0) || ((currLabelCode == 0) && (numAirSamples < maxAirSamples)) )
         {
@@ -913,9 +914,24 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     ++NRit;
     }
 
+  muLogMacro(<< "\n****** Row index: " << rowIndx << "instead of " << numberOfSamples << std::endl);
+  if( rowIndx < numberOfSamples )
+    {
+    muLogMacro(<< "WARNING: Number of valid samples greater than threshold are\n "
+               << rowIndx << ", that is less than total number of chosen samples: "
+               << numberOfSamples << ".\nTrain matrix and Lable vector are resized." << std::endl);
+
+    trainMatrix = trainMatrix.extract(rowIndx,numOfInputImages,0,0);
+    labelVector = labelVector.extract(rowIndx,0);
+
+    muLogMacro(<< "\n*** New size of Label vector and train matrix: " << std::endl);
+    muLogMacro(<< "* Label vector < " << labelVector.size() << " >" << std::endl);
+    muLogMacro(<< "* Train matrix ( " << trainMatrix.rows() << " x " << trainMatrix.cols() << " )" << std::endl);
+    }
+
   //  Downsample input images for speed up posterior computations
   //  We do downsampling here because input images are needed for computing train matrix
-  muLogMacro(<< "Downsampling the input images..." << std::endl);
+  muLogMacro(<< "\nDownsampling the input images..." << std::endl);
   InputImageVectorType       DownSampledInputImagesVector;
 
   typename InputImageVectorType::const_iterator dsIt = inputImagesVector.begin();
@@ -2217,7 +2233,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   unsigned int NumberOfSamples =  this->m_ThresholdedLabels->GetBufferedRegion().GetNumberOfPixels();
   muLogMacro(<< "\nTotal number of voxels: " << NumberOfSamples << std::endl);
   NumberOfSamples = NumberOfSamples * 0.1;
-  muLogMacro(<< "\nNumber of samples used to make train matrix: " << NumberOfSamples << std::endl);
+  muLogMacro(<< "Number of samples used to make train matrix: " << NumberOfSamples << std::endl);
   double DownSamplingFactor = 3;
   muLogMacro(<< "\nDownsampling Factor: " << DownSamplingFactor << std::endl);
 
@@ -2229,7 +2245,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 //      this->ComputePosteriors(this->m_WarpedPriors, this->m_PriorWeights,
 //                              this->m_CorrectedImages,
 //                              this->m_ListOfClassStatistics);
-    muLogMacro(<< "Start computing posteriors at iteration " << CurrentEMIteration
+    muLogMacro(<< "\nStart computing posteriors at iteration " << CurrentEMIteration
               << " using " << NumberOfSamples << " samples.\n" << std::endl);
 
     this->m_Posteriors = this->ComputekNNPosteriors(this->m_WarpedPriors,
@@ -2238,11 +2254,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                                     NumberOfSamples,
                                                     DownSamplingFactor);
 
-    muLogMacro(<< "NormalizeProbListInPlace " << std::endl);
     NormalizeProbListInPlace<TProbabilityImage>(this->m_Posteriors);
-    muLogMacro(<< "WriteDebugPosteriors " << std::endl);
     this->WriteDebugPosteriors(CurrentEMIteration);
-    muLogMacro(<< "ComputeLabels " << std::endl);
     ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
                                                             this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                             this->m_DirtyLabels,
