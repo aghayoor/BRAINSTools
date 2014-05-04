@@ -760,6 +760,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::DownSampleInputIntensityImages(const TInputImage * inputIntesityImage,
                                  const double resamplingFactor)
 {
+  // Set new size and spacing
   const typename InputImageType::SizeType inputSize = inputIntesityImage->GetLargestPossibleRegion().GetSize();
   typename InputImageType::SizeType outputSize;
   outputSize[0] = inputSize[0]/ resamplingFactor;
@@ -771,12 +772,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   outputSpacing[1] = inputIntesityImage->GetSpacing()[1] * resamplingFactor;
   outputSpacing[2] = inputIntesityImage->GetSpacing()[2] * resamplingFactor;
 
+  // resampling transform is identity
   typedef itk::IdentityTransform<double, 3> IdentityTransformType;
-  typedef itk::ResampleImageFilter<TInputImage, TInputImage> ResampleImageFilterType;
 
+  // Resampling filter
+  typedef itk::ResampleImageFilter<TInputImage, TInputImage> ResampleImageFilterType;
   typename ResampleImageFilterType::Pointer resampler = ResampleImageFilterType::New();
   resampler->SetInput( inputIntesityImage );
-
   resampler->SetOutputOrigin ( inputIntesityImage->GetOrigin() );
   resampler->SetSize( outputSize );
   resampler->SetOutputSpacing( outputSpacing );
@@ -784,8 +786,15 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   resampler->SetTransform( IdentityTransformType::New() );
   resampler->UpdateLargestPossibleRegion();
 
-  const InputImagePointer downsampledInputImage = resampler->GetOutput();
+  // Smoothing filter
+  typedef DiscreteGaussianImageFilter<TInputImage, TInputImage> SmoothingFilterType;
+  typename SmoothingFilterType::Pointer smoothingFilter = SmoothingFilterType::New();
+  smoothingFilter->SetUseImageSpacingOn();
+  smoothingFilter->SetVariance( vnl_math_sqr( resamplingFactor - 1 ) );
+  smoothingFilter->SetMaximumError( 0.01 );
+  smoothingFilter->SetInput( resampler->GetOutput() );
 
+  const InputImagePointer downsampledInputImage = smoothingFilter->GetOutput();
   return downsampledInputImage;
 }
 
