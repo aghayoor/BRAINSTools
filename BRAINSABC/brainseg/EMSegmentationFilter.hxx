@@ -46,6 +46,8 @@
 #include "itkNumericTraits.h"
 #include "itkRelabelComponentImageFilter.h"
 #include "itkResampleImageFilter.h"
+#include "itkDiscreteGaussianImageFilter.h"
+#include "itkBSplineInterpolateImageFunction.h"
 // #include "itkMersenneTwisterRandomVariateGenerator.h"
 
 #include "vnl/algo/vnl_determinant.h"
@@ -784,15 +786,16 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   resampler->SetOutputSpacing( outputSpacing );
   resampler->SetOutputDirection( inputIntesityImage->GetDirection() );
   resampler->SetTransform( IdentityTransformType::New() );
-  resampler->UpdateLargestPossibleRegion();
+//  resampler->UpdateLargestPossibleRegion();
 
   // Smoothing filter
-  typedef DiscreteGaussianImageFilter<TInputImage, TInputImage> SmoothingFilterType;
+  typedef itk::DiscreteGaussianImageFilter<TInputImage, TInputImage> SmoothingFilterType;
   typename SmoothingFilterType::Pointer smoothingFilter = SmoothingFilterType::New();
   smoothingFilter->SetUseImageSpacingOn();
   smoothingFilter->SetVariance( vnl_math_sqr( resamplingFactor - 1 ) );
   smoothingFilter->SetMaximumError( 0.01 );
   smoothingFilter->SetInput( resampler->GetOutput() );
+  smoothingFilter->Update();
 
   const InputImagePointer downsampledInputImage = smoothingFilter->GetOutput();
   return downsampledInputImage;
@@ -807,6 +810,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                            const TProbabilityImage * refPrior)
 {
   typedef itk::IdentityTransform<double, 3> IdentityTransformType;
+  IdentityTransformType::Pointer idtransform = IdentityTransformType::New();
+  idtransform->SetIdentity();
+
+  typedef itk::BSplineInterpolateImageFunction<TInputImage, double, double> InterpolatorType;
+  typename InterpolatorType::Pointer interpolator = InterpolatorType::New();
+  interpolator->SetSplineOrder(3);
+
   typedef itk::ResampleImageFilter<TProbabilityImage, TProbabilityImage> ResampleImageFilterType;
 
   typename ResampleImageFilterType::Pointer resampler = ResampleImageFilterType::New();
@@ -816,9 +826,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   resampler->SetSize( refPrior->GetLargestPossibleRegion().GetSize() );
   resampler->SetOutputSpacing( refPrior->GetSpacing() );
   resampler->SetOutputDirection( refPrior->GetDirection() );
-  //resampler->SetReferenceImage( refPrior );
-
-  resampler->SetTransform( IdentityTransformType::New() );
+  resampler->SetTransform( idtransform );
+  resampler->SetInterpolator( interpolator );
   resampler->UpdateLargestPossibleRegion();
 
   const typename TProbabilityImage::Pointer UpsampledPosteriors = resampler->GetOutput();
@@ -923,17 +932,15 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     ++NRit;
     }
 
-  muLogMacro(<< "\n****** Row index: " << rowIndx << "instead of " << numberOfSamples << std::endl);
   if( rowIndx < numberOfSamples )
     {
-    muLogMacro(<< "WARNING: Number of valid samples greater than threshold are\n "
-               << rowIndx << ", that is less than total number of chosen samples: "
-               << numberOfSamples << ".\nTrain matrix and Lable vector are resized." << std::endl);
+    muLogMacro(<< "WARNING: Only \"" << rowIndx << "\" samples are valid (greater than threshold vlaue).\n "
+               << "This is less than total number of chosen samples: " << numberOfSamples << ".\n"
+               << "Train matrix and Lable vector should be resized to:" << std::endl);
 
     trainMatrix = trainMatrix.extract(rowIndx,numOfInputImages,0,0);
     labelVector = labelVector.extract(rowIndx,0);
 
-    muLogMacro(<< "\n*** New size of Label vector and train matrix: " << std::endl);
     muLogMacro(<< "* Label vector < " << labelVector.size() << " >" << std::endl);
     muLogMacro(<< "* Train matrix ( " << trainMatrix.rows() << " x " << trainMatrix.cols() << " )" << std::endl);
     }
