@@ -881,6 +881,15 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   muLogMacro(<< "\n* Computing the label vector with " << numberOfSamples << " samples..." << std::endl);
   muLogMacro(<< "* Computing train matrix ( " << numberOfSamples << " x " << numOfInputImages << " )" << std::endl);
 
+  /* DEBUG */
+  muLogMacro(<< "Write clean labels for debugging." << std::endl);
+  typedef itk::ImageFileWriter<ByteImageType> LabelImageWriterType;
+  typename LabelImageWriterType::Pointer cleanLabelWriter = LabelImageWriterType::New();
+  cleanLabelWriter->SetInput(CleanedLabels);
+  cleanLabelWriter->SetFileName("DEBUG_CleanLabels.nii.gz");
+  cleanLabelWriter->Update();
+  /////////
+
   itk::ImageRandomNonRepeatingConstIteratorWithIndex<ByteImageType> NRit( CleanedLabels,
                                                                           CleanedLabels->GetBufferedRegion() );
   NRit.SetNumberOfSamples( CleanedLabels->GetBufferedRegion().GetNumberOfPixels() );
@@ -947,6 +956,10 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
        }
     std::ofstream csvFile;
     csvFile.open( "trainingLabels.csv" );
+    if( !csvFile.is_open() )
+      {
+      itkGenericExceptionMacro( << "Error: Can't write label csv file!" << std::endl );
+      }
     csvFile << csvFileOfSampleLabels.str();
     csvFile.close();
     }
@@ -2269,9 +2282,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   unsigned int NumberOfSamples =  this->m_ThresholdedLabels->GetBufferedRegion().GetNumberOfPixels();
   muLogMacro(<< "\nTotal number of voxels: " << NumberOfSamples << std::endl);
-  NumberOfSamples = NumberOfSamples * 0.01;
+  NumberOfSamples = NumberOfSamples * 0.1;
   muLogMacro(<< "Number of samples used to make train matrix: " << NumberOfSamples << std::endl);
-  double DownSamplingFactor = 3;
+  double DownSamplingFactor = 1;
   muLogMacro(<< "\nDownsampling Factor: " << DownSamplingFactor << std::endl);
 
   m_MaximumIterations = 1; ////////DEBUG
