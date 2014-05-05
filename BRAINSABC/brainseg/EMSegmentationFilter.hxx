@@ -932,6 +932,25 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     ++NRit;
     }
 
+  const bool generateLogScript = true;
+  if( generateLogScript )
+    {
+    muLogMacro(<< "Write training labels csv file ..." << std::endl);
+    std::stringstream csvFileOfSampleLabels;
+    csvFileOfSampleLabels << "#T1value, T2value, LableCode, ClassName" << std::endl;
+    for( unsigned i = 0; i < rowIndx; ++i )
+       {
+       csvFileOfSampleLabels << trainMatrix(rowIndx,0) << ",";
+       csvFileOfSampleLabels << trainMatrix(rowIndx,1) << ",";
+       csvFileOfSampleLabels << this->m_PriorLabelCodeVector( labelVector(rowIndx) ) << ",";
+       csvFileOfSampleLabels << this->m_PriorNames[ labelVector(rowIndx) ] << std::endl;
+       }
+    std::ofstream csvFile;
+    csvFile.open( "trainingLabels.csv" );
+    csvFile << csvFileOfSampleLabels.str();
+    csvFile.close();
+    }
+
   muLogMacro(<< "Number of valid points: " << rowIndx << std::endl);
   if( rowIndx < numberOfSamples )
     {
