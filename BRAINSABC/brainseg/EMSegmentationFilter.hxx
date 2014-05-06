@@ -882,7 +882,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   muLogMacro(<< "* Computing train matrix ( " << numberOfSamples << " x " << numOfInputImages << " )" << std::endl);
 
   /* DEBUG */
-  muLogMacro(<< "Write clean labels for debugging." << std::endl);
+  muLogMacro(<< "\nWrite clean labels for debugging." << std::endl);
   typedef itk::ImageFileWriter<ByteImageType> LabelImageWriterType;
   typename LabelImageWriterType::Pointer cleanLabelWriter = LabelImageWriterType::New();
   cleanLabelWriter->SetInput(CleanedLabels);
@@ -941,19 +941,33 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     ++NRit;
     }
 
+  muLogMacro(<< "\nNumber of valid points: " << rowIndx << std::endl);
+
+  if( rowIndx < numberOfSamples )
+    {
+    muLogMacro(<< "WARNING: Only \"" << rowIndx << "\" samples are valid.\n "
+               << "This is less than total number of chosen samples: " << numberOfSamples << ".\n"
+               << "Train matrix and Lable vector should be resized to:" << std::endl);
+    trainMatrix = trainMatrix.extract(rowIndx,numOfInputImages,0,0);
+    labelVector = labelVector.extract(rowIndx,0);
+
+    muLogMacro(<< "* Label vector < " << labelVector.size() << " >" << std::endl);
+    muLogMacro(<< "* Train matrix ( " << trainMatrix.rows() << " x " << trainMatrix.cols() << " )" << std::endl);
+    }
+
+  // Write csv file
   const bool generateLogScript = true;
   if( generateLogScript )
     {
-    muLogMacro(<< "Write training labels csv file ..." << std::endl);
+    muLogMacro(<< "\nWrite training labels csv file ..." << std::endl);
     std::stringstream csvFileOfSampleLabels;
     csvFileOfSampleLabels << "#T1value, T2value, LableCode, ClassName" << std::endl;
     for( unsigned i = 0; i < rowIndx; ++i )
-       {
-       csvFileOfSampleLabels << trainMatrix(rowIndx,0) << ",";
-       csvFileOfSampleLabels << trainMatrix(rowIndx,1) << ",";
-       csvFileOfSampleLabels << this->m_PriorLabelCodeVector( labelVector(rowIndx) ) << ",";
-       csvFileOfSampleLabels << this->m_PriorNames[ labelVector(rowIndx) ] << std::endl;
-       }
+      {
+      csvFileOfSampleLabels << trainMatrix(0,i) << ",";
+      csvFileOfSampleLabels << this->m_PriorLabelCodeVector( labelVector(i) ) << ",";
+      csvFileOfSampleLabels << this->m_PriorNames[ labelVector(i) ] << std::endl;
+      }
     std::ofstream csvFile;
     csvFile.open( "trainingLabels.csv" );
     if( !csvFile.is_open() )
@@ -963,19 +977,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     csvFile << csvFileOfSampleLabels.str();
     csvFile.close();
     }
-
-  muLogMacro(<< "Number of valid points: " << rowIndx << std::endl);
-  if( rowIndx < numberOfSamples )
-    {
-    muLogMacro(<< "WARNING: Only \"" << rowIndx << "\" samples are valid (greater than threshold vlaue).\n "
-               << "This is less than total number of chosen samples: " << numberOfSamples << ".\n"
-               << "Train matrix and Lable vector should be resized to:" << std::endl);
-    }
-  trainMatrix = trainMatrix.extract(rowIndx/5,numOfInputImages,0,0);
-  labelVector = labelVector.extract(rowIndx/5,0);
-
-  muLogMacro(<< "* Label vector < " << labelVector.size() << " >" << std::endl);
-  muLogMacro(<< "* Train matrix ( " << trainMatrix.rows() << " x " << trainMatrix.cols() << " )" << std::endl);
 
   //  Downsample input images for speed up posterior computations
   //  We do downsampling here because input images are needed for computing train matrix
@@ -2211,11 +2212,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyLabels,
                                                           this->m_CleanedLabels);
-  FloatingPrecision inclusionThreshold = 0.75F;
-  ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_WarpedPriors, this->m_PriorIsForegroundPriorVector,
-                                                          this->m_PriorLabelCodeVector, this->m_NonAirRegion,
-                                                          this->m_DirtyThresholdedLabels,
-                                                          this->m_ThresholdedLabels, inclusionThreshold);
 
   this->WriteDebugLabels(0);
 //  this->m_ListOfClassStatistics.resize(0); // Reset this to empty for debugging
@@ -2280,11 +2276,11 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     unsigned int CurrentEMIteration = 1;
 //=======================================================
 
-  unsigned int NumberOfSamples =  this->m_ThresholdedLabels->GetBufferedRegion().GetNumberOfPixels();
+  unsigned int NumberOfSamples =  this->m_CleanedLabels->GetBufferedRegion().GetNumberOfPixels();
   muLogMacro(<< "\nTotal number of voxels: " << NumberOfSamples << std::endl);
-  NumberOfSamples = NumberOfSamples * 0.1;
+  NumberOfSamples = NumberOfSamples * 0.01;
   muLogMacro(<< "Number of samples used to make train matrix: " << NumberOfSamples << std::endl);
-  double DownSamplingFactor = 1;
+  double DownSamplingFactor = 4;
   muLogMacro(<< "\nDownsampling Factor: " << DownSamplingFactor << std::endl);
 
   m_MaximumIterations = 1; ////////DEBUG
@@ -2300,7 +2296,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
     this->m_Posteriors = this->ComputekNNPosteriors(this->m_WarpedPriors,
                                                     this->m_CorrectedImages,
-                                                    this->m_ThresholdedLabels,
+                                                    this->m_CleanedLabels,
                                                     NumberOfSamples,
                                                     DownSamplingFactor);
 
@@ -2417,7 +2413,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyLabels,
                                                           this->m_CleanedLabels);
-  //FloatingPrecision inclusionThreshold = 0.75F;
+  FloatingPrecision inclusionThreshold = 0.75F;
   ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyThresholdedLabels,
