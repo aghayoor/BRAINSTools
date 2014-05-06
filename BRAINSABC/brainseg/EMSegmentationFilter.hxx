@@ -805,8 +805,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   NRit.SetNumberOfSamples( CleanedLabels->GetBufferedRegion().GetNumberOfPixels() );
   NRit.GoToBegin();
 
-  //unsigned int maxAirSamples = numberOfSamples * 0.05;
-  unsigned int maxAirSamples = 2000;
+  unsigned int maxAirSamples = numberOfSamples * 0.05;
+  //unsigned int maxAirSamples = 2000;
   unsigned int numAirSamples = 0;
   unsigned int rowIndx = 0;
   while( ( !NRit.IsAtEnd() ) && ( rowIndx < numberOfSamples ) )
@@ -2150,7 +2150,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   unsigned int NumberOfSamples =  this->m_CleanedLabels->GetBufferedRegion().GetNumberOfPixels();
   muLogMacro(<< "\nTotal number of voxels: " << NumberOfSamples << std::endl);
 //  NumberOfSamples = NumberOfSamples * 0.1;
-  NumberOfSamples = 32000;
+//  NumberOfSamples = 32000;
   muLogMacro(<< "Number of samples used to make train matrix: " << NumberOfSamples << std::endl);
 
 //  while( !converged && ( CurrentEMIteration <= m_MaximumIterations ) )
