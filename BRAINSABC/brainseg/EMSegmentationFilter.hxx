@@ -73,6 +73,7 @@
 #include "itkVector.h"
 #include "itkListSample.h"
 #include "itkKdTree.h"
+#include "itkKdTreeGenerator.h"
 
 #include "itkImageRandomNonRepeatingConstIteratorWithIndex.h"
 
@@ -640,10 +641,9 @@ static double ComputeCovarianceDeterminant( const vnl_matrix<FloatingPrecision> 
 
 ///////////////////////////////////////////////// Posterior computation by kNN //////////////////////////////////////////////
 template <class TInputImage, class TProbabilityImage>
-template<class TSample>
 void
 EMSegmentationFilter<TInputImage, TProbabilityImage>
-::kNNCore( const TSample * trainMatrix,
+::kNNCore( SampleType * trainMatrix,
           const vnl_vector<FloatingPrecision> & labelVector,
           const vnl_matrix<FloatingPrecision> & testMatrix,
           vnl_matrix<FloatingPrecision> & liklihoodMatrix,
@@ -662,20 +662,20 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     }
 
   // Create KdTree for train samples
-  typedef typename itk::Statistics::KdTreeGenerator< TSample > TreeGeneratorType;
-  typedef typename TreeGeneratorType::KdTreeType               TreeType;
+  typedef itk::Statistics::KdTreeGenerator< SampleType > TreeGeneratorType;
+  typedef TreeGeneratorType::KdTreeType                  TreeType;
   TreeGeneratorType::Pointer treeGenerator = TreeGeneratorType::New();
   treeGenerator->SetSample( trainMatrix );
   treeGenerator->SetBucketSize( 16 );
   treeGenerator->Update();
 
-  typename TreeType::Pointer tree = treeGenerator->GetOutput();
+  TreeType::Pointer tree = treeGenerator->GetOutput();
 
   // Compute Likelihood matrix
   for( unsigned int iTest = 0; iTest < numTest; ++iTest ) ///////
     {
     // each test case is a query point
-    typename TSample::MeasurementVectorType queryPoint;
+    MeasurementVectorType queryPoint;
     for(unsigned int i=0; i<numFeatures; ++i)
        {
        queryPoint[i] = testMatrix(iTest,i);
@@ -874,8 +874,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   muLogMacro(<< "\n* Computing the label vector with " << numberOfSamples << " samples..." << std::endl);
 
   muLogMacro(<< "\n* Computing test matrix as a list of samples" << std::endl);
-  typedef itk::Vector< float, numOfInputImages > MeasurementVectorType;
-  typedef itk::Statistics::ListSample< MeasurementVectorType > SampleType;
   SampleType::Pointer trainMatrix = SampleType::New();
 
   /* DEBUG /
@@ -956,7 +954,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     muLogMacro(<< "* Train matrix ( " << trainMatrix.rows() << " x " << trainMatrix.cols() << " )" << std::endl);
     }
 
-/*
   // Write csv file
   const bool generateLogScript = true;
   if( generateLogScript )
@@ -1030,7 +1027,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   muLogMacro(<< "\n* Computing Liklihood Matrix ( " << numOfVoxels << " x " << numClasses << " )" << std::endl);
   muLogMacro(<< "Run k-NN algorithm on test data..." << std::endl);
 
-  this->kNNCore<SampleType>( trainMatrix, labelVector, testMatrix, liklihoodMatrix, K );
+  this->kNNCore( trainMatrix, labelVector, testMatrix, liklihoodMatrix, K );
 
     // For validation
   if( liklihoodMatrix.max_value() == 1000 )

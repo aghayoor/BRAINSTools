@@ -108,6 +108,9 @@ public:
 
   typedef BSplineTransformType::Pointer BSplineTransformPointer;
 
+  typedef std::vector< double >                                 MeasurementVectorType;
+  typedef itk::Statistics::ListSample< MeasurementVectorType >  SampleType;
+
   // Set/Get the maximum polynomial degree of the bias field estimate
   itkSetMacro(MaxBiasDegree, unsigned int);
   itkGetMacro(MaxBiasDegree, unsigned int);
@@ -279,9 +282,8 @@ private:
 
   void InitializePosteriors(void);
 
-  template<TSample>
   void
-  kNNCore( const TSample * trainMatrix,
+  kNNCore( SampleType * trainMatrix,
            const vnl_vector<FloatingPrecision> & labelVector,
            const vnl_matrix<FloatingPrecision> & testMatrix,
            vnl_matrix<FloatingPrecision> & liklihoodMatrix,
