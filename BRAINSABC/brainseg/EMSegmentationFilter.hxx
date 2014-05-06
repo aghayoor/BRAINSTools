@@ -926,10 +926,22 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   muLogMacro(<< "Create posteriors from likelihood matrix..." << std::endl);
   ProbabilityImageVectorType Posteriors;
   Posteriors.resize(numClasses);
+
+  typedef itk::DiscreteGaussianImageFilter<TInputImage, TInputImage> SmoothingFilterType;
+
   for( unsigned int iclass = 0; iclass < numClasses; iclass++ )
     {
     Posteriors[iclass] = this->assignVectorToImage( Priors[iclass],
                                                     liklihoodMatrix.get_column(iclass) );
+    // Smoothing filter
+    typename SmoothingFilterType::Pointer smoothingFilter = SmoothingFilterType::New();
+    smoothingFilter->SetUseImageSpacingOn();
+    smoothingFilter->SetVariance( vnl_math_sqr( 2 ) );
+    smoothingFilter->SetMaximumError( 0.01 );
+    smoothingFilter->SetInput( Posteriors[iclass] );
+    smoothingFilter->Update();
+
+    Posteriors[iclass] = smoothingFilter->GetOutput();
     }
 
   const typename InputImageType::SizeType finalPosteriorSize = Posteriors[0]->GetLargestPossibleRegion().GetSize();
@@ -2149,7 +2161,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   unsigned int NumberOfSamples =  this->m_CleanedLabels->GetBufferedRegion().GetNumberOfPixels();
   muLogMacro(<< "\nTotal number of voxels: " << NumberOfSamples << std::endl);
-//  NumberOfSamples = NumberOfSamples * 0.1;
+  NumberOfSamples = NumberOfSamples * 0.5;
 //  NumberOfSamples = 32000;
   muLogMacro(<< "Number of samples used to make train matrix: " << NumberOfSamples << std::endl);
 
