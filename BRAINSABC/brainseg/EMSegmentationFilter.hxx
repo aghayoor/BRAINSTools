@@ -980,6 +980,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     }
 */
 
+/*
   //  Downsample input images for speed up posterior computations
   //  We do downsampling here because input images are needed for computing train matrix
   muLogMacro(<< "\nDownsampling the input images..." << std::endl);
@@ -991,10 +992,10 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       DownSampledInputImagesVector.push_back( this->DownSampleInputIntensityImages(dsIt->GetPointer(), DownSamplingFactor) );
       ++dsIt;
     }
-
+*/
     // set kNN input test matrix of size : #OfVoxels x #OfInputImages
-  const typename InputImageType::SizeType size = DownSampledInputImagesVector[0]->GetLargestPossibleRegion().GetSize();
-  unsigned int numOfVoxels = DownSampledInputImagesVector[0]->GetLargestPossibleRegion().GetNumberOfPixels();
+  const typename InputImageType::SizeType size = inputImagesVector[0]->GetLargestPossibleRegion().GetSize();
+  unsigned int numOfVoxels = inputImagesVector[0]->GetLargestPossibleRegion().GetNumberOfPixels();
 
   muLogMacro(<< "Downsampled test image size:" << size << std::endl);
 
@@ -1010,8 +1011,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
         {
         const typename InputImageType::IndexType currIndex = {{ii, jj, kk}};
         unsigned int colIndex = 0;
-        typename ProbabilityImageVectorType::const_iterator inIt = DownSampledInputImagesVector.begin();
-        while( ( inIt != DownSampledInputImagesVector.end() ) && ( colIndex < numOfInputImages ) )
+        typename ProbabilityImageVectorType::const_iterator inIt = inputImagesVector.begin();
+        while( ( inIt != inputImagesVector.end() ) && ( colIndex < numOfInputImages ) )
           {
           testMatrix(rowIndex,colIndex) = inIt->GetPointer()->GetPixel( currIndex );
           ++colIndex;
@@ -1037,6 +1038,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     itkGenericExceptionMacro( << "The liklihood matrix is not valid." << std::endl );
     }
 
+  typedef itk::ImageFileWriter<TProbabilityImage> PostImageWriterType;
+/*
     // create posteriors
   muLogMacro(<< "Create posteriors from likelihood matrix..." << std::endl);
   ProbabilityImageVectorType downSampledPosteriors;
@@ -1050,18 +1053,20 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                                                liklihoodMatrix.get_column(iclass) );
     }
 
-  typedef itk::ImageFileWriter<TProbabilityImage> PostImageWriterType;
   typename PostImageWriterType::Pointer dwposetriorwriter = PostImageWriterType::New();
   dwposetriorwriter->SetInput(downSampledPosteriors[14]);
   dwposetriorwriter->SetFileName("DEBUG_WHITE_MATTER_DWSmpled.nii.gz");
   dwposetriorwriter->Update();
 
   muLogMacro(<< "Upsampling posterior to the original size..." << std::endl);
+*/
   ProbabilityImageVectorType Posteriors;
   Posteriors.resize(numClasses);
   for( unsigned int iclass = 0; iclass < numClasses; iclass++ )
     {
-    Posteriors[iclass] = this->UpSamplePosteriorImages( downSampledPosteriors[iclass], Priors[iclass] );
+    //Posteriors[iclass] = this->UpSamplePosteriorImages( downSampledPosteriors[iclass], Priors[iclass] );
+    Posteriors[iclass] = this->assignVectorToImage( Priors[iclass],
+                                                    liklihoodMatrix.get_column(iclass) );
     }
 
   const typename InputImageType::SizeType finalPosteriorSize = Posteriors[0]->GetLargestPossibleRegion().GetSize();
@@ -2285,7 +2290,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   double DownSamplingFactor = 1;
   muLogMacro(<< "\nDownsampling Factor: " << DownSamplingFactor << std::endl);
 
-  m_MaximumIterations = 3; ////////DEBUG
+//  m_MaximumIterations = 3; ////////DEBUG
   while( !converged && ( CurrentEMIteration <= m_MaximumIterations ) )
     {
     // Recompute posteriors, not at full resolution
@@ -2359,7 +2364,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     this->WriteDebugBlendClippedPriors(CurrentEMIteration);
     }
 //    }
-
+/*
     FloatingPrecision prevLogLikelihood = ( logLikelihood < vnl_math::eps ) ? vnl_math::eps : logLikelihood;
     // Compute log-likelihood and normalize posteriors
     logLikelihood = this->ComputeLogLikelihood();
@@ -2382,6 +2387,12 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       ( (deltaLogLikelihood < m_LikelihoodTolerance)
         &&
         (biasdegree == m_MaxBiasDegree) );
+*/
+    ///
+    // Convergence check
+    converged = (CurrentEMIteration >= m_MaximumIterations);
+    ///
+
 
     CurrentEMIteration++;
     const float biasIncrementInterval = (m_MaximumIterations / (m_MaxBiasDegree + 1) );
@@ -2411,6 +2422,16 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////// compute posteriors using kNN ////////////////////////////////////////////////
 
+   this->m_Posteriors = this->ComputekNNPosteriors(this->m_WarpedPriors,
+   this->m_CorrectedImages,
+   this->m_CleanedLabels,
+   NumberOfSamples,
+   DownSamplingFactor); //// ??????????????? again needed???
+
+   NormalizeProbListInPlace<TProbabilityImage>(this->m_Posteriors);
+   this->WriteDebugPosteriors(CurrentEMIteration + 100);
+
+
   ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyLabels,
@@ -2420,18 +2441,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyThresholdedLabels,
                                                           this->m_ThresholdedLabels, inclusionThreshold);
-/*
-  this->m_Posteriors = this->ComputekNNPosteriors(this->m_WarpedPriors,
-                                                  this->m_CorrectedImages,
-                                                  this->m_ThresholdedLabels,
-                                                  NumberOfSamples,
-                                                  DownSamplingFactor); //// ??????????????? again needed???
-*/
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  NormalizeProbListInPlace<TProbabilityImage>(this->m_Posteriors);
-  this->WriteDebugPosteriors(CurrentEMIteration + 100);
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   this->WriteDebugLabels(CurrentEMIteration + 100);
 
