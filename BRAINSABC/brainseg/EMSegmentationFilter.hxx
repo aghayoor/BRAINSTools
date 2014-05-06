@@ -70,6 +70,10 @@
 #include "PrettyPrintTable.h"
 #include "ComputeDistributions.h"
 
+#include "itkVector.h"
+#include "itkListSample.h"
+#include "itkKdTree.h"
+
 #include "itkImageRandomNonRepeatingConstIteratorWithIndex.h"
 
 template <class TInputImage, class TProbabilityImage>
