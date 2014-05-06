@@ -876,14 +876,14 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   muLogMacro(<< "\n* Computing test matrix as a list of samples" << std::endl);
   SampleType::Pointer trainMatrix = SampleType::New();
 
-  /* DEBUG /
+  /* DEBUG */
   muLogMacro(<< "\nWrite clean labels for debugging." << std::endl);
   typedef itk::ImageFileWriter<ByteImageType> LabelImageWriterType;
   typename LabelImageWriterType::Pointer cleanLabelWriter = LabelImageWriterType::New();
   cleanLabelWriter->SetInput(CleanedLabels);
   cleanLabelWriter->SetFileName("DEBUG_CleanLabels.nii.gz");
   cleanLabelWriter->Update();
-  */////////
+  /////////
 
   itk::ImageRandomNonRepeatingConstIteratorWithIndex<ByteImageType> NRit( CleanedLabels,
                                                                           CleanedLabels->GetBufferedRegion() );
@@ -2278,12 +2278,12 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   unsigned int NumberOfSamples =  this->m_CleanedLabels->GetBufferedRegion().GetNumberOfPixels();
   muLogMacro(<< "\nTotal number of voxels: " << NumberOfSamples << std::endl);
-  NumberOfSamples = NumberOfSamples * 0.01;
+  NumberOfSamples = NumberOfSamples * 0.1;
   muLogMacro(<< "Number of samples used to make train matrix: " << NumberOfSamples << std::endl);
-  double DownSamplingFactor = 4;
+  double DownSamplingFactor = 1;
   muLogMacro(<< "\nDownsampling Factor: " << DownSamplingFactor << std::endl);
 
-  m_MaximumIterations = 1; ////////DEBUG
+  m_MaximumIterations = 3; ////////DEBUG
   while( !converged && ( CurrentEMIteration <= m_MaximumIterations ) )
     {
     // Recompute posteriors, not at full resolution
@@ -2400,7 +2400,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       }
 
     NumberOfSamples = NumberOfSamples * 1.5;
-    DownSamplingFactor = DownSamplingFactor / 1.2;
+    //DownSamplingFactor = DownSamplingFactor / 1.2;
 
     } // end EM loop
 
