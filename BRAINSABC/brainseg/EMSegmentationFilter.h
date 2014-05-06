@@ -279,8 +279,9 @@ private:
 
   void InitializePosteriors(void);
 
+  template<TSample>
   void
-  kNNCore( const vnl_matrix<FloatingPrecision> & trainMatrix,
+  kNNCore( const TSample * trainMatrix,
            const vnl_vector<FloatingPrecision> & labelVector,
            const vnl_matrix<FloatingPrecision> & testMatrix,
            vnl_matrix<FloatingPrecision> & liklihoodMatrix,

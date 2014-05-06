@@ -640,18 +640,19 @@ static double ComputeCovarianceDeterminant( const vnl_matrix<FloatingPrecision> 
 
 ///////////////////////////////////////////////// Posterior computation by kNN //////////////////////////////////////////////
 template <class TInputImage, class TProbabilityImage>
+template<class TSample>
 void
 EMSegmentationFilter<TInputImage, TProbabilityImage>
-::kNNCore( const vnl_matrix<FloatingPrecision> & trainMatrix,
+::kNNCore( const TSample * trainMatrix,
           const vnl_vector<FloatingPrecision> & labelVector,
           const vnl_matrix<FloatingPrecision> & testMatrix,
           vnl_matrix<FloatingPrecision> & liklihoodMatrix,
           unsigned int K )
 {
   unsigned int numClasses = labelVector.max_value() + 1; // index starts from zero
-  unsigned int numTraining = trainMatrix.rows(); // number of training data
+  unsigned int numTraining = trainMatrix->Size(); // number of training data
   unsigned int numTest = testMatrix.rows(); // number of test data
-  //unsigned int numFeatures = trainMatrix.columns(); // number of features
+  unsigned int numFeatures = testMatrix.columns(); // number of features
 
     // represent each class label as an array
   vnl_matrix<FloatingPrecision> localLabels(numTraining, numClasses, 0);
@@ -660,54 +661,43 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     localLabels( iTrain, labelVector(iTrain) ) = 1;
     }
 
+  // Create KdTree for train samples
+  typedef typename itk::Statistics::KdTreeGenerator< TSample > TreeGeneratorType;
+  typedef typename TreeGeneratorType::KdTreeType               TreeType;
+  TreeGeneratorType::Pointer treeGenerator = TreeGeneratorType::New();
+  treeGenerator->SetSample( trainMatrix );
+  treeGenerator->SetBucketSize( 16 );
+  treeGenerator->Update();
+
+  typename TreeType::Pointer tree = treeGenerator->GetOutput();
+
   // Compute Likelihood matrix
   for( unsigned int iTest = 0; iTest < numTest; ++iTest ) ///////
     {
+    // each test case is a query point
+    typename TSample::MeasurementVectorType queryPoint;
+    for(unsigned int i=0; i<numFeatures; ++i)
+       {
+       queryPoint[i] = testMatrix(iTest,i);
+       }
+
     // compute the distances
-    vnl_vector<FloatingPrecision> distances( numTraining, 0 ); // distance vector for ith test data
-    for( unsigned int train_i = 0; train_i < numTraining; ++train_i )
-      {
-      distances(train_i) = ( testMatrix.get_row(iTest) - trainMatrix.get_row(train_i) ).two_norm();
-      }
-/*
-////////////
-    vnl_matrix<FloatingPrecision> tempDataMatrix( numTraining, numFeatures, 0 );
-    for( unsigned int iRow = 0; iRow < numTraining; ++iRow )
-      {
-      tempDataMatrix.set_row( iRow, testMatrix.get_row( iTest ) ); // repeat the current testData, #trainingDataNumber times
-      }
-    vnl_matrix<FloatingPrecision> diffMat = tempDataMatrix - trainMatrix;
-    vnl_vector<FloatingPrecision> distances( numTraining, 0 ); // distance vector for ith test data
-      //Return square root of sum of squared absolute element values of each row as a distant element
-    for( unsigned int iRow = 0; iRow < numTraining; ++iRow )
-      {
-      distances(iRow) = ( diffMat.get_row(iRow) ).two_norm();
-      }
-///////////////////
-*/
-    // sort distances
-    vnl_vector<unsigned int> sortedIndexed( numTraining, 0 );
+    typename TreeType::InstanceIdentifierVectorType neighbors;
+    std::vector<double> distances;
+    tree->Search( queryPoint, K, neighbors, distances );
 
-    typedef vnl_index_sort<FloatingPrecision, unsigned int>   IndexSortType;
-    IndexSortType                                             indexSort;
-    indexSort.vector_sort( distances, sortedIndexed );
-
-      // First K indeces
-    vnl_vector<unsigned int> neighborIndeces(K, 0);
-    neighborIndeces = sortedIndexed.extract(K, 0); // indeces of first K neighbors
-
-      // Now we should find K labels correspondence to K neighbors
+    // Now we should find K labels correspondence to K neighbors
     vnl_matrix<FloatingPrecision> neighborLabels( K, numClasses);
-    for( unsigned int n = 0; n < K; ++n )
-      {
-      neighborLabels.set_row( n, localLabels.get_row( neighborIndeces(n) ) );
-      }
-
+    // Weight vector
     vnl_matrix<FloatingPrecision> weights(1,K,0);
     FloatingPrecision sumOfWeights = 0;
+
     for( unsigned int n = 0; n < K; ++n )
       {
-      FloatingPrecision distSqr = pow( distances( neighborIndeces(n) ), 2);
+      // Labels of the K neighbors
+      neighborLabels.set_row( n, localLabels.get_row( neighbors[n] ) );
+      //  Compute Weights and sum of weights
+      FloatingPrecision distSqr = pow( distances[n], 2);
       if( distSqr == 0 )
         {
         weights(0,n) = 1; // avoids inf weights
@@ -879,20 +869,23 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
     // set train matrix and label vector by picking samples from label image.
     // set kNN train matrix. it has #numberOfSamples training cases with #numOfInputImages features
-  vnl_matrix<FloatingPrecision> trainMatrix(numberOfSamples, numOfInputImages);
+
   vnl_vector<FloatingPrecision> labelVector(numberOfSamples);
-
   muLogMacro(<< "\n* Computing the label vector with " << numberOfSamples << " samples..." << std::endl);
-  muLogMacro(<< "* Computing train matrix ( " << numberOfSamples << " x " << numOfInputImages << " )" << std::endl);
 
-  /* DEBUG */
+  muLogMacro(<< "\n* Computing test matrix as a list of samples" << std::endl);
+  typedef itk::Vector< float, numOfInputImages > MeasurementVectorType;
+  typedef itk::Statistics::ListSample< MeasurementVectorType > SampleType;
+  SampleType::Pointer trainMatrix = SampleType::New();
+
+  /* DEBUG /
   muLogMacro(<< "\nWrite clean labels for debugging." << std::endl);
   typedef itk::ImageFileWriter<ByteImageType> LabelImageWriterType;
   typename LabelImageWriterType::Pointer cleanLabelWriter = LabelImageWriterType::New();
   cleanLabelWriter->SetInput(CleanedLabels);
   cleanLabelWriter->SetFileName("DEBUG_CleanLabels.nii.gz");
   cleanLabelWriter->Update();
-  /////////
+  */////////
 
   itk::ImageRandomNonRepeatingConstIteratorWithIndex<ByteImageType> NRit( CleanedLabels,
                                                                           CleanedLabels->GetBufferedRegion() );
@@ -928,13 +921,15 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
         labelVector(rowIndx) = currLabelIndex;
 
         typename InputImageVectorType::const_iterator inIt = inputImagesVector.begin();
-        unsigned int colIndx = 0;
-        while( ( inIt != inputImagesVector.end() ) && ( colIndx < numOfInputImages ) )
+        unsigned int vecIndx = 0;
+        MeasurementVectorType mv;
+        while( ( inIt != inputImagesVector.end() ) && ( vecIndx < numOfInputImages ) )
           {
-          trainMatrix(rowIndx,colIndx) = inIt->GetPointer()->GetPixel( currentIndex );
-          ++colIndx;
+          mv[vecIndx] = inIt->GetPointer()->GetPixel( currentIndex );
+          ++vecIndx;
           ++inIt;
           }
+        trainMatrix->PushBack( mv );
         ++rowIndx;
         if( currLabelCode == 0 )
           {
@@ -945,6 +940,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     ++NRit;
     }
 
+  muLogMacro(<< "\nTrain matrix is created using " << trainMatrix->Size() << "samples." << std::endl);
+/*
   muLogMacro(<< "\nNumber of valid points: " << rowIndx << std::endl);
 
   if( rowIndx < numberOfSamples )
@@ -959,6 +956,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     muLogMacro(<< "* Train matrix ( " << trainMatrix.rows() << " x " << trainMatrix.cols() << " )" << std::endl);
     }
 
+/*
   // Write csv file
   const bool generateLogScript = true;
   if( generateLogScript )
@@ -981,6 +979,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     csvFile << csvFileOfSampleLabels.str();
     csvFile.close();
     }
+*/
 
   //  Downsample input images for speed up posterior computations
   //  We do downsampling here because input images are needed for computing train matrix
@@ -1024,14 +1023,14 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       }
     }
 
-  const unsigned int K = 45;
+  const unsigned int K = 10;
     // each column of the memberShip matrix contains the voxel values of a posterior image.
   vnl_matrix<FloatingPrecision> liklihoodMatrix(numOfVoxels, numClasses, 1000);
 
   muLogMacro(<< "\n* Computing Liklihood Matrix ( " << numOfVoxels << " x " << numClasses << " )" << std::endl);
   muLogMacro(<< "Run k-NN algorithm on test data..." << std::endl);
 
-  this->kNNCore( trainMatrix, labelVector, testMatrix, liklihoodMatrix, K );
+  this->kNNCore<SampleType>( trainMatrix, labelVector, testMatrix, liklihoodMatrix, K );
 
     // For validation
   if( liklihoodMatrix.max_value() == 1000 )
