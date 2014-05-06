@@ -678,7 +678,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     MeasurementVectorType queryPoint;
     for(unsigned int i=0; i<numFeatures; ++i)
        {
-       queryPoint[i] = testMatrix(iTest,i);
+       queryPoint.push_back( testMatrix(iTest,i) );
        }
 
     // compute the distances
@@ -875,6 +875,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   muLogMacro(<< "\n* Computing test matrix as a list of samples" << std::endl);
   SampleType::Pointer trainMatrix = SampleType::New();
+  trainMatrix->SetMeasurementVectorSize( numOfInputImages );
 
   /* DEBUG */
   muLogMacro(<< "\nWrite clean labels for debugging." << std::endl);
@@ -919,12 +920,12 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
         labelVector(rowIndx) = currLabelIndex;
 
         typename InputImageVectorType::const_iterator inIt = inputImagesVector.begin();
-        unsigned int vecIndx = 0;
+        //unsigned int vecIndx = 0;
         MeasurementVectorType mv;
-        while( ( inIt != inputImagesVector.end() ) && ( vecIndx < numOfInputImages ) )
+        while( /*(*/ inIt != inputImagesVector.end() ) //&& ( vecIndx < numOfInputImages ) )
           {
-          mv[vecIndx] = inIt->GetPointer()->GetPixel( currentIndex );
-          ++vecIndx;
+          mv.push_back( inIt->GetPointer()->GetPixel( currentIndex ) );
+          //++vecIndx;
           ++inIt;
           }
         trainMatrix->PushBack( mv );
@@ -938,7 +939,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     ++NRit;
     }
 
-  muLogMacro(<< "\nTrain matrix is created using " << trainMatrix->Size() << "samples." << std::endl);
+  muLogMacro(<< "\nTrain matrix is created using " << trainMatrix->Size() << " samples." << std::endl);
+  muLogMacro(<< "\nFeature space size: " << trainMatrix->GetMeasurementVectorSize() << std::endl);
 /*
   muLogMacro(<< "\nNumber of valid points: " << rowIndx << std::endl);
 
