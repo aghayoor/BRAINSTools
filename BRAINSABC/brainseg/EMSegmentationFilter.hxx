@@ -936,7 +936,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     // Smoothing filter
     typename SmoothingFilterType::Pointer smoothingFilter = SmoothingFilterType::New();
     smoothingFilter->SetUseImageSpacingOn();
-    smoothingFilter->SetVariance( vnl_math_sqr( 2 ) );
+    smoothingFilter->SetVariance( vnl_math_sqr( 1 ) );
     smoothingFilter->SetMaximumError( 0.01 );
     smoothingFilter->SetInput( Posteriors[iclass] );
     smoothingFilter->Update();
