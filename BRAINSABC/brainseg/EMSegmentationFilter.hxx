@@ -777,6 +777,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       inputImagesVector.push_back( mapIt->second[m] );
       }
     }
+  NormalizeProbListInPlace<TInputImage>(inputImagesVector); // Normalize the input images since the priors are normalized already
+
   const unsigned int numOfInputImages = inputImagesVector.size();
   muLogMacro(<< "Number of input images: " << numOfInputImages << std::endl);
 
@@ -858,17 +860,23 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   muLogMacro(<< "\nTrain matrix is created using " << trainSampleSet->Size() << " samples." << std::endl);
   muLogMacro(<< "\nFeature space size: " << trainSampleSet->GetMeasurementVectorSize() << std::endl);
-/*
+
   // Write csv file
   const bool generateLogScript = true;
   if( generateLogScript )
     {
     muLogMacro(<< "\nWrite training labels csv file ..." << std::endl);
     std::stringstream csvFileOfSampleLabels;
-    csvFileOfSampleLabels << "#T1value, T2value, LableCode, ClassName" << std::endl;
-    for( unsigned i = 0; i < rowIndx; ++i )
+    csvFileOfSampleLabels << "#T1value, T2value, ";
+    for (unsigned int cln_i = 0; cln_i < numClasses; ++cln_i)
       {
-      csvFileOfSampleLabels << trainMatrix(0,i) << ",";
+      csvFileOfSampleLabels << this->m_PriorNames[ cln_i ] << "value, ";
+      }
+    csvFileOfSampleLabels << "LableCode, ClassName" << std::endl;
+    for( SampleType::InstanceIdentifier i = 0; i < rowIndx; ++i )
+      {
+      SampleType::MeasurementVectorType smv = trainSampleSet->GetMeasurementVector(i);
+      copy( smv.begin(), smv.end(), std::ostream_iterator<double>(csvFileOfSampleLabels, ",") );
       csvFileOfSampleLabels << this->m_PriorLabelCodeVector( labelVector(i) ) << ",";
       csvFileOfSampleLabels << this->m_PriorNames[ labelVector(i) ] << std::endl;
       }
@@ -881,7 +889,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     csvFile << csvFileOfSampleLabels.str();
     csvFile.close();
     }
-*/
 
   // set kNN input test matrix of size : #OfVoxels x #OfInputImages
   const typename InputImageType::SizeType size = inputImagesVector[0]->GetLargestPossibleRegion().GetSize();
