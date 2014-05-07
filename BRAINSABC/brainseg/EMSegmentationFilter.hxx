@@ -787,9 +787,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   vnl_vector<FloatingPrecision> labelVector(numberOfSamples);
   muLogMacro(<< "\n* Computing the label vector with " << numberOfSamples << " samples..." << std::endl);
 
-  muLogMacro(<< "\n* Computing test matrix as a list of samples" << std::endl);
+  muLogMacro(<< "\n* Computing train matrix as a list of samples" << std::endl);
   SampleType::Pointer trainSampleSet = SampleType::New();
-  trainSampleSet->SetMeasurementVectorSize( numOfInputImages );
+  trainSampleSet->SetMeasurementVectorSize( numOfInputImages + numClasses ); // Feature space has 17 elements
 
   /* DEBUG /
   muLogMacro(<< "\nWrite clean labels for debugging." << std::endl);
@@ -836,10 +836,14 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
         typename InputImageVectorType::const_iterator inIt = inputImagesVector.begin();
         MeasurementVectorType mv;
-        while( inIt != inputImagesVector.end() )
+        while( inIt != inputImagesVector.end() ) // First two features from T1 and T2
           {
           mv.push_back( inIt->GetPointer()->GetPixel( currentIndex ) );
           ++inIt;
+          }
+        for( unsigned int c_indx = 0; c_indx<numClasses ; ++c_indx) // Add 15 more features from priors
+          {
+          mv.push_back( Priors[c_indx]->GetPixel( currentIndex ) );
           }
         trainSampleSet->PushBack( mv );
         ++rowIndx;
@@ -883,8 +887,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   const typename InputImageType::SizeType size = inputImagesVector[0]->GetLargestPossibleRegion().GetSize();
   unsigned int numOfVoxels = inputImagesVector[0]->GetLargestPossibleRegion().GetNumberOfPixels();
 
-  muLogMacro(<< "\n* Computing test matrix ( " << numOfVoxels << " x " << numOfInputImages << " )" << std::endl);
-  vnl_matrix<FloatingPrecision> testMatrix(numOfVoxels, numOfInputImages);
+  muLogMacro(<< "\n* Computing test matrix ( " << numOfVoxels << " x " << numOfInputImages + numClasses << " )" << std::endl);
+  vnl_matrix<FloatingPrecision> testMatrix(numOfVoxels, numOfInputImages+numClasses);
 
   unsigned int rowIndex = 0;
   for( LOOPITERTYPE kk = 0; kk < (LOOPITERTYPE)size[2]; kk++ )
@@ -898,16 +902,20 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
         typename ProbabilityImageVectorType::const_iterator inIt = inputImagesVector.begin();
         while( ( inIt != inputImagesVector.end() ) && ( colIndex < numOfInputImages ) )
           {
-          testMatrix(rowIndex,colIndex) = inIt->GetPointer()->GetPixel( currIndex );
+          testMatrix(rowIndex,colIndex) = inIt->GetPointer()->GetPixel( currIndex ); // set first two cols from T1 and T2
           ++colIndex;
           ++inIt;
+          }
+        for( ; colIndex-numOfInputImages < numClasses ; ++colIndex) // Add 15 more features from priors
+          {
+          testMatrix(rowIndex,colIndex) = Priors[colIndex-numOfInputImages]->GetPixel( currIndex );
           }
         ++rowIndex;
         }
       }
     }
 
-  const unsigned int K = 45; // Number of neighbours
+  const unsigned int K = 10; // Number of neighbours
   // each column of the memberShip matrix contains the voxel values of a posterior image.
   vnl_matrix<FloatingPrecision> liklihoodMatrix(numOfVoxels, numClasses, 1000);
 
@@ -2161,7 +2169,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   unsigned int NumberOfSamples =  this->m_CleanedLabels->GetBufferedRegion().GetNumberOfPixels();
   muLogMacro(<< "\nTotal number of voxels: " << NumberOfSamples << std::endl);
-  NumberOfSamples = NumberOfSamples * 0.5;
+  NumberOfSamples = NumberOfSamples * 0.15;
 //  NumberOfSamples = 32000;
   muLogMacro(<< "Number of samples used to make train matrix: " << NumberOfSamples << std::endl);
 
