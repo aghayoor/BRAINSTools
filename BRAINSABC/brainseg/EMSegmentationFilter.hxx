@@ -807,8 +807,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   NRit.SetNumberOfSamples( CleanedLabels->GetBufferedRegion().GetNumberOfPixels() );
   NRit.GoToBegin();
 
+  static const int arr[] = {1, 2, 3, 4, 6, 11, 13};
+  std::vector<int> featureClasses( arr, arr + sizeof(arr) / sizeof(arr[0]) );  // class indeces of: BASAL/Crbl GM/Crbl WM/CSF/Hippocampus/Surf GM/WM
   unsigned int maxAirSamples = numberOfSamples * 0.05;
-  //unsigned int maxAirSamples = 2000;
   unsigned int numAirSamples = 0;
   unsigned int rowIndx = 0;
   while( ( !NRit.IsAtEnd() ) && ( rowIndx < numberOfSamples ) )
@@ -843,9 +844,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
           mv.push_back( inIt->GetPointer()->GetPixel( currentIndex ) );
           ++inIt;
           }
-        for( unsigned int c_indx = 0; c_indx<numClasses ; ++c_indx) // Add 15 more features from priors
+        for( unsigned int c_indx = 0; c_indx<featureClasses.size() ; ++c_indx) // Add 7 more features from priors
           {
-          mv.push_back( Priors[c_indx]->GetPixel( currentIndex ) );
+          mv.push_back( Priors[ featureClasses[c_indx] ]->GetPixel( currentIndex ) );
           }
         trainSampleSet->PushBack( mv );
         ++rowIndx;
@@ -868,9 +869,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     muLogMacro(<< "\nWrite training labels csv file ..." << std::endl);
     std::stringstream csvFileOfSampleLabels;
     csvFileOfSampleLabels << "#T1value, T2value, ";
-    for (unsigned int cln_i = 0; cln_i < numClasses; ++cln_i)
+    for (unsigned int cln_i = 0; cln_i < featureClasses.size(); ++cln_i)
       {
-      csvFileOfSampleLabels << this->m_PriorNames[ cln_i ] << "value, ";
+      csvFileOfSampleLabels << this->m_PriorNames[ featureClasses[cln_i] ] << "value, ";
       }
     csvFileOfSampleLabels << "LableCode, ClassName" << std::endl;
     for( SampleType::InstanceIdentifier i = 0; i < rowIndx; ++i )
@@ -913,9 +914,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
           ++colIndex;
           ++inIt;
           }
-        for( ; colIndex-numOfInputImages < numClasses ; ++colIndex) // Add 15 more features from priors
+        for( ; colIndex-numOfInputImages < featureClasses.size() ; ++colIndex) // Add 15 more features from priors
           {
-          testMatrix(rowIndex,colIndex) = Priors[colIndex-numOfInputImages]->GetPixel( currIndex );
+          testMatrix(rowIndex,colIndex) = Priors[ featureClasses[colIndex-numOfInputImages] ]->GetPixel( currIndex );
           }
         ++rowIndex;
         }
@@ -2176,7 +2177,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   unsigned int NumberOfSamples =  this->m_CleanedLabels->GetBufferedRegion().GetNumberOfPixels();
   muLogMacro(<< "\nTotal number of voxels: " << NumberOfSamples << std::endl);
-  NumberOfSamples = NumberOfSamples * 0.15;
+  NumberOfSamples = NumberOfSamples * 0.3;
 //  NumberOfSamples = 32000;
   muLogMacro(<< "Number of samples used to make train matrix: " << NumberOfSamples << std::endl);
 
