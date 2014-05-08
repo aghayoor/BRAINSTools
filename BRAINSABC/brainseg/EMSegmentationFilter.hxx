@@ -641,6 +641,51 @@ static double ComputeCovarianceDeterminant( const vnl_matrix<FloatingPrecision> 
 
 ///////////////////////////////////////////////// Posterior computation by kNN //////////////////////////////////////////////
 template <class TInputImage, class TProbabilityImage>
+typename TInputImage::Pointer
+EMSegmentationFilter<TInputImage, TProbabilityImage>
+::NormalizeInputIntensityImage(typename TInputImage::Pointer inputImage)
+{
+  muLogMacro(<< "\nNormalize input intensity images..." << std::endl);
+
+  typedef typename itk::Statistics::ImageToHistogramFilter<TInputImage>   HistogramFilterType;
+  typedef typename HistogramFilterType::InputBooleanObjectType            InputBooleanObjectType;
+  typedef typename HistogramFilterType::HistogramSizeType                 HistogramSizeType;
+  typedef typename HistogramFilterType::HistogramType                     HistogramType;
+
+  HistogramSizeType histogramSize( 1 );
+  histogramSize[0] = 256;
+
+  typename InputBooleanObjectType::Pointer autoMinMaxInputObject = InputBooleanObjectType::New();
+  autoMinMaxInputObject->Set( true );
+
+  typename HistogramFilterType::Pointer histogramFilter = HistogramFilterType::New();
+  histogramFilter->SetInput( inputImage );
+  histogramFilter->SetAutoMinimumMaximumInput( autoMinMaxInputObject );
+  histogramFilter->SetHistogramSize( histogramSize );
+  histogramFilter->SetMarginalScale( 10.0 );
+  histogramFilter->Update();
+
+  float lowerValue = histogramFilter->GetOutput()->Quantile( 0, 0 );
+  float upperValue = histogramFilter->GetOutput()->Quantile( 0, 1 );
+
+  typedef typename itk::IntensityWindowingImageFilter<TInputImage, TInputImage> IntensityWindowingImageFilterType;
+  typename IntensityWindowingImageFilterType::Pointer windowingFilter = IntensityWindowingImageFilterType::New();
+  windowingFilter->SetInput( inputImage );
+  windowingFilter->SetWindowMinimum( lowerValue );
+  windowingFilter->SetWindowMaximum( upperValue );
+  windowingFilter->SetOutputMinimum( 0 );
+  windowingFilter->SetOutputMaximum( 1 );
+  windowingFilter->Update();
+
+  typename TInputImage::Pointer outputImage = NULL;
+  outputImage = windowingFilter->GetOutput();
+  outputImage->Update();
+  outputImage->DisconnectPipeline();
+
+  return outputImage;
+}
+
+template <class TInputImage, class TProbabilityImage>
 void
 EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::kNNCore( SampleType * trainSampleSet,
@@ -773,25 +818,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     const double numCurModality = static_cast<double>(mapIt->second.size());
     for(unsigned m = 0; m < numCurModality; ++m)
       {
-      // Test cases are downsampled input image intensities e.g. downsampled T1, T2.
-      inputImagesVector.push_back( mapIt->second[m] );
+      // Normalize the input images since the priors are normalized already
+      inputImagesVector.push_back( NormalizeInputIntensityImage( mapIt->second[m] ) );
       }
     }
-  NormalizeProbListInPlace<TInputImage>(inputImagesVector); // Normalize the input images since the priors are normalized already
 
   const unsigned int numOfInputImages = inputImagesVector.size();
   muLogMacro(<< "Number of input images: " << numOfInputImages << std::endl);
-
-    // randomly iterate through the label image
-    // set train sample set and the label vector by picking samples from label image.
-    // set kNN train sample set. it has #numberOfSamples training cases with #numOfInputImages features
-
-  vnl_vector<FloatingPrecision> labelVector(numberOfSamples);
-  muLogMacro(<< "\n* Computing the label vector with " << numberOfSamples << " samples..." << std::endl);
-
-  muLogMacro(<< "\n* Computing train matrix as a list of samples" << std::endl);
-  SampleType::Pointer trainSampleSet = SampleType::New();
-  trainSampleSet->SetMeasurementVectorSize( numOfInputImages + numClasses ); // Feature space has 17 elements
 
   /* DEBUG /
   muLogMacro(<< "\nWrite clean labels for debugging." << std::endl);
@@ -809,6 +842,18 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   static const int arr[] = {1, 2, 3, 4, 6, 11, 13};
   std::vector<int> featureClasses( arr, arr + sizeof(arr) / sizeof(arr[0]) );  // class indeces of: BASAL/Crbl GM/Crbl WM/CSF/Hippocampus/Surf GM/WM
+
+    // randomly iterate through the label image
+    // set train sample set and the label vector by picking samples from label image.
+    // set kNN train sample set. it has #numberOfSamples training cases with #numOfInputImages features
+
+  vnl_vector<FloatingPrecision> labelVector(numberOfSamples);
+  muLogMacro(<< "\n* Computing the label vector with " << numberOfSamples << " samples..." << std::endl);
+
+  muLogMacro(<< "\n* Computing train matrix as a list of samples" << std::endl);
+  SampleType::Pointer trainSampleSet = SampleType::New();
+  trainSampleSet->SetMeasurementVectorSize( numOfInputImages + featureClasses.size() ); // Feature space has 2+7 elements
+
   unsigned int maxAirSamples = numberOfSamples * 0.05;
   unsigned int numAirSamples = 0;
   unsigned int rowIndx = 0;
@@ -895,8 +940,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   const typename InputImageType::SizeType size = inputImagesVector[0]->GetLargestPossibleRegion().GetSize();
   unsigned int numOfVoxels = inputImagesVector[0]->GetLargestPossibleRegion().GetNumberOfPixels();
 
-  muLogMacro(<< "\n* Computing test matrix ( " << numOfVoxels << " x " << numOfInputImages + numClasses << " )" << std::endl);
-  vnl_matrix<FloatingPrecision> testMatrix(numOfVoxels, numOfInputImages+numClasses);
+  muLogMacro(<< "\n* Computing test matrix ( " << numOfVoxels << " x " << numOfInputImages + featureClasses.size() << " )" << std::endl);
+  vnl_matrix<FloatingPrecision> testMatrix( numOfVoxels, numOfInputImages+featureClasses.size() );
 
   unsigned int rowIndex = 0;
   for( LOOPITERTYPE kk = 0; kk < (LOOPITERTYPE)size[2]; kk++ )
@@ -923,7 +968,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       }
     }
 
-  const unsigned int K = 10; // Number of neighbours
+  const unsigned int K = 12; // Number of neighbours
   // each column of the memberShip matrix contains the voxel values of a posterior image.
   vnl_matrix<FloatingPrecision> liklihoodMatrix(numOfVoxels, numClasses, 1000);
 
