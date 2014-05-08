@@ -840,7 +840,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   NRit.SetNumberOfSamples( CleanedLabels->GetBufferedRegion().GetNumberOfPixels() );
   NRit.GoToBegin();
 
-  static const int arr[] = {1, 2, 3, 4, 6, 11, 13};
+  static const int arr[] = {1, 2, 3, 4, 6, 11, 14};
   std::vector<int> featureClasses( arr, arr + sizeof(arr) / sizeof(arr[0]) );  // class indeces of: BASAL/Crbl GM/Crbl WM/CSF/Hippocampus/Surf GM/WM
 
     // randomly iterate through the label image
@@ -903,6 +903,12 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       }
     ++NRit;
     }
+
+  muLogMacro(<<"\nNumber of valid samples found: " << rowIndx << std::endl);
+  muLogMacro(<<"\nResize the labeling vector:" << std::endl);
+
+  labelVector = labelVector.extract(rowIndx,0);
+  muLogMacro(<<"New size of label vector: " << labelVector.size() << std::endl);
 
   muLogMacro(<< "\nTrain matrix is created using " << trainSampleSet->Size() << " samples." << std::endl);
   muLogMacro(<< "\nFeature space size: " << trainSampleSet->GetMeasurementVectorSize() << std::endl);
