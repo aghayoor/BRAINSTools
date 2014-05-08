@@ -108,7 +108,7 @@ public:
 
   typedef BSplineTransformType::Pointer BSplineTransformPointer;
 
-  typedef std::vector< double >                                 MeasurementVectorType;
+  typedef std::vector< FloatingPrecision >                      MeasurementVectorType;
   typedef itk::Statistics::ListSample< MeasurementVectorType >  SampleType;
 
   // Set/Get the maximum polynomial degree of the bias field estimate

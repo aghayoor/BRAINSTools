@@ -840,7 +840,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   NRit.SetNumberOfSamples( CleanedLabels->GetBufferedRegion().GetNumberOfPixels() );
   NRit.GoToBegin();
 
-  static const int arr[] = {1, 2, 3, 4, 6, 11, 14};
+  static const int arr[] = {4, 11, 14};
   std::vector<int> featureClasses( arr, arr + sizeof(arr) / sizeof(arr[0]) );  // class indeces of: BASAL/Crbl GM/Crbl WM/CSF/Hippocampus/Surf GM/WM
 
     // randomly iterate through the label image
@@ -854,7 +854,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   SampleType::Pointer trainSampleSet = SampleType::New();
   trainSampleSet->SetMeasurementVectorSize( numOfInputImages + featureClasses.size() ); // Feature space has 2+7 elements
 
-  unsigned int maxAirSamples = numberOfSamples * 0.05;
+  unsigned int maxAirSamples = numberOfSamples * 0.075;
   unsigned int numAirSamples = 0;
   unsigned int rowIndx = 0;
   while( ( !NRit.IsAtEnd() ) && ( rowIndx < numberOfSamples ) )
@@ -1000,6 +1000,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     {
     Posteriors[iclass] = this->assignVectorToImage( Priors[iclass],
                                                     liklihoodMatrix.get_column(iclass) );
+    /*
     // Smoothing filter
     typename SmoothingFilterType::Pointer smoothingFilter = SmoothingFilterType::New();
     smoothingFilter->SetUseImageSpacingOn();
@@ -1009,6 +1010,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     smoothingFilter->Update();
 
     Posteriors[iclass] = smoothingFilter->GetOutput();
+    */
     }
 
   const typename InputImageType::SizeType finalPosteriorSize = Posteriors[0]->GetLargestPossibleRegion().GetSize();
@@ -2360,7 +2362,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////// compute posteriors using kNN ////////////////////////////////////////////////
-  FloatingPrecision inclusionThreshold = 0.75F;
+  FloatingPrecision inclusionThreshold = 0.7F;
   ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_WarpedPriors, this->m_PriorIsForegroundPriorVector,
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyThresholdedLabels,
