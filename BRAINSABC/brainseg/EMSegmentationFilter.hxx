@@ -2230,8 +2230,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   unsigned int NumberOfSamples =  this->m_CleanedLabels->GetBufferedRegion().GetNumberOfPixels();
   muLogMacro(<< "\nTotal number of voxels: " << NumberOfSamples << std::endl);
-  NumberOfSamples = NumberOfSamples * 0.3;
-//  NumberOfSamples = 32000;
+//  NumberOfSamples = NumberOfSamples * 0.3;
+  NumberOfSamples = 80000;
   muLogMacro(<< "Number of samples used to make train matrix: " << NumberOfSamples << std::endl);
 
 //  while( !converged && ( CurrentEMIteration <= m_MaximumIterations ) )
