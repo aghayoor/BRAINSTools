@@ -974,7 +974,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       }
     }
 
-  const unsigned int K = 12; // Number of neighbours
+  const unsigned int K = 45; // Number of neighbours
   // each column of the memberShip matrix contains the voxel values of a posterior image.
   vnl_matrix<FloatingPrecision> liklihoodMatrix(numOfVoxels, numClasses, 1000);
 
@@ -1015,13 +1015,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   const typename InputImageType::SizeType finalPosteriorSize = Posteriors[0]->GetLargestPossibleRegion().GetSize();
   muLogMacro(<< "Size of return posteriors: " << finalPosteriorSize  << std::endl);
-/*
+
   typedef itk::ImageFileWriter<TProbabilityImage> PostImageWriterType;
   typename PostImageWriterType::Pointer posetriorwriter = PostImageWriterType::New();
   posetriorwriter->SetInput(Posteriors[14]);
   posetriorwriter->SetFileName("DEBUG_WHITE_MATTER.nii.gz");
   posetriorwriter->Update();
-*/
+
   return Posteriors;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2362,7 +2362,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////// compute posteriors using kNN ////////////////////////////////////////////////
-  FloatingPrecision inclusionThreshold = 0.7F;
+  FloatingPrecision inclusionThreshold = 0.5F;
   ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_WarpedPriors, this->m_PriorIsForegroundPriorVector,
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyThresholdedLabels,
