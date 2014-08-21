@@ -185,7 +185,7 @@ DoBSpline(typename BSplineTransformType::Pointer InitializerBsplineTransform,
       CommandIterationUpdateType::New();
     observer->SetDisplayDeformedImage(m_DisplayDeformedImage);
     observer->SetPromptUserAfterDisplay(m_PromptUserAfterDisplay);
-    observer->SetPrintParameters(false);
+    observer->SetPrintParameters(true);
     observer->SetMovingImage(m_MovingVolume);
     observer->SetFixedImage(m_FixedVolume);
     observer->SetTransform(m_OutputBSplineTransform);
