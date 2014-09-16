@@ -529,7 +529,7 @@ landmarksConstellationDetector::FindCandidatePoints
   lmkTemplateImage->SetSpacing( LmkTemplateSpacing );
   lmkTemplateImage->SetDirection( roiImage->GetDirection() );
   FImageType3D::SizeType mi_size;
-  mi_size[0] = 2*height+1;
+  mi_size[0] = 4*height+1;
   mi_size[1] = 2*radii+1;
   mi_size[2] = 2*radii+1;
   FImageType3D::IndexType mi_start;
@@ -562,7 +562,7 @@ landmarksConstellationDetector::FindCandidatePoints
         ++it, ++mean_iter )
       {
       FImageType3D::IndexType pixelIndex;
-      pixelIndex[0] = (*it)[0]+height;
+      pixelIndex[0] = (*it)[0]+2*height;
       pixelIndex[1] = (*it)[1]+radii;
       pixelIndex[2] = (*it)[2]+radii;
       lmkTemplateImage->SetPixel( pixelIndex, *mean_iter );
