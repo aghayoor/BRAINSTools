@@ -364,13 +364,24 @@ landmarksConstellationDetector::FindCandidatePoints
   // To compute the correlation for the border points, the bounding box needs
   // to be expanded by the template size.
   //
-  const double LeftToRight_BEGIN = CenterOfSearchArea[0] - LR_restrictions - height/2;
+  const double LeftToRight_BEGIN = CenterOfSearchArea[0] - LR_restrictions - height;
   const double AnteriorToPostierior_BEGIN = CenterOfSearchArea[1] - PA_restrictions - radii;
   const double InferiorToSuperior_BEGIN = CenterOfSearchArea[2] - SI_restrictions - radii;
 
-  const double LeftToRight_END = CenterOfSearchArea[0] + LR_restrictions + height/2;
+  const double LeftToRight_END = CenterOfSearchArea[0] + LR_restrictions + height;
   const double AnteriorToPostierior_END = CenterOfSearchArea[1] + PA_restrictions + radii;
   const double InferiorToSuperior_END = CenterOfSearchArea[2] + SI_restrictions + radii;
+
+  // roiImage is filled with values from volumeMSP
+  //
+  SImageType::PointType currentPointLocation;
+  currentPointLocation[0] = CenterOfSearchArea[0];
+  currentPointLocation[1] = CenterOfSearchArea[1];
+  currentPointLocation[2] = CenterOfSearchArea[2];
+
+  const double deltaLR = 0.5; // in mm
+  const double deltaAP = 0.5; // in mm
+  const double deltaIS = 0.5; // in mm
 
   // Now bounding area will be converted to an image
   //
@@ -381,19 +392,22 @@ landmarksConstellationDetector::FindCandidatePoints
   roiOrigin[1] = AnteriorToPostierior_BEGIN;
   roiOrigin[2] = InferiorToSuperior_BEGIN;
   roiImage->SetOrigin( roiOrigin );
+  // spacing
+  SImageType::SpacingType roiSpacing;
+  roiSpacing[0] = deltaLR;
+  roiSpacing[1] = deltaAP;
+  roiSpacing[2] = deltaIS;
   // size
   SImageType::SizeType roiSize;
-  roiSize[0] = (LeftToRight_END - LeftToRight_BEGIN)/(volumeMSP->GetSpacing()[0]) + 1;
-  roiSize[1] = (AnteriorToPostierior_END - AnteriorToPostierior_BEGIN)/(volumeMSP->GetSpacing()[1]) + 1;
-  roiSize[2] = (InferiorToSuperior_END - InferiorToSuperior_BEGIN)/(volumeMSP->GetSpacing()[2]) + 1;
+  roiSize[0] = (LeftToRight_END - LeftToRight_BEGIN)/(roiSpacing[0]) + 1;
+  roiSize[1] = (AnteriorToPostierior_END - AnteriorToPostierior_BEGIN)/(roiSpacing[1]) + 1;
+  roiSize[2] = (InferiorToSuperior_END - InferiorToSuperior_BEGIN)/(roiSpacing[2]) + 1;
   // start index
   SImageType::IndexType roiStart;
   roiStart.Fill(0);
   // region
   SImageType::RegionType roiRegion(roiStart,roiSize);
   roiImage->SetRegions(roiRegion);
-  // spacing
-  roiImage->SetSpacing( volumeMSP->GetSpacing() );
   // direction
   roiImage->SetDirection( volumeMSP->GetDirection() );
   roiImage->Allocate();
@@ -406,17 +420,6 @@ landmarksConstellationDetector::FindCandidatePoints
   roiMask->SetRegions( roiImage->GetLargestPossibleRegion() );
   roiMask->Allocate();
   roiMask->FillBuffer( 0 );
-
-  // roiImage is filled with values from volumeMSP
-  //
-  SImageType::PointType currentPointLocation;
-  currentPointLocation[0] = CenterOfSearchArea[0];
-  currentPointLocation[1] = CenterOfSearchArea[1];
-  currentPointLocation[2] = CenterOfSearchArea[2];
-
-  const double deltaLR = 1; // in mm
-  const double deltaAP = 1; // in mm
-  const double deltaIS = 1; // in mm
 
   for( double LeftToRight = LeftToRight_BEGIN;
       LeftToRight < LeftToRight_END; LeftToRight += deltaLR )
@@ -515,10 +518,15 @@ landmarksConstellationDetector::FindCandidatePoints
     }
 
   // Now each landmark template should be converted to a moving template image
+  // Based on the implementation of modeler, the landmark template spacing should
+  // set to 1 initialially to set its value. However, before applying the FFT filter
+  // the template image should be resampled to the roiImage spacing.
   //
   FImageType3D::Pointer lmkTemplateImage = FImageType3D::New();
   lmkTemplateImage->SetOrigin( roiImage->GetOrigin() );
-  lmkTemplateImage->SetSpacing( roiImage->GetSpacing() );
+  FImageType3D::SpacingType LmkTemplateSpacing;
+  LmkTemplateSpacing.Fill(1);
+  lmkTemplateImage->SetSpacing( LmkTemplateSpacing );
   lmkTemplateImage->SetDirection( roiImage->GetDirection() );
   FImageType3D::SizeType mi_size;
   mi_size[0] = 2*height+1;
@@ -560,17 +568,47 @@ landmarksConstellationDetector::FindCandidatePoints
       lmkTemplateImage->SetPixel( pixelIndex, *mean_iter );
       templateMask->SetPixel( pixelIndex, 1 );
       }
+
+    // Now the landmark template is resampled to have roiImage spacing
+    //
+    typedef itk::IdentityTransform<double, 3> TransformType;
+    typedef itk::ResampleImageFilter<FImageType3D, FImageType3D> LmkTmpResampleImageFilterType;
+    LmkTmpResampleImageFilterType::Pointer lmkTemplateResampler = LmkTmpResampleImageFilterType::New();
+    lmkTemplateResampler->SetInput( lmkTemplateImage );
+    lmkTemplateResampler->SetOutputSpacing( roiImage->GetSpacing() );
+    lmkTemplateResampler->SetOutputOrigin( roiImage->GetOrigin() );
+    lmkTemplateResampler->SetOutputDirection( roiImage->GetDirection() );
+      // It should be resized to keep the same physical space.
+    FImageType3D::SizeType outputSize = lmkTemplateImage->GetLargestPossibleRegion().GetSize();
+    outputSize[0] /= roiImage->GetSpacing()[0];
+    outputSize[1] /= roiImage->GetSpacing()[1];
+    outputSize[2] /= roiImage->GetSpacing()[2];
+    lmkTemplateResampler->SetSize(outputSize);
+
+    lmkTemplateResampler->SetTransform(TransformType::New());
+    lmkTemplateResampler->UpdateLargestPossibleRegion();
+
+    // The resampling for templateMask
+    //
+    typedef itk::ResampleImageFilter<SImageType, SImageType> MasksTmpResampleImageFilterType;
+    MasksTmpResampleImageFilterType::Pointer maskTemplateResampler = MasksTmpResampleImageFilterType::New();
+    maskTemplateResampler->SetInput( templateMask );
+    maskTemplateResampler->SetReferenceImage( lmkTemplateResampler->GetOutput() );
+    maskTemplateResampler->UseReferenceImageOn();
+    maskTemplateResampler->SetTransform(TransformType::New());
+    maskTemplateResampler->UpdateLargestPossibleRegion();
+
     if( globalImagedebugLevel > 8 )
       {
       std::string tmpImageName( this->m_ResultsDir + "/lmkTemplateImage_"
                           + itksys::SystemTools::GetFilenameName( mapID ) + "_"
                           + local_to_string(curr_rotationAngle) + ".nii.gz" );
-      itkUtil::WriteImage<FImageType3D>( lmkTemplateImage, tmpImageName );
+      itkUtil::WriteImage<FImageType3D>( lmkTemplateResampler->GetOutput(), tmpImageName );
 
       std::string tmpMaskName( this->m_ResultsDir + "/templateMask_"
                           + itksys::SystemTools::GetFilenameName( mapID ) + "_"
                           + local_to_string(curr_rotationAngle) + ".nii.gz" );
-      itkUtil::WriteImage<SImageType>( templateMask, tmpMaskName );
+      itkUtil::WriteImage<SImageType>( maskTemplateResampler->GetOutput(), tmpMaskName );
       }
 
     // Finally NCC is calculated in frequency domain
@@ -579,8 +617,8 @@ landmarksConstellationDetector::FindCandidatePoints
     CorrelationFilterType::Pointer correlationFilter = CorrelationFilterType::New();
     correlationFilter->SetFixedImage( normalizedRoiImage );
     correlationFilter->SetFixedImageMask( roiMask );
-    correlationFilter->SetMovingImage( lmkTemplateImage );
-    correlationFilter->SetMovingImageMask( templateMask );
+    correlationFilter->SetMovingImage( lmkTemplateResampler->GetOutput() );
+    correlationFilter->SetMovingImageMask( maskTemplateResampler->GetOutput() );
     correlationFilter->SetRequiredFractionOfOverlappingPixels( 1 );
     correlationFilter->Update();
     if( globalImagedebugLevel > 8 )
