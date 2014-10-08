@@ -305,6 +305,7 @@ private:
   ComputekNNPosteriors(const ProbabilityImageVectorType & Priors,
                         const MapOfInputImageVectors & IntensityImages,
                         ByteImagePointer & CleanedLabels,
+                        const IntVectorType & labelClasses,
                         const unsigned int numberOfSamples);
 
   typename TProbabilityImage::Pointer

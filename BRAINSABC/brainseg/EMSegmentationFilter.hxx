@@ -19,10 +19,10 @@
 #ifndef __EMSegmentationFilter_hxx
 #define __EMSegmentationFilter_hxx
 
-#include <map>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <map>
 
 #include <cmath>
 #include <cstdlib>
@@ -234,6 +234,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::ComputekNNPosteriors(const ProbabilityImageVectorType & Priors,
                        const MapOfInputImageVectors & intensityImages, // input corrected images
                        ByteImagePointer & CleanedLabels,
+                       const IntVectorType & labelClasses,
                        const unsigned int numberOfSamples) // new input
 
 {
@@ -275,10 +276,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                                                           CleanedLabels->GetBufferedRegion() );
   NRit.SetNumberOfSamples( CleanedLabels->GetBufferedRegion().GetNumberOfPixels() );
   NRit.GoToBegin();
-
-  static const int arr[] = {4, 11, 14};
-  std::vector<int> featureClasses( arr, arr + sizeof(arr) / sizeof(arr[0]) );  // class indeces of: BASAL/Crbl GM/Crbl WM/CSF/Hippocampus/Surf GM/WM
-
     // randomly iterate through the label image
     // set train sample set and the label vector by picking samples from label image.
     // set kNN train sample set. it has #numberOfSamples training cases with #numOfInputImages features
@@ -288,57 +285,58 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   muLogMacro(<< "\n* Computing train matrix as a list of samples" << std::endl);
   SampleType::Pointer trainSampleSet = SampleType::New();
-  trainSampleSet->SetMeasurementVectorSize( numOfInputImages + featureClasses.size() ); // Feature space has 2+7 elements
+  trainSampleSet->SetMeasurementVectorSize( numOfInputImages + labelClasses.size() ); // Feature space has 2+7 elements
 
-  unsigned int maxAirSamples = numberOfSamples * 0.075;
-  unsigned int numAirSamples = 0;
+  const int numSamplesPerLabel = 25;
+
+  typedef std::vector<ByteImageType::IndexType> IndexVectorType;
+  typedef std::map<typename ByteImageType::PixelType, IndexVectorType >  LabelMapSamplesType;
+  LabelMapSamplesType SampledLabelsMap;
+  std::map<typename ByteImageType::PixelType, size_t> reverseLabelToIndex;
+
+  for( size_t i = 0; i < labelClasses.size(); ++i )
+    {
+    SampledLabelsMap[ labelClasses[i] ].reserve(numSamplesPerLabel);
+    reverseLabelToIndex[ labelClasses[i] ] = i;
+    }
+
   unsigned int rowIndx = 0;
   while( ( !NRit.IsAtEnd() ) && ( rowIndx < numberOfSamples ) )
     {
-    ByteImageType::IndexType currentIndex = NRit.GetIndex();
     unsigned int currLabelCode = NRit.Get();
-    if( currLabelCode != 99 ) // 99 is the label code of the voxels that their value is less than threshold
-                              // so they are not used in our computations.
+    // 99 is the label code of the voxels that their value is less than threshold
+    // so they are not used in our computations.
+    if( currLabelCode != 99   && SampledLabelsMap[ currLabelCode ].size() < numSamplesPerLabel )
       {
-      if( (currLabelCode != 0) || ((currLabelCode == 0) && (numAirSamples < maxAirSamples)) )
-        {
-        // find the index of current label code (can we do that in a more efficient way?)
-        unsigned int currLabelIndex = 1000;
-        for( unsigned int iclass = 0; iclass < numClasses; iclass++ )
-          {
-          if( currLabelCode == this->m_PriorLabelCodeVector(iclass) )
-            {
-            currLabelIndex = iclass;
-            break;
-            }
-          }
-        if( currLabelIndex == 1000 ) // if class index of the current label has not changed
-          {
-          itkGenericExceptionMacro( << "Class index of the current label is not found!" << std::endl );
-          }
-        labelVector(rowIndx) = currLabelIndex;
-
-        typename InputImageVectorType::const_iterator inIt = inputImagesVector.begin();
-        MeasurementVectorType mv;
-        while( inIt != inputImagesVector.end() ) // First two features from T1 and T2
-          {
-          mv.push_back( inIt->GetPointer()->GetPixel( currentIndex ) );
-          ++inIt;
-          }
-        for( unsigned int c_indx = 0; c_indx<featureClasses.size() ; ++c_indx) // Add 7 more features from priors
-          {
-          mv.push_back( Priors[ featureClasses[c_indx] ]->GetPixel( currentIndex ) );
-          }
-        trainSampleSet->PushBack( mv );
-        ++rowIndx;
-        if( currLabelCode == 0 )
-          {
-          ++numAirSamples;
-          }
-        }
+      const typename ByteImageType::IndexType currentIndex = NRit.GetIndex();
+      SampledLabelsMap[ currLabelCode ].push_back( currentIndex );
       }
     ++NRit;
     }
+
+   // NOW PROCESS ALL ELEMENTS OF THE std::Map SampledLabelsMap
+   for( typename LabelMapSamplesType::const_iterator it = SampledLabelsMap.begin(); it != SampledLabelsMap.end(); ++it )
+     {
+     for( typename IndexVectorType::const_iterator vit = it->second.begin(); vit != it->second.end(); ++vit )
+       {
+       // find the index of current label code (can we do that in a more efficient way?)
+       const unsigned int currLabelIndex = reverseLabelToIndex[it->first];
+       labelVector(rowIndx) = currLabelIndex;
+
+       MeasurementVectorType mv;
+       for(typename InputImageVectorType::const_iterator inIt = inputImagesVector.begin();
+        inIt != inputImagesVector.end(); ++inIt) // First two features from T1 and T2
+         {
+         mv.push_back( inIt->GetPointer()->GetPixel( *vit ) );
+         }
+       for( unsigned int c_indx = 0; c_indx<labelClasses.size() ; ++c_indx) // Add 7 more features from priors
+         {
+         mv.push_back( Priors[ labelClasses[c_indx] ]->GetPixel( *vit ) );
+         }
+       trainSampleSet->PushBack( mv );
+       ++rowIndx;
+       }
+     }
 
   muLogMacro(<<"\nNumber of valid samples found: " << rowIndx << std::endl);
   muLogMacro(<<"\nResize the labeling vector:" << std::endl);
@@ -356,9 +354,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     muLogMacro(<< "\nWrite training labels csv file ..." << std::endl);
     std::stringstream csvFileOfSampleLabels;
     csvFileOfSampleLabels << "#T1value, T2value, ";
-    for (unsigned int cln_i = 0; cln_i < featureClasses.size(); ++cln_i)
+    for (unsigned int cln_i = 0; cln_i < labelClasses.size(); ++cln_i)
       {
-      csvFileOfSampleLabels << this->m_PriorNames[ featureClasses[cln_i] ] << "value, ";
+      csvFileOfSampleLabels << this->m_PriorNames[ labelClasses[cln_i] ] << "value, ";
       }
     csvFileOfSampleLabels << "LableCode, ClassName" << std::endl;
     for( SampleType::InstanceIdentifier i = 0; i < rowIndx; ++i )
@@ -382,8 +380,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   const typename InputImageType::SizeType size = inputImagesVector[0]->GetLargestPossibleRegion().GetSize();
   unsigned int numOfVoxels = inputImagesVector[0]->GetLargestPossibleRegion().GetNumberOfPixels();
 
-  muLogMacro(<< "\n* Computing test matrix ( " << numOfVoxels << " x " << numOfInputImages + featureClasses.size() << " )" << std::endl);
-  vnl_matrix<FloatingPrecision> testMatrix( numOfVoxels, numOfInputImages+featureClasses.size() );
+  muLogMacro(<< "\n* Computing test matrix ( " << numOfVoxels << " x " << numOfInputImages + labelClasses.size() << " )" << std::endl);
+  vnl_matrix<FloatingPrecision> testMatrix( numOfVoxels, numOfInputImages+labelClasses.size() );
 
   unsigned int rowIndex = 0;
   for( LOOPITERTYPE kk = 0; kk < (LOOPITERTYPE)size[2]; kk++ )
@@ -401,16 +399,16 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
           ++colIndex;
           ++inIt;
           }
-        for( ; colIndex-numOfInputImages < featureClasses.size() ; ++colIndex) // Add 15 more features from priors
+        for( ; colIndex-numOfInputImages < labelClasses.size() ; ++colIndex) // Add 15 more features from priors
           {
-          testMatrix(rowIndex,colIndex) = Priors[ featureClasses[colIndex-numOfInputImages] ]->GetPixel( currIndex );
+          testMatrix(rowIndex,colIndex) = Priors[ labelClasses[colIndex-numOfInputImages] ]->GetPixel( currIndex );
           }
         ++rowIndex;
         }
       }
     }
 
-  const unsigned int K = 45; // Number of neighbours
+  const unsigned int K = numSamplesPerLabel * 0.90; // HACK: NEEDS MORE CONSIDERATION // Number of neighbours
   // each column of the memberShip matrix contains the voxel values of a posterior image.
   vnl_matrix<FloatingPrecision> liklihoodMatrix(numOfVoxels, numClasses, 1000);
 
@@ -2388,6 +2386,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
         this->m_KNNPosteriors = this->ComputekNNPosteriors(this->m_Posteriors,
                                                            this->m_CorrectedImages,
                                                            this->m_ThresholdedLabels,
+                                                           this->m_PriorLabelCodeVector,
                                                            NumberOfSamples); //// ??????????????? again needed???
 
         NormalizeProbListInPlace<TProbabilityImage>(this->m_KNNPosteriors);
