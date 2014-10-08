@@ -234,14 +234,12 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::ComputekNNPosteriors(const ProbabilityImageVectorType & Priors,
                        const MapOfInputImageVectors & intensityImages, // input corrected images
                        ByteImagePointer & CleanedLabels,
-                       const IntVectorType & labelClasses,
-                       const unsigned int numberOfSamples) // new input
+                       const IntVectorType & labelClasses)
 
 {
   // Phase 1: create train sample set, label vector, and the test matrix
   // Phase 2: pass the above vectors to the "dokNNClassification" function
 
-  // we have 15 classes. We pick "numberOfSamples" samples from all classes.
   const unsigned int numClasses = Priors.size();
 
   // change the map of input image vectors to a probability image vector type
@@ -279,7 +277,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     // randomly iterate through the label image
     // set train sample set and the label vector by picking samples from label image.
     // set kNN train sample set. it has #numberOfSamples training cases with #numOfInputImages features
-
+  const size_t numSamplesPerLabel = 25;
+  const size_t numberOfSamples = numClasses * numSamplesPerLabel;
   vnl_vector<FloatingPrecision> labelVector(numberOfSamples);
   muLogMacro(<< "\n* Computing the label vector with " << numberOfSamples << " samples..." << std::endl);
 
@@ -287,7 +286,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   SampleType::Pointer trainSampleSet = SampleType::New();
   trainSampleSet->SetMeasurementVectorSize( numOfInputImages + labelClasses.size() ); // Feature space has 2+7 elements
 
-  const int numSamplesPerLabel = 25;
 
   typedef std::vector<ByteImageType::IndexType> IndexVectorType;
   typedef std::map<typename ByteImageType::PixelType, IndexVectorType >  LabelMapSamplesType;
@@ -331,7 +329,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
          }
        for( unsigned int c_indx = 0; c_indx<labelClasses.size() ; ++c_indx) // Add 7 more features from priors
          {
-         mv.push_back( Priors[ labelClasses[c_indx] ]->GetPixel( *vit ) );
+         //mv.push_back( Priors[ labelClasses[c_indx] ]->GetPixel( *vit ) );
+         mv.push_back( (  Priors[ labelClasses[c_indx] ]->GetPixel( *vit ) > 0.01 ) ? 1 : 0 );
          }
        trainSampleSet->PushBack( mv );
        ++rowIndx;
@@ -348,7 +347,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   muLogMacro(<< "\nFeature space size: " << trainSampleSet->GetMeasurementVectorSize() << std::endl);
 
   // Write csv file
-  const bool generateLogScript = true;
+  const bool generateLogScript = true; //HACK:  SHOULD BE FALSE EVENTUALLY
   if( generateLogScript )
     {
     muLogMacro(<< "\nWrite training labels csv file ..." << std::endl);
@@ -399,9 +398,10 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
           ++colIndex;
           ++inIt;
           }
-        for( ; colIndex-numOfInputImages < labelClasses.size() ; ++colIndex) // Add 15 more features from priors
+        while( colIndex-numOfInputImages < labelClasses.size()) // Add 15 more features from priors
           {
-          testMatrix(rowIndex,colIndex) = Priors[ labelClasses[colIndex-numOfInputImages] ]->GetPixel( currIndex );
+          testMatrix(rowIndex,colIndex) = ( Priors[ labelClasses[colIndex-numOfInputImages] ]->GetPixel( currIndex ) > 0.01 ) ? 1 : 0 ;
+          ++colIndex;
           }
         ++rowIndex;
         }
@@ -1138,13 +1138,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 template <class TInputImage, class TProbabilityImage>
 typename EMSegmentationFilter<TInputImage, TProbabilityImage>::ProbabilityImageVectorType
 EMSegmentationFilter<TInputImage, TProbabilityImage>
-::ComputePosteriors(const ProbabilityImageVectorType & Priors,
+::ComputeEMPosteriors(const ProbabilityImageVectorType & Priors,
                     const vnl_vector<FloatingPrecision> & PriorWeights,
                     const MapOfInputImageVectors & IntensityImages,
                     std::vector<RegionStats> & ListOfClassStatistics)
 {
   // Compute initial distribution parameters
-  muLogMacro(<< "ComputePosteriors" << std::endl );
+  muLogMacro(<< "ComputeEMPosteriors" << std::endl );
   itk::TimeProbe ComputePosteriorsTimer;
   ComputePosteriorsTimer.Start();
 
@@ -2218,10 +2218,36 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   while( !converged && ( CurrentEMIteration <= m_MaximumIterations ) )
     {
     // Recompute posteriors, not at full resolution
-    this->m_Posteriors =
-      this->ComputePosteriors(this->m_WarpedPriors, this->m_PriorWeights,
-                              this->m_CorrectedImages,
-                              this->m_ListOfClassStatistics);
+      { //HACK: THIS CHUNK NEEDS TO BE A NEW FUNCTION
+      this->m_Posteriors =
+        this->ComputeEMPosteriors(this->m_WarpedPriors, this->m_PriorWeights,
+          this->m_CorrectedImages,
+          this->m_ListOfClassStatistics);
+      /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      /////////////////////////////////////////////// compute posteriors using kNN ////////////////////////////////////////////////
+      if( m_USEKNN )
+        {
+        FloatingPrecision inclusionThreshold = 0.75F;
+        ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
+          this->m_PriorLabelCodeVector, this->m_NonAirRegion,
+          this->m_DirtyThresholdedLabels,
+          this->m_ThresholdedLabels, inclusionThreshold);
+
+        muLogMacro(<< "\nWrite ThresholdedLabels for debugging." << std::endl);
+        typedef itk::ImageFileWriter<ByteImageType> LabelImageWriterType;
+        typename LabelImageWriterType::Pointer cleanLabelWriter = LabelImageWriterType::New();
+        cleanLabelWriter->SetInput(m_ThresholdedLabels);
+        cleanLabelWriter->SetFileName("DEBUG_ThresholdedLabels.nii.gz");
+        cleanLabelWriter->Update();
+
+        this->m_Posteriors = this->ComputekNNPosteriors(this->m_Posteriors,
+          this->m_CorrectedImages,
+          this->m_ThresholdedLabels,
+          this->m_PriorLabelCodeVector); //// ??????????????? again needed???
+        }
+      /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      }
     NormalizeProbListInPlace<TProbabilityImage>(this->m_Posteriors);
     this->WriteDebugPosteriors(CurrentEMIteration);
     ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
@@ -2319,7 +2345,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   muLogMacro(<< "Done computing posteriors with " << CurrentEMIteration << " iterations" << std::endl);
 
-  this->m_Posteriors = this->ComputePosteriors(this->m_WarpedPriors, this->m_PriorWeights,
+  this->m_Posteriors = this->ComputeEMPosteriors(this->m_WarpedPriors, this->m_PriorWeights,
                                                this->m_CorrectedImages,
                                                this->m_ListOfClassStatistics);
   NormalizeProbListInPlace<TProbabilityImage>(this->m_Posteriors);
@@ -2360,46 +2386,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                            // being re-used.
   this->m_ListOfClassStatistics = this->ComputeDistributions(SubjectCandidateRegions, this->m_Posteriors);
   this->WritePartitionTable(0 + 100);
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////// compute posteriors using kNN ////////////////////////////////////////////////
-    if( m_USEKNN )
-      {
-        unsigned int NumberOfSamples =  this->m_CleanedLabels->GetBufferedRegion().GetNumberOfPixels();
-        muLogMacro(<< "\nTotal number of voxels: " << NumberOfSamples << std::endl);
-        //NumberOfSamples = NumberOfSamples * 0.3;
-        NumberOfSamples = 80000;
-        muLogMacro(<< "Number of samples used to make train matrix: " << NumberOfSamples << std::endl);
-
-        FloatingPrecision inclusionThreshold = 0.5F;
-        ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
-                                                                this->m_PriorLabelCodeVector, this->m_NonAirRegion,
-                                                                this->m_DirtyThresholdedLabels,
-                                                                this->m_ThresholdedLabels, inclusionThreshold);
-
-        muLogMacro(<< "\nWrite ThresholdedLabels for debugging." << std::endl);
-        typedef itk::ImageFileWriter<ByteImageType> LabelImageWriterType;
-        typename LabelImageWriterType::Pointer cleanLabelWriter = LabelImageWriterType::New();
-        cleanLabelWriter->SetInput(m_ThresholdedLabels);
-        cleanLabelWriter->SetFileName("DEBUG_ThresholdedLabels.nii.gz");
-        cleanLabelWriter->Update();
-
-        this->m_KNNPosteriors = this->ComputekNNPosteriors(this->m_Posteriors,
-                                                           this->m_CorrectedImages,
-                                                           this->m_ThresholdedLabels,
-                                                           this->m_PriorLabelCodeVector,
-                                                           NumberOfSamples); //// ??????????????? again needed???
-
-        NormalizeProbListInPlace<TProbabilityImage>(this->m_KNNPosteriors);
-        /*
-        this->WriteDebugPosteriors(CurrentEMIteration + 100);
-        ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_kNNPosteriors, this->m_PriorIsForegroundPriorVector,
-                                                                this->m_PriorLabelCodeVector, this->m_NonAirRegion,
-                                                                this->m_DirtyLabels,
-                                                                this->m_CleanedLabels);
-        */
-      }
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 }
 
 template <class TInputImage, class TProbabilityImage>

@@ -305,8 +305,7 @@ private:
   ComputekNNPosteriors(const ProbabilityImageVectorType & Priors,
                         const MapOfInputImageVectors & IntensityImages,
                         ByteImagePointer & CleanedLabels,
-                        const IntVectorType & labelClasses,
-                        const unsigned int numberOfSamples);
+                        const IntVectorType & labelClasses);
 
   typename TProbabilityImage::Pointer
   ComputeOnePosterior(const FloatingPrecision priorScale,
@@ -316,7 +315,7 @@ private:
                       const MapOfInputImageVectors & intensityImages);
 
   std::vector<typename TProbabilityImage::Pointer>
-  ComputePosteriors(const std::vector<typename TProbabilityImage::Pointer> & Priors,
+  ComputeEMPosteriors(const std::vector<typename TProbabilityImage::Pointer> & Priors,
                     const vnl_vector<FloatingPrecision> & PriorWeights,
                     const MapOfInputImageVectors & IntensityImages,
                     std::vector<RegionStats> & ListOfClassStatistics);
@@ -378,7 +377,6 @@ private:
   ProbabilityImageVectorType m_WarpedPriors;
   ProbabilityImageVectorType m_OriginalSpacePriors;
   ProbabilityImageVectorType m_Posteriors;
-  ProbabilityImageVectorType m_KNNPosteriors;
 
   std::string m_AtlasTransformType;
 
