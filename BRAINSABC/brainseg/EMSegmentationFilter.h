@@ -377,6 +377,7 @@ private:
   ProbabilityImageVectorType m_WarpedPriors;
   ProbabilityImageVectorType m_OriginalSpacePriors;
   ProbabilityImageVectorType m_Posteriors;
+  ProbabilityImageVectorType m_KNNPosteriors;
 
   std::string m_AtlasTransformType;
 
