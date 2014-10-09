@@ -732,7 +732,6 @@ int main(int argc, char * *argv)
   typedef itk::ImageFileReader<FloatImageType> LocalReaderType;
   typedef LocalReaderType::Pointer             LocalReaderPointer;
   FloatImageType::Pointer KeyImageFirstRead=NULL;
-  FloatImageType::Pointer SecondKeyImageFirstRead=NULL;
 
   AtlasRegType::MapOfStringVectors intraSubjectTransformFileNames;
   unsigned int i = 0;
@@ -794,12 +793,6 @@ int main(int argc, char * *argv)
         {
         KeyImageFirstRead=denoisedImage;
         }
-      else if ( SecondKeyImageFirstRead.IsNull() && // Second modality to be used in
-                typeIt != inputVolumeMap.begin() )  // the atlas to subject registration
-        {
-        muLogMacro( << "Set Second Key Image: ...\n" );
-        SecondKeyImageFirstRead=denoisedImage;
-        }
       if( debuglevel > 1 )
         {
         // DEBUG:  This code is for debugging purposes only;
@@ -824,7 +817,6 @@ int main(int argc, char * *argv)
       }
     }
   atlasreg->SetKeySubjectImage(KeyImageFirstRead);
-  atlasreg->SetSecondKeySubjectImage(SecondKeyImageFirstRead);
   atlasreg->SetIntraSubjectOriginalImageList(intraSubjectNoiseRemovedImageMap);
   atlasreg->SetIntraSubjectTransformFileNames(intraSubjectTransformFileNames);
   }

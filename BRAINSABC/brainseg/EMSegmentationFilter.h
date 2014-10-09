@@ -316,9 +316,18 @@ private:
 
   std::vector<typename TProbabilityImage::Pointer>
   ComputeEMPosteriors(const std::vector<typename TProbabilityImage::Pointer> & Priors,
+                      const vnl_vector<FloatingPrecision> & PriorWeights,
+                      const MapOfInputImageVectors & IntensityImages,
+                      std::vector<RegionStats> & ListOfClassStatistics);
+
+  std::vector<typename TProbabilityImage::Pointer>
+  ComputePosteriors(const std::vector<typename TProbabilityImage::Pointer> & Priors,
                     const vnl_vector<FloatingPrecision> & PriorWeights,
                     const MapOfInputImageVectors & IntensityImages,
-                    std::vector<RegionStats> & ListOfClassStatistics);
+                    std::vector<RegionStats> & ListOfClassStatistics,
+                    const IntVectorType & priorLabelCodeVector,
+                    std::vector<bool> & priorIsForegroundPriorVector,
+                    typename ByteImageType::Pointer & nonAirRegion);
 
   std::vector<RegionStats> ComputeDistributions(const ByteImageVectorType &SubjectCandidateRegions,
                                                 const ProbabilityImageVectorType &probAllDistributions);

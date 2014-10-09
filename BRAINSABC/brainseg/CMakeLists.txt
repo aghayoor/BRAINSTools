@@ -9,7 +9,6 @@ include_directories(
 #  )
 
 set(BRAINSABCCOMMONLIB_SRCS
-EMSegmentationFilter.cxx #HACK REMOVE THIS LINE and this file
   ../common/Log.cxx
   EMSParameters.h
   EMSParameters.cxx
