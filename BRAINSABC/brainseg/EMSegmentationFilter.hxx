@@ -278,7 +278,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   // randomly iterate through the label image
   // set train sample set and the label vector by picking samples from label image.
   // We will choose "numSamplesPerLabel" from each posterior class.
-  const size_t numSamplesPerLabel = 25;
+  const size_t numSamplesPerLabel = 15;
   const size_t numberOfSamples = numClasses * numSamplesPerLabel;
   vnl_vector<FloatingPrecision> labelVector(numberOfSamples);
   muLogMacro(<< "\n* Computing the label vector with " << numberOfSamples << " samples..." << std::endl);
@@ -319,7 +319,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     if( SampledLabelsMap[ labelClasses[i] ].size() < numSamplesPerLabel )
       {
       itkGenericExceptionMacro( << "Error: " << numSamplesPerLabel << " samples should be picked for each label code.\n"
-                                << "There is no enough samples for " << labelClasses[i] << " label code." << std::endl );
+                                << "There is not enough samples for the label code: " << labelClasses[i] << std::endl );
       }
     }
 
