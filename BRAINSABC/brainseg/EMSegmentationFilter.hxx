@@ -1214,7 +1214,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     {
     NormalizeProbListInPlace<TProbabilityImage>( Posteriors );
 
-    const FloatingPrecision inclusionThreshold = 0.75F;
+    const FloatingPrecision inclusionThreshold = 0.95F;
 
     ByteImagePointer thresholdedLabels = NULL;
     ByteImagePointer dirtyThresholdedLabels = NULL; // It is the label image that is used in ComputeKNNPosteriors,
@@ -2413,7 +2413,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyLabels,
                                                           this->m_CleanedLabels);
-  FloatingPrecision inclusionThreshold = 0.75F;
+  const FloatingPrecision inclusionThreshold = 0.95F;
   ComputeLabels<TProbabilityImage, ByteImageType, double>(this->m_Posteriors, this->m_PriorIsForegroundPriorVector,
                                                           this->m_PriorLabelCodeVector, this->m_NonAirRegion,
                                                           this->m_DirtyThresholdedLabels,
