@@ -301,14 +301,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     ++NRit;
     }
 
-  if(0) // Now check that enough samples are chosen for each label code
+  if(1) // Now check that enough samples are chosen for each label code
     {
     for( size_t i = 0; i < labelClasses.size(); ++i )
       {
       if( SampledLabelsMap[ labelClasses[i] ].size() < numSamplesPerLabel )
         {
-        itkGenericExceptionMacro( << "Error: " << numSamplesPerLabel << " samples should be picked for each label code.\n"
-                                 << "There is not enough samples for the label code: " << labelClasses[i] << std::endl );
+        muLogMacro(<<"WARNING: There is not enough samples for all label codes." << std::endl );
         }
       }
     }
@@ -354,7 +353,18 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
        }
      }
 
-  muLogMacro(<<"Size of created label vector: " << labelVector.size() << std::endl);
+  if( rowIndx != numberOfSamples )
+    {
+    muLogMacro(<<"\nNumber of valid samples found: " << rowIndx << std::endl);
+    muLogMacro(<<"\nResize the labeling vector:" << std::endl);
+
+    labelVector = labelVector.extract(rowIndx,0);
+    muLogMacro(<<"New size of label vector: " << labelVector.size() << std::endl);
+    }
+  else
+    {
+    muLogMacro(<<"Size of created label vector: " << labelVector.size() << std::endl);
+    }
   muLogMacro(<< "\nTrain matrix is created using " << trainSampleSet->Size() << " samples, ");
   muLogMacro(<< "having feature space size of: " << trainSampleSet->GetMeasurementVectorSize() << std::endl);
 
