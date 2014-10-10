@@ -265,7 +265,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   // set train sample set and the label vector by picking samples from label image.
   //
   // We will choose "numSamplesPerLabel" from each posterior class.
-  const size_t numSamplesPerLabel = 25;
+  const size_t numSamplesPerLabel = 50;
   const size_t numberOfSamples = numClasses * numSamplesPerLabel;
 
   typedef std::vector<ByteImageType::IndexType> IndexVectorType;
@@ -423,7 +423,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       }
     }
 
-  const unsigned int K = numSamplesPerLabel * 0.90; // HACK: NEEDS MORE CONSIDERATION // Number of neighbours
+  const unsigned int K = numSamplesPerLabel * 0.80; // HACK: NEEDS MORE CONSIDERATION // Number of neighbours
   // each column of the memberShip matrix contains the voxel values of a posterior image.
   vnl_matrix<FloatingPrecision> liklihoodMatrix(numOfVoxels, numClasses, 1000);
 
@@ -1214,7 +1214,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     {
     NormalizeProbListInPlace<TProbabilityImage>( Posteriors );
 
-    FloatingPrecision inclusionThreshold = 0.0F;
+    const FloatingPrecision inclusionThreshold = 0.75F;
 
     ByteImagePointer thresholdedLabels = NULL;
     ByteImagePointer dirtyThresholdedLabels = NULL; // It is the label image that is used in ComputeKNNPosteriors,
