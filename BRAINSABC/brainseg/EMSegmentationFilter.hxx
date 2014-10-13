@@ -766,7 +766,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
 template <class TInputImage, class TProbabilityImage>
 void EMSegmentationFilter<TInputImage, TProbabilityImage>
-::WriteDebugPosteriors(const unsigned int ComputeIterationID) const
+::WriteDebugPosteriors(const unsigned int ComputeIterationID, const std::string classifierID = "") const
 {
   if( this->m_DebugLevel > 9 )
     {
@@ -788,7 +788,7 @@ void EMSegmentationFilter<TInputImage, TProbabilityImage>
 
       std::stringstream template_index_stream("");
       template_index_stream << iprob;
-      const std::string fn = this->m_OutputDebugDir + "/POSTERIOR_INDEX_" + template_index_stream.str() + "_"
+      const std::string fn = this->m_OutputDebugDir + "/POSTERIOR_" + classifierID + "_INDEX_" + template_index_stream.str() + "_"
         + this->m_PriorNames[iprob] + "_LEVEL_" + write_posteriors_level_stream.str() + ".nii.gz";
 
       muLogMacro(<< "Writing posterior images... " << fn <<  std::endl);
