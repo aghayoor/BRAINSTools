@@ -785,6 +785,8 @@ void landmarksConstellationDetector::Compute( void )
           }
     }
 
+  itkUtil::WriteImage<SImageType> ( this->m_VolumeMSP, "FinalMSPVolumeAfterRCProcess.nrrd" );
+
   // In case hough eye detector failed
   if( this->m_HoughEyeFailure || ( globalImagedebugLevel > 1 ) )
     {

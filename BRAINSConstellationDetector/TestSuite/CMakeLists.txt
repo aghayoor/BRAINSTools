@@ -306,9 +306,12 @@ set(BCDTestName BCDTest_ForceVN4Point)
     BRAINSConstellationDetectorTest
     --inputVolume DATA{${TestData_DIR}/T1.nii.gz}
     --outputResampledVolume ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nii.gz
+    --outputLandmarksInInputSpace ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_InputSpace.fcsv
+    --outputLandmarksInACPCAlignedSpace ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_ACPCAligned.fcsv
     --inputTemplateModel DATA{${TestData_DIR}/T1_50Lmks.mdl}
     --LLSModel DATA{${TestData_DIR}/Transforms_h5/LLSModel_50Lmks.${XFRM_EXT}}
-    --acLowerBound 100)
+    --acLowerBound 100
+    --writedebuggingImagesLevel 3)
 
   set(BCDTestName BCDTest_backgroundValue)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
