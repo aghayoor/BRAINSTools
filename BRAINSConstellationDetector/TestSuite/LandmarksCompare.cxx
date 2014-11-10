@@ -44,7 +44,9 @@ int main( int argc, char * argv[] )
 
   for( unsigned int l = 0; l < numBaselines; ++l)
      {
-      // load corresponding landmarks in EMSP aligned space from file if possible
+     std::cout << "\nCompare the input landmark file with the baseline files number: " << l+1 << std::endl;
+
+     // load corresponding landmarks in EMSP aligned space from file if possible
      const LandmarksMapType landmarks1 = ReadSlicer3toITKLmk( inputLandmarkFile1 );
      const LandmarksMapType landmarks2 = ReadSlicer3toITKLmk( inputLandmarkFile2Names[l] );
 
@@ -97,9 +99,13 @@ int main( int argc, char * argv[] )
        }
      if( allSame )
        {
-       std::cout << "The landmark files are identical!" << std::endl;
+       std::cout << "The input landmark file is identical to the baseline file: " << l+1 << "!" << std::endl;
        testIterationIsPassed = true;
        break;
+       }
+      else
+       {
+       std::cout << "WARINING: The input landmark file is too different than the baseline file: " << l+1 << "!" << std::endl;
        }
      }
 
