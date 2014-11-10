@@ -80,13 +80,13 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/obliq_setup.txt.in ${CMAKE_CURRENT_BI
 set(BRAINSEyeDetectorTestName BRAINSEyeDetectorTest_T1)
 ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BRAINSEyeDetectorTestName}
   COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSEyeDetectorTestDriver>
-  --compare DATA{${TestData_DIR}/${BRAINSEyeDetectorTestName}_standard.nii.gz}
+  --compare DATA{${TestData_DIR}/${BRAINSEyeDetectorTestName}_standard.nrrd}
   ${CMAKE_CURRENT_BINARY_DIR}/${BRAINSEyeDetectorTestName}_aligned.nrrd
   --compareIntensityTolerance 0
   --compareRadiusTolerance 0
   --compareNumberOfPixelsTolerance 0
   BRAINSEyeDetectorTest
-  --inputVolume DATA{${TestData_DIR}/${BRAINSEyeDetectorTestName}_standard.nii.gz}
+  --inputVolume DATA{${TestData_DIR}/${BRAINSEyeDetectorTestName}_standard.nrrd}
   --outputVolume ${CMAKE_CURRENT_BINARY_DIR}/${BRAINSEyeDetectorTestName}_aligned.nrrd
   --debugDir ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -95,7 +95,7 @@ ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BRAINSEyeDetectorTestName
 set(BRAINSAlignMSPTestName BRAINSAlignMSPTest_T1)
 ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BRAINSAlignMSPTestName}
   COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSAlignMSPTestDriver>
-  --compare DATA{${TestData_DIR}/${BRAINSAlignMSPTestName}_standard.nii.gz}
+  --compare DATA{${TestData_DIR}/${BRAINSAlignMSPTestName}_standard.nrrd}
   ${CMAKE_CURRENT_BINARY_DIR}/${BRAINSAlignMSPTestName}_aligned.nrrd
   --compareIntensityTolerance 50
   --compareRadiusTolerance 0
@@ -150,7 +150,7 @@ set_property(TEST ${BCDTestName}
 set(BRAINSTrimForegroundInDirectionTestName BRAINSTrimForegroundInDirectionTest_T1)
 ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BRAINSTrimForegroundInDirectionTestName}
   COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSTrimForegroundInDirectionTestDriver>
-  --compare DATA{${TestData_DIR}/${BRAINSTrimForegroundInDirectionTestName}_standard.nii.gz}
+  --compare DATA{${TestData_DIR}/${BRAINSTrimForegroundInDirectionTestName}_standard.nrrd}
   ${CMAKE_CURRENT_BINARY_DIR}/${BRAINSTrimForegroundInDirectionTestName}_aligned.nrrd
   --compareIntensityTolerance 0
   --compareRadiusTolerance 0
@@ -297,7 +297,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_acLowerBound)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -313,7 +313,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_backgroundValue)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -329,7 +329,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_cutOutHeadInOutputResampledVolume)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -345,7 +345,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_cutOutHeadInOutputVolume)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -361,7 +361,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_interpolationMode)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -377,7 +377,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_mspLevel)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -393,7 +393,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_otsuThreshold)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -409,7 +409,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_outputUntransformedClippedVolume)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -425,7 +425,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_rac)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -441,7 +441,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_rescaleIntensity)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -457,7 +457,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_rescaleIntensityRange)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -473,7 +473,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_rmpj)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -490,7 +490,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_rpc)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -507,7 +507,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_rVN4)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -523,7 +523,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_rVN4-rpc-rac-rmpj)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -543,7 +543,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_T1_outputResampledVolume)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -558,7 +558,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_T1_outputVolume)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -573,7 +573,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_trimRescaledIntensities)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz,:}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd,:}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
@@ -605,7 +605,7 @@ set(BCDTestName BCDTest_ForceVN4Point)
   set(BCDTestName BCDTest_inputLandmarksEMSP)
   ExternalData_add_test( ${PROJECT_NAME}FetchData NAME ${BCDTestName}
     COMMAND ${LAUNCH_EXE} $<TARGET_FILE:BRAINSConstellationDetectorTestDriver>
-    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nii.gz}
+    --compare DATA{${TestData_DIR}/${BCDTestName}_standard.nrrd}
     ${CMAKE_CURRENT_BINARY_DIR}/${BCDTestName}_aligned.nrrd
     --compareIntensityTolerance 0
     --compareRadiusTolerance 0
