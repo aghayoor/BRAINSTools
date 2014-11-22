@@ -1,5 +1,4 @@
 
-
 #add_executable( gtractCoregBvaluesTests
 #    ${GTRACT_SOURCE_DIR}/Cmdline/gtractCoregBvaluesPrimary.cxx gtractCoregBvaluesTests.cxx )
 #target_link_libraries( gtractCoregBvaluesTests  BRAINSCommonLib GTRACTCommon )
@@ -11,13 +10,8 @@
 #target_link_libraries( gtractCoRegAnatomyTests  BRAINSCommonLib GTRACTCommon )
 #set_target_properties(gtractCoRegAnatomyTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${GTRACT_BINARY_DIR})
 #set(GTRACT_CoRegAnatomy_TESTS ${GTRACT_BINARY_DIR}/gtractCoRegAnatomyTests )
-
-add_executable( gtractResampleDWIInPlaceTests
-    ${GTRACT_SOURCE_DIR}/Cmdline/gtractResampleDWIInPlacePrimary.cxx gtractResampleDWIInPlaceTests.cxx )
-target_link_libraries( gtractResampleDWIInPlaceTests  BRAINSCommonLib GTRACTCommon )
-set_target_properties(gtractResampleDWIInPlaceTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${GTRACT_BINARY_DIR})
-set(GTRACT_ResampleDWIInPlace_TESTS ${GTRACT_BINARY_DIR}/gtractResampleDWIInPlaceTests )
-
+#
+#
 #set(GTRACT_TEST_OUTPUT_DIR "${GTRACT_BINARY_DIR}/Testing")
 #make_directory(${GTRACT_TEST_OUTPUT_DIR})
 #
@@ -64,9 +58,13 @@ set(GTRACT_ResampleDWIInPlace_TESTS ${GTRACT_BINARY_DIR}/gtractResampleDWIInPlac
 #     --spatialScale 10
 #)
 
+add_executable( gtractResampleDWIInPlaceTests gtractResampleDWIInPlaceTests.cxx )
+target_link_libraries( gtractResampleDWIInPlaceTests  BRAINSCommonLib GTRACTCommon )
+set_target_properties(gtractResampleDWIInPlaceTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${GTRACT_BINARY_DIR})
+
 set(GTRACTTestName gtractResampleDWIInPlace_Test)
 ExternalData_add_test(${PROJECT_NAME}FetchData NAME ${GTRACTTestName}
-  COMMAND ${LAUNCH_EXE} $<TARGET_FILE:GTRACT_ResampleDWIInPlace_TESTS>
+  COMMAND ${LAUNCH_EXE} $<TARGET_FILE:gtractResampleDWIInPlaceTests>
   --compare DATA{${TestData_DIR}/${GTRACTTestName}.standard.nrrd}
             ${CMAKE_CURRENT_BINARY_DIR}/${GTRACTTestName}.test.nrrd
   --compareIntensityTolerance 0
