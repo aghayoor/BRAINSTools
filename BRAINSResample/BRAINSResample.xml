@@ -82,7 +82,7 @@
       <label>Transform file</label>
       <description>Filename for the BRAINSFit transform (ITKv3 or earlier) or composite transform file (ITKv4)</description>
       <channel>input</channel>
-      <default></default>
+      <default>Identity</default>
     </transform>
 
     <string-enumeration>
