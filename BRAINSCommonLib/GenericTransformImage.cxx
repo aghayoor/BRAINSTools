@@ -250,7 +250,7 @@ int WriteStrippedRigidTransformToDisk(const itk::Transform<double, 3, 3>::ConstP
 }
 
 template<class TScalarType>
-typename itk::Transform<TScalarType, 3, 3>::Pointer ReadTransformFromDiskTemplate(const std::string & initialTransform)
+typename itk::Transform<TScalarType, 3, 3>::Pointer ReadTransformFromDisk(const std::string & initialTransform)
 {
   typename itk::Transform<TScalarType, 3, 3>::Pointer genericTransform = ITK_NULLPTR;
 
@@ -449,11 +449,12 @@ typename itk::Transform<TScalarType, 3, 3>::Pointer ReadTransformFromDiskTemplat
   return genericTransform;
 }
 
-template itk::Transform<double, 3, 3>::Pointer ReadTransformFromDiskTemplate<double>(const std::string & initialTransform);
+template itk::Transform<double, 3, 3>::Pointer ReadTransformFromDisk<double>(const std::string & initialTransform);
+//template itk::Transform<float, 3, 3>::Pointer ReadTransformFromDisk<float>(const std::string & initialTransform);
 
 itk::Transform<double, 3, 3>::Pointer ReadTransformFromDisk(const std::string & initialTransform)
 {
-  return ReadTransformFromDiskTemplate<double>( initialTransform );
+  return ReadTransformFromDisk<double>( initialTransform );
 }
 
 template<class TScalarType>
