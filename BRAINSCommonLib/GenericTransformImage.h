@@ -106,9 +106,11 @@ extern void WriteTransformToDisk( itk::Transform<TScalarType, 3, 3> const *const
   * \endcode
   */
 
-template<class TScalarType=double>
+template<class TScalarType>
 extern typename itk::Transform<TScalarType, 3, 3>::Pointer
-ReadTransformFromDisk(const std::string & initialTransform);
+ReadTransformFromDiskTemplate(const std::string & initialTransform);
+
+extern itk::Transform<double, 3, 3>::Pointer ReadTransformFromDisk(const std::string & initialTransform);
 
 /**
   * \author Hans J. Johnson
