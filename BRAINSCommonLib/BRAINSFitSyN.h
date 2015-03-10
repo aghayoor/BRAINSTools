@@ -25,7 +25,7 @@
 
 namespace // put in anon namespace to suppress shadow declaration warnings.
 {
-typedef  double                                            RealType;
+typedef  float                                             RealType;
 typedef  ants::RegistrationHelper<RealType,3>              SyNRegistrationHelperType;
 typedef  SyNRegistrationHelperType::ImageType              ImageType;
 typedef  SyNRegistrationHelperType::CompositeTransformType CompositeTransformType;
