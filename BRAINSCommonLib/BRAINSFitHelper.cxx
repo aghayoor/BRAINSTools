@@ -405,7 +405,7 @@ BRAINSFitHelper::Update(void)
   GenericMetricType::Pointer metric;
   if( this->m_CostMetricName == "MMI" )
     {
-    typedef itk::MattesMutualInformationImageToImageMetricv4<FixedImageType, MovingImageType, FixedImageType, double> MIMetricType;
+    typedef itk::MattesMutualInformationImageToImageMetricv4<FixedImageType, MovingImageType, FixedImageType, RealType> MIMetricType;
     MIMetricType::Pointer mutualInformationMetric = MIMetricType::New();
     //The next line was a hack for early ITKv4 mattes mutual informaiton
     //that was using a lot of memory
@@ -422,7 +422,7 @@ BRAINSFitHelper::Update(void)
     }
   else if( this->m_CostMetricName == "MSE" )
     {
-    typedef itk::MeanSquaresImageToImageMetricv4<FixedImageType, MovingImageType, FixedImageType, double> MSEMetricType;
+    typedef itk::MeanSquaresImageToImageMetricv4<FixedImageType, MovingImageType, FixedImageType, RealType> MSEMetricType;
     MSEMetricType::Pointer meanSquareMetric = MSEMetricType::New();
     meanSquareMetric = meanSquareMetric;
     metric = meanSquareMetric;
@@ -432,7 +432,7 @@ BRAINSFitHelper::Update(void)
     }
   else if( this->m_CostMetricName == "NC" )
     {
-    typedef itk::CorrelationImageToImageMetricv4<FixedImageType, MovingImageType, FixedImageType, double> corrMetricType;
+    typedef itk::CorrelationImageToImageMetricv4<FixedImageType, MovingImageType, FixedImageType, RealType> corrMetricType;
     corrMetricType::Pointer corrMetric = corrMetricType::New();
     metric = corrMetric;
 
@@ -441,7 +441,7 @@ BRAINSFitHelper::Update(void)
     }
   else if( this->m_CostMetricName == "MIH" )
     {
-    typedef itk::JointHistogramMutualInformationImageToImageMetricv4<FixedImageType, MovingImageType, FixedImageType, double> MutualInformationMetricType;
+    typedef itk::JointHistogramMutualInformationImageToImageMetricv4<FixedImageType, MovingImageType, FixedImageType, RealType> MutualInformationMetricType;
     MutualInformationMetricType::Pointer mutualInformationMetric = MutualInformationMetricType::New();
     mutualInformationMetric = mutualInformationMetric;
     mutualInformationMetric->SetNumberOfHistogramBins( this->m_NumberOfHistogramBins );
