@@ -691,8 +691,9 @@ int main(int argc, char *argv[])
       itkUtil::WriteImage<WriteOutImageType>(CastImage, outputVolume);
       }
     }
-    itk::WriteBothTransformsToDisk(currentGenericTransform.GetPointer(),
-                                   localOutputTransform, strippedOutputTransform);
+    // Write BRAINSFit output transform (in double precision) as a single precision transform to the disk
+    itk::WriteBothTransformsToDisk<double,float>(currentGenericTransform.GetPointer(),
+                                                 localOutputTransform, strippedOutputTransform);
 
   return 0;
 }
