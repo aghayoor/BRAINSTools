@@ -89,7 +89,7 @@ public:
   typedef SmartPointer<Self>       Pointer;
   typedef SmartPointer<const Self> ConstPointer;
 
-  typedef float RealType;
+  typedef double RealType;
 
   typedef typename FixedImageType::ConstPointer FixedImageConstPointer;
   typedef typename FixedImageType::Pointer      FixedImagePointer;

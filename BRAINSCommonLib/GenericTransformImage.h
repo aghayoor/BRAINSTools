@@ -68,6 +68,10 @@ namespace itk
   * WriteTransformToDisk<TScalarType>(myAffine.GetPointer(), "myAffineFile.mat");
   * \endcode
   */
+template<class TInputScalarType, class TWriteScalarType>
+extern void WriteTransformToDisk( itk::Transform<TInputScalarType, 3, 3> const *const genericTransformToWrite,
+                                 const std::string & outputTransform);
+
 template<class TScalarType>
 extern void WriteTransformToDisk( itk::Transform<TScalarType, 3, 3> const *const genericTransformToWrite,
                                  const std::string & outputTransform);

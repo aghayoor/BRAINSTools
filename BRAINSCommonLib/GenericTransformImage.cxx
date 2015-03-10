@@ -450,6 +450,9 @@ typename itk::Transform<TScalarType, 3, 3>::Pointer ReadTransformFromDisk(const 
 }
 
 template itk::Transform<double, 3, 3>::Pointer ReadTransformFromDisk<double>(const std::string & initialTransform);
+//
+// TODO: to make ReadTransformFromDisk function work with float type, we need to change "AssignConvertedTransform" functions
+//       to be templates over ScalarType
 //template itk::Transform<float, 3, 3>::Pointer ReadTransformFromDisk<float>(const std::string & initialTransform);
 
 itk::Transform<double, 3, 3>::Pointer ReadTransformFromDisk(const std::string & initialTransform)
@@ -457,15 +460,16 @@ itk::Transform<double, 3, 3>::Pointer ReadTransformFromDisk(const std::string & 
   return ReadTransformFromDisk<double>( initialTransform );
 }
 
-template<class TScalarType>
-void WriteTransformToDisk( itk::Transform<TScalarType, 3, 3> const *const MyTransform, const std::string & TransformFilename )
+template<class TInputScalarType, class TWriteScalarType>
+void WriteTransformToDisk( itk::Transform<TInputScalarType, 3, 3> const *const MyTransform,
+                           const std::string & TransformFilename )
 {
   /*
    *  Convert the transform to the appropriate assumptions and write it out as requested.
    */
 
   // First we check the displacementField type transforms
-  typedef itk::DisplacementFieldTransform<TScalarType, 3>                   DisplacementFieldTransformType;
+  typedef itk::DisplacementFieldTransform<TInputScalarType, 3>              DisplacementFieldTransformType;
   typedef typename DisplacementFieldTransformType::DisplacementFieldType    DisplacementFieldType;
   typedef itk::ImageFileWriter<DisplacementFieldType>                       DisplacementFieldWriter;
   const DisplacementFieldTransformType *dispXfrm = dynamic_cast<const DisplacementFieldTransformType *>(MyTransform );
@@ -488,7 +492,7 @@ void WriteTransformToDisk( itk::Transform<TScalarType, 3, 3> const *const MyTran
     }
   else // regular transforms (linear transforms)
     {
-    typedef itk::TransformFileWriterTemplate<TScalarType> TransformWriterType;
+    typedef itk::TransformFileWriterTemplate<TWriteScalarType> TransformWriterType;
     typename TransformWriterType::Pointer transformWriter =  TransformWriterType::New();
     transformWriter->SetFileName( TransformFilename.c_str() );
 
@@ -545,6 +549,17 @@ void WriteTransformToDisk( itk::Transform<TScalarType, 3, 3> const *const MyTran
     e.SetDescription( msg.str().c_str() );
     throw e;
     }
+}
+
+template void WriteTransformToDisk<double,double>( itk::Transform<double, 3, 3> const *const MyTransform, const std::string & TransformFilename );
+template void WriteTransformToDisk<double,float>( itk::Transform<double, 3, 3> const *const MyTransform, const std::string & TransformFilename );
+template void WriteTransformToDisk<float,double>( itk::Transform<float, 3, 3> const *const MyTransform, const std::string & TransformFilename );
+template void WriteTransformToDisk<float,float>( itk::Transform<float, 3, 3> const *const MyTransform, const std::string & TransformFilename );
+
+template<class TScalarType>
+void WriteTransformToDisk( itk::Transform<TScalarType, 3, 3> const *const MyTransform, const std::string & TransformFilename )
+{
+  WriteTransformToDisk<TScalarType, TScalarType>(MyTransform, TransformFilename);
 }
 
 template void WriteTransformToDisk<double>( itk::Transform<double, 3, 3> const *const MyTransform, const std::string & TransformFilename );

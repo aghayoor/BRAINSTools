@@ -70,7 +70,7 @@ public:
   typedef SmartPointer<Self>       Pointer;
   typedef SmartPointer<const Self> ConstPointer;
 
-  typedef float                         RealType;
+  typedef double                         RealType;
   typedef float                         PixelType;
   typedef itk::Image<PixelType, 3>      FixedImageType;
   typedef FixedImageType::ConstPointer  FixedImageConstPointer;
