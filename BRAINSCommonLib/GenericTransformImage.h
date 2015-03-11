@@ -141,7 +141,8 @@ ComputeRigidTransformFromGeneric(const itk::Transform<double, 3, 3>::ConstPointe
   * \brief Special purpose convenience function -- should not have a public
   *interface.
   */
-extern int WriteBothTransformsToDisk(const itk::Transform<double, 3, 3>::ConstPointer genericTransformToWrite,
+template<class TInputScalarType, class TWriteScalarType>
+extern int WriteBothTransformsToDisk(const typename itk::Transform<TInputScalarType, 3, 3>::ConstPointer genericTransformToWrite,
                                      const std::string & outputTransform, const std::string & strippedOutputTransform);
 
 /**
@@ -149,7 +150,8 @@ extern int WriteBothTransformsToDisk(const itk::Transform<double, 3, 3>::ConstPo
   * \brief Special purpose convenience function -- should not have a public
   *interface.
   */
-extern int WriteStrippedRigidTransformToDisk(const itk::Transform<double, 3, 3>::ConstPointer genericTransformToWrite,
+template<class TInputScalarType, class TWriteScalarType>
+extern int WriteStrippedRigidTransformToDisk(const typename itk::Transform<TInputScalarType, 3, 3>::ConstPointer genericTransformToWrite,
                                              const std::string & strippedOutputTransform);
 }
 

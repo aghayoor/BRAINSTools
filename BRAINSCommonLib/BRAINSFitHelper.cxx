@@ -763,7 +763,7 @@ BRAINSFitHelper::PrintCommandLine(const bool dumpTempVolumes, const std::string 
   if( m_CurrentGenericTransform.IsNotNull() )
     {
     const std::string initialTransformString("DEBUGInitialTransform_" + suffix + ".h5");
-    WriteBothTransformsToDisk(this->m_CurrentGenericTransform.GetPointer(), initialTransformString, "");
+    WriteBothTransformsToDisk<double,float>(this->m_CurrentGenericTransform.GetPointer(), initialTransformString, "");
     oss << "--initialTransform " << initialTransformString  << "  \\" << std::endl;
     }
     {
