@@ -492,16 +492,29 @@ void WriteTransformToDisk( itk::Transform<TInputScalarType, 3, 3> const *const M
    *  Convert the transform to the appropriate assumptions and write it out as requested.
    */
 
-  // First we check the displacementField type transforms
-  typedef itk::DisplacementFieldTransform<TInputScalarType, 3>              DisplacementFieldTransformType;
-  typedef typename DisplacementFieldTransformType::DisplacementFieldType    DisplacementFieldType;
-  typedef itk::ImageFileWriter<DisplacementFieldType>                       DisplacementFieldWriter;
-  const DisplacementFieldTransformType *dispXfrm = dynamic_cast<const DisplacementFieldTransformType *>(MyTransform );
-  if( dispXfrm != ITK_NULLPTR ) // if it's a displacement field transform
+  // First check if the input transform is a displacementField transform
+  typedef itk::DisplacementFieldTransform<TInputScalarType, 3>                   InputDisplacementFieldTransformType;
+  const InputDisplacementFieldTransformType *dispXfrm = dynamic_cast<const InputDisplacementFieldTransformType *>(MyTransform );
+  if( dispXfrm != ITK_NULLPTR ) // if it's a displacement field transform, we write that as a float displacement
     {
-    typename DisplacementFieldType::ConstPointer dispField = dispXfrm->GetDisplacementField();
+    typedef typename InputDisplacementFieldTransformType::DisplacementFieldType    InputDisplacementFieldType;
+    typename InputDisplacementFieldType::ConstPointer inputDispField = dispXfrm->GetDisplacementField();
+
+    typedef itk::Vector<float, 3>     VectorType;
+    typedef itk::Image<VectorType, 3> OutputDisplacementFieldType;
+    OutputDisplacementFieldType::Pointer outputDispField =
+      itkUtil::AllocateImageFromExample<InputDisplacementFieldType, OutputDisplacementFieldType>( inputDispField );
+
+    typedef itk::ImageRegionIterator<OutputDisplacementFieldType> DisplacementIteratorType;
+    for( DisplacementIteratorType it(outputDispField, outputDispField->GetLargestPossibleRegion() );
+        !it.IsAtEnd(); ++it )
+       {
+       // use static_cast for convert to float
+       }
+
+    typedef itk::ImageFileWriter<OutputDisplacementFieldType>   DisplacementFieldWriter;
     typename DisplacementFieldWriter::Pointer dispWriter = DisplacementFieldWriter::New();
-    dispWriter->SetInput(dispField);
+    dispWriter->SetInput(outputDispField);
     dispWriter->SetFileName(TransformFilename.c_str() );
     try
       {
@@ -514,7 +527,7 @@ void WriteTransformToDisk( itk::Transform<TInputScalarType, 3, 3> const *const M
       std::cerr << err << std::endl;
       }
     }
-  else // regular transforms (linear transforms)
+  else // other transforms (not displacementField transforms)
     {
     typedef itk::TransformFileWriterTemplate<TWriteScalarType> TransformWriterType;
     typename TransformWriterType::Pointer transformWriter =  TransformWriterType::New();
