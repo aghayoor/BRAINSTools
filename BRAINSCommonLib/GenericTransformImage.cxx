@@ -500,17 +500,23 @@ void WriteTransformToDisk( itk::Transform<TInputScalarType, 3, 3> const *const M
     typedef typename InputDisplacementFieldTransformType::DisplacementFieldType    InputDisplacementFieldType;
     typename InputDisplacementFieldType::ConstPointer inputDispField = dispXfrm->GetDisplacementField();
 
+    // Define a float type displacement field
     typedef itk::Vector<float, 3>     VectorType;
     typedef itk::Image<VectorType, 3> OutputDisplacementFieldType;
-    OutputDisplacementFieldType::Pointer outputDispField =
-      itkUtil::AllocateImageFromExample<InputDisplacementFieldType, OutputDisplacementFieldType>( inputDispField );
+    OutputDisplacementFieldType::Pointer outputDispField = OutputDisplacementFieldType::New();
+    outputDispField->CopyInformation( inputDispField );
+    outputDispField->SetRegions( inputDispField->GetLargestPossibleRegion() );
+    outputDispField->Allocate();
 
-    typedef itk::ImageRegionIterator<OutputDisplacementFieldType> DisplacementIteratorType;
-    for( DisplacementIteratorType it(outputDispField, outputDispField->GetLargestPossibleRegion() );
-        !it.IsAtEnd(); ++it )
-       {
-       // use static_cast for convert to float
-       }
+    itk::ImageRegionConstIterator<InputDisplacementFieldType> inIt( inputDispField, inputDispField->GetLargestPossibleRegion() );
+    inIt.GoToBegin();
+    itk::ImageRegionIterator<OutputDisplacementFieldType> outIt( outputDispField, outputDispField->GetLargestPossibleRegion() );
+    outIt.GoToBegin();
+    while( !outIt.IsAtEnd() )
+      {
+      outIt.Set( static_cast<VectorType>(inIt.Get()) );
+      ++inIt; ++outIt;
+      }
 
     typedef itk::ImageFileWriter<OutputDisplacementFieldType>   DisplacementFieldWriter;
     typename DisplacementFieldWriter::Pointer dispWriter = DisplacementFieldWriter::New();
