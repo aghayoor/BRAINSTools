@@ -11,17 +11,16 @@ from nipype.interfaces.base import traits, isdefined, BaseInterface
 from nipype.interfaces.utility import Merge, Split, Function, Rename, IdentityInterface
 import nipype.interfaces.io as nio   # Data i/oS
 import nipype.pipeline.engine as pe  # pypeline engine
-from nipype.interfaces.freesurfer import ReconAll
 from SEMTools import *
 
-def CreateCorrectionWorkflow(WFname, BASE_DIR):
-    import os
-    import SimpleITK as sitk
+def CreateCorrectionWorkflow(WFname):
 
     ###### UTILITY FUNCTIONS #######
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
     # remove the skull from the T2 volume
     def ExtractBRAINFromHead(RawScan, BrainLabels):
+        import os
+        import SimpleITK as sitk
         # Remove skull from the head scan
         assert os.path.exists(RawScan), "File not found: %s" % RawScan
         assert os.path.exists(BrainLabels), "File not found: %s" % BrainLabels
@@ -43,6 +42,8 @@ def CreateCorrectionWorkflow(WFname, BASE_DIR):
 
     # Create registration mask for ANTs from resampled label map image
     def CreateAntsRegistrationMask(brainMask):
+        import os
+        import SimpleITK as sitk
         assert os.path.exists(brainMask), "File not found: %s" % brainMask
         labelsMap = sitk.ReadImage(brainMask)
         label_mask = labelsMap>0
@@ -57,12 +58,15 @@ def CreateCorrectionWorkflow(WFname, BASE_DIR):
 
     # Save direction cosine for the input volume
     def SaveDirectionCosineToMatrix(inputVolume):
+        import os
+        import SimpleITK as sitk
         assert os.path.exists(inputVolume), "File not found: %s" % inputVolume
         t2 = sitk.ReadImage(inputVolume)
         directionCosine = t2.GetDirection()
         return directionCosine
 
     def MakeForceDCFilesList(inputB0, inputT2, inputLabelMap):
+        import os
         assert os.path.exists(inputB0), "File not found: %s" % inputB0
         assert os.path.exists(inputT2), "File not found: %s" % inputT2
         assert os.path.exists(inputLabelMap), "File not found: %s" % inputLabelMap
@@ -71,6 +75,8 @@ def CreateCorrectionWorkflow(WFname, BASE_DIR):
 
     # Force DC to ID
     def ForceDCtoID(inputVolume):
+        import os
+        import SimpleITK as sitk
         inImage = sitk.ReadImage(inputVolume)
         inImage.SetDirection((1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0))
         outputVolume = os.path.realpath('IDDC_'+ os.path.basename(inputVolume))
@@ -81,6 +87,8 @@ def CreateCorrectionWorkflow(WFname, BASE_DIR):
         return composite_transform_as_list[0]
 
     def RestoreDCFromSavedMatrix(inputVolume, inputDirectionCosine):
+        import os
+        import SimpleITK as sitk
         inImage = sitk.ReadImage(inputVolume)
         inImage.SetDirection(inputDirectionCosine)
         outputVolume = os.path.realpath('CorrectedDWI.nrrd')
@@ -88,6 +96,8 @@ def CreateCorrectionWorkflow(WFname, BASE_DIR):
         return outputVolume
 
     def GetRigidTransformInverse(inputTransform):
+        import os
+        import SimpleITK as sitk
         inputTx = sitk.ReadTransform(inputTransform)
         versorRigidTx = sitk.VersorRigid3DTransform()
         versorRigidTx.SetFixedParameters(inputTx.GetFixedParameters())
@@ -99,10 +109,10 @@ def CreateCorrectionWorkflow(WFname, BASE_DIR):
     #################################
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     CorrectionWF = pe.Workflow(name=WFname)
-    CorrectionWF.base_dir = BASE_DIR
+    #CorrectionWF.base_dir = BASE_DIR
 
     inputsSpec = pe.Node(interface=IdentityInterface(fields=['T2Volume', 'DWIVolume','LabelMapVolume']),
-                         name='inputspec')
+                         name='inputsSpec')
 
     outputsSpec = pe.Node(interface=IdentityInterface(fields=['CorrectedDWI','CorrectedDWI_in_T2Space','DWIBrainMask']),
                           name='outputsSpec')

@@ -4,6 +4,8 @@
 ## and creates RISs and ukfTracts
 ##
 
+import os
+import SimpleITK as sitk
 import nipype
 from nipype.interfaces import ants
 from nipype.interfaces.base import CommandLine, CommandLineInputSpec, TraitedSpec, File, Directory
@@ -11,18 +13,15 @@ from nipype.interfaces.base import traits, isdefined, BaseInterface
 from nipype.interfaces.utility import Merge, Split, Function, Rename, IdentityInterface
 import nipype.interfaces.io as nio   # Data i/oS
 import nipype.pipeline.engine as pe  # pypeline engine
-from nipype.interfaces.freesurfer import ReconAll
 from SEMTools import *
 
-def CreateEstimationWorkflow(WFname, BASE_DIR):
-    import os
-    import SimpleITK as sitk
+def CreateEstimationWorkflow(WFname):
 
     EstimationWF = pe.Workflow(name=WFname)
-    EstimationWF.base_dir = BASE_DIR
+    #EstimationWF.base_dir = BASE_DIR
 
     inputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_Corrected_Aligned_CS', 'DWIBrainMask']),
-                         name='inputspec')
+                         name='inputsSpec')
 
     outputsSpec = pe.Node(interface=IdentityInterface(fields=['tensor_image','FAImage','MDImage',
                                                               'RDImage','FrobeniusNormImage',
