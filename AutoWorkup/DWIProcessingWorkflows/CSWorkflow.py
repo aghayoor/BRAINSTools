@@ -30,7 +30,6 @@ def CreateCSWorkflow(WFname, PYTHON_AUX_PATHS):
     #####################
 
     CSWF = pe.Workflow(name=WFname)
-    #CSWF.base_dir = BASE_DIR
 
     inputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_Corrected_Aligned', 'DWIBrainMask']),
                          name='inputsSpec')

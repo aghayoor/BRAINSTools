@@ -18,7 +18,6 @@ from SEMTools import *
 def CreateEstimationWorkflow(WFname):
 
     EstimationWF = pe.Workflow(name=WFname)
-    #EstimationWF.base_dir = BASE_DIR
 
     inputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_Corrected_Aligned_CS', 'DWIBrainMask']),
                          name='inputsSpec')
