@@ -12,7 +12,7 @@ from nipype.interfaces.base import traits, isdefined, BaseInterface
 from nipype.interfaces.utility import Merge, Split, Function, Rename, IdentityInterface
 import nipype.interfaces.io as nio   # Data i/oS
 import nipype.pipeline.engine as pe  # pypeline engine
-import nipype.interfaces.matlab as matlab
+#import nipype.interfaces.matlab as matlab
 
 def CreateCSWorkflow(WFname, PYTHON_AUX_PATHS):
 
@@ -22,12 +22,23 @@ def CreateCSWorkflow(WFname, PYTHON_AUX_PATHS):
     #Path_to_Matlab_Func = os.path.join(sys.path,'DWIProcessingWorkflows')
     #assert os.path.exists(Path_to_Matlab_Func), "Path to CS matlab function is not found: %s" % Path_to_Matlab_Func
 
-    #### Utility function
+    #### Utility functions ####
     def createMatlabScript(inputScan,inputMask,CSScanFileName):
         matlabScript="runCS('"+inputScan+"','"+inputMask+"','"+CSScanFileName+"')"
-        DWI_CS = CSScanFileName # output CS filename
-        return matlabScript, DWI_CS
-    #####################
+        return matlabScript
+
+    def runCSbyMatlab(script,Path_to_Matlab_Func):
+        import nipype.interfaces.matlab as matlab
+        mlab = matlab.MatlabCommand()
+        mlab.set_default_matlab_cmd("matlab")
+        mlab.inputs.single_comp_thread = False
+        mlab.inputs.nodesktop = True
+        mlab.inputs.nosplash = True
+        mlab.inputs.paths = Path_to_Matlab_Func
+        mlab.inputs.script = script
+        outputCSFilename = mlab.run()
+        return outputCSFilename
+    #########################
 
     CSWF = pe.Workflow(name=WFname)
 
@@ -40,11 +51,14 @@ def CreateCSWorkflow(WFname, PYTHON_AUX_PATHS):
 
     createMatlabScriptNode = pe.Node(interface=Function(function = createMatlabScript,
                                                       input_names=['inputScan','inputMask','CSScanFileName'],
-                                                      output_names=['matlabScript','DWI_CS']),
+                                                      output_names=['matlabScript']),
                                      name="createMatlabScriptNode")
     createMatlabScriptNode.inputs.CSScanFileName = 'DWI_Corrected_Aligned_CS.nrrd'
     CSWF.connect([(inputsSpec,createMatlabScriptNode,[('DWI_Corrected_Aligned','inputScan'),('DWIBrainMask','inputMask')])])
 
+    # Running a matlab node directly could be a nicer way, but I doesn't have any outputspec,
+    # so I chose to run the matlab code using a python function.
+    '''
     runCS=pe.Node(interface=matlab.MatlabCommand(),name="runCSbyMatlab")
     matlab.MatlabCommand().set_default_matlab_cmd("matlab")
     runCS.inputs.single_comp_thread = False
@@ -52,7 +66,14 @@ def CreateCSWorkflow(WFname, PYTHON_AUX_PATHS):
     runCS.inputs.nosplash = True
     runCS.inputs.paths = Path_to_Matlab_Func
     CSWF.connect(createMatlabScriptNode,'matlabScript',runCS,'script')
-
-    CSWF.connect(createMatlabScriptNode,'DWI_CS',outputsSpec,'DWI_Corrected_Aligned_CS')
+    CSWF.connect(runCS,'out',outputsSpec,'DWI_Corrected_Aligned_CS') #This line cause problem
+    '''
+    runCS=pe.Node(interface=Function(function = runCSbyMatlab,
+                                     input_names=['script','Path_to_Matlab_Func'],
+                                     output_names=['outputCSFilename']),
+                  name="runCS")
+    runCS.inputs.Path_to_Matlab_Func = Path_to_Matlab_Func
+    CSWF.connect(createMatlabScriptNode,'matlabScript',runCS,'script')
+    CSWF.connect(runCS,'outputCSFilename',outputsSpec,'DWI_Corrected_Aligned_CS')
 
     return CSWF
