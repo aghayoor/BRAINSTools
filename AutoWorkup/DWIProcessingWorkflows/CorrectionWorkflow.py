@@ -109,7 +109,6 @@ def CreateCorrectionWorkflow(WFname):
     #################################
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     CorrectionWF = pe.Workflow(name=WFname)
-    #CorrectionWF.base_dir = BASE_DIR
 
     inputsSpec = pe.Node(interface=IdentityInterface(fields=['T2Volume', 'DWIVolume','LabelMapVolume']),
                          name='inputsSpec')
