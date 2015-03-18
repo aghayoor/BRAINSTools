@@ -1,8 +1,8 @@
 ## \author Ali Ghayoor
 ##
-## This workflow runs compressed Sensing on a DWI scan
-## that is already corrected and aligned to t2 image space
-## using the CorrectionWF.
+## This workflow runs compressed Sensing in Matlab on a DWI scan,
+## that is already corrected and aligned to t2 image space.
+##
 
 import os
 import nipype
@@ -12,23 +12,18 @@ from nipype.interfaces.base import traits, isdefined, BaseInterface
 from nipype.interfaces.utility import Merge, Split, Function, Rename, IdentityInterface
 import nipype.interfaces.io as nio   # Data i/oS
 import nipype.pipeline.engine as pe  # pypeline engine
-#import nipype.interfaces.matlab as matlab
 
 def CreateCSWorkflow(WFname, PYTHON_AUX_PATHS):
 
     if PYTHON_AUX_PATHS is not None:
        Path_to_Matlab_Func = os.path.join(PYTHON_AUX_PATHS[0],'DWIProcessingWorkflows')
+       assert os.path.exists(Path_to_Matlab_Func), "Path to CS matlab function is not found: %s" % Path_to_Matlab_Func
 
-    #Path_to_Matlab_Func = os.path.join(sys.path,'DWIProcessingWorkflows')
-    #assert os.path.exists(Path_to_Matlab_Func), "Path to CS matlab function is not found: %s" % Path_to_Matlab_Func
-
-    #### Utility functions ####
-    def createMatlabScript(inputScan,inputMask,CSScanFileName):
-        matlabScript="runCS('"+inputScan+"','"+inputMask+"','"+CSScanFileName+"')"
-        return matlabScript
-
-    def runCSbyMatlab(script,Path_to_Matlab_Func):
+    #### Utility function ####
+    def runCSbyMatlab(inputScan,inputMask,CSScanFileName,Path_to_Matlab_Func):
+        import os
         import nipype.interfaces.matlab as matlab
+        script="runCS('"+inputScan+"','"+inputMask+"','"+CSScanFileName+"')"
         mlab = matlab.MatlabCommand()
         mlab.set_default_matlab_cmd("matlab")
         mlab.inputs.single_comp_thread = False
@@ -36,7 +31,9 @@ def CreateCSWorkflow(WFname, PYTHON_AUX_PATHS):
         mlab.inputs.nosplash = True
         mlab.inputs.paths = Path_to_Matlab_Func
         mlab.inputs.script = script
-        outputCSFilename = mlab.run()
+        mlab.run()
+        outputCSFilename = os.path.join(os.getcwd(), CSScanFileName) # return output CS filename
+        assert os.path.isfile(outputCSFilename), "CS file is not found: %s" % outputCSFilename
         return outputCSFilename
     #########################
 
@@ -47,14 +44,6 @@ def CreateCSWorkflow(WFname, PYTHON_AUX_PATHS):
 
     outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_Corrected_Aligned_CS']),
                           name='outputsSpec')
-
-
-    createMatlabScriptNode = pe.Node(interface=Function(function = createMatlabScript,
-                                                      input_names=['inputScan','inputMask','CSScanFileName'],
-                                                      output_names=['matlabScript']),
-                                     name="createMatlabScriptNode")
-    createMatlabScriptNode.inputs.CSScanFileName = 'DWI_Corrected_Aligned_CS.nrrd'
-    CSWF.connect([(inputsSpec,createMatlabScriptNode,[('DWI_Corrected_Aligned','inputScan'),('DWIBrainMask','inputMask')])])
 
     # Running a matlab node directly could be a nicer way, but I doesn't have any outputspec,
     # so I chose to run the matlab code using a python function.
@@ -69,11 +58,12 @@ def CreateCSWorkflow(WFname, PYTHON_AUX_PATHS):
     CSWF.connect(runCS,'out',outputsSpec,'DWI_Corrected_Aligned_CS') #This line cause problem
     '''
     runCS=pe.Node(interface=Function(function = runCSbyMatlab,
-                                     input_names=['script','Path_to_Matlab_Func'],
+                                     input_names=['inputScan','inputMask','CSScanFileName','Path_to_Matlab_Func'],
                                      output_names=['outputCSFilename']),
                   name="runCS")
     runCS.inputs.Path_to_Matlab_Func = Path_to_Matlab_Func
-    CSWF.connect(createMatlabScriptNode,'matlabScript',runCS,'script')
+    runCS.inputs.CSScanFileName = 'DWI_Corrected_Aligned_CS.nrrd'
+    CSWF.connect([(inputsSpec,runCS,[('DWI_Corrected_Aligned','inputScan'),('DWIBrainMask','inputMask')])])
     CSWF.connect(runCS,'outputCSFilename',outputsSpec,'DWI_Corrected_Aligned_CS')
 
     return CSWF
