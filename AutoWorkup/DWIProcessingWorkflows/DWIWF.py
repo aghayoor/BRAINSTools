@@ -117,6 +117,8 @@ def runMainWorkflow(DWI_scan, T2_scan, labelMap_image, BASE_DIR, dataSink_DIR, P
     DWIDataSink = pe.Node(interface=nio.DataSink(), name='DWIDataSink')
     DWIDataSink.inputs.base_directory = dataSink_DIR
     DWIDataSink.inputs.container = sessionID
+    DWIDataSink.inputs.substitutions = [('_ComputeStatistics0', ''),('_ComputeStatistics1', ''),('_ComputeStatistics2', ''),
+                                        ('_ComputeStatistics3', ''),('_ComputeStatistics4', ''),('_ComputeStatistics5', ''),('_ComputeStatistics6', '')]
 
     DWIWorkflow.connect(outputsSpec, 'DWI_Corrected', DWIDataSink, 'Outputs.@DWI_Corrected')
     DWIWorkflow.connect(outputsSpec, 'DWI_Corrected_Aligned', DWIDataSink, 'Outputs.@DWI_Corrected_Aligned')
