@@ -36,7 +36,7 @@ def CreateCorrectionWorkflow(WFname):
         imagesList = [inputT2, inputLabelMap]
         return imagesList
 
-    # This function helps to pick desirable output from the outputVolume list
+    # This function helps to pick desirable output from the output list
     def pickFromList(inlist,item):
         return inlist[item]
 

@@ -1,6 +1,6 @@
 ## \author Ali Ghayoor
 ##
-## This workflow runs compressed Sensing in Matlab on a DWI scan,
+## This workflow runs "compressed Sensing" in Matlab on a DWI scan,
 ## that is already corrected and aligned to t2 image space.
 ##
 
