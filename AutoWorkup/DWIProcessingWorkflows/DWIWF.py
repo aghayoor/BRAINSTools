@@ -16,7 +16,7 @@ DWIWorkFlow.py
 The purpose of this pipeline is to complete all the pre-processing steps needed to turn diffusion-weighted images into FA images that will be used to build a template diffusion tensor atlas for fiber tracking.
 
 Usage:
-  DWIWorkFlow.py --inputDWIScan DWISCAN --inputT2Scan T2SCAN --inputBrainLabelsMapImage BLMImage --program_paths PROGRAM_PATHS --python_aux_paths PYTHON_AUX_PATHS [--workflowCacheDir CACHEDIR] [--resultDir RESULTDIR]
+  DWIWorkFlow.py --inputDWIScan DWISCAN --inputT2Scan T2SCAN --inputBrainLabelsMapImage BLMImage --program_paths PROGRAM_PATHS --python_aux_paths PYTHON_AUX_PATHS --labelsConfigFile LABELS_CONFIG_FILE [--workflowCacheDir CACHEDIR] [--resultDir RESULTDIR]
   DWIWorkFlow.py -v | --version
   DWIWorkFlow.py -h | --help
 
@@ -28,11 +28,12 @@ Options:
   --inputBrainLabelsMapImage BLMImage       Path to the input brain labels map image
   --program_paths PROGRAM_PATHS             Path to the directory where binary files are places
   --python_aux_paths PYTHON_AUX_PATHS       Path to the AutoWorkup directory
+  --labelsConfigFile LABELS_CONFIG_FILE     Configuration file that defines region labels (.csv)
   --workflowCacheDir CACHEDIR               Base directory that cache outputs of workflow will be written to (default: ./)
   --resultDir RESULTDIR                     Outputs of dataSink will be written to a sub directory under the resultDir named by input scan sessionID (default: CACHEDIR)
 """
 
-def runMainWorkflow(DWI_scan, T2_scan, labelMap_image, BASE_DIR, dataSink_DIR, PYTHON_AUX_PATHS):
+def runMainWorkflow(DWI_scan, T2_scan, labelMap_image, BASE_DIR, dataSink_DIR, PYTHON_AUX_PATHS, LABELS_CONFIG_FILE):
     print("Running the workflow ...")
 
     sessionID = os.path.basename(os.path.dirname(DWI_scan))
@@ -54,8 +55,9 @@ def runMainWorkflow(DWI_scan, T2_scan, labelMap_image, BASE_DIR, dataSink_DIR, P
 
     outputsSpec = pe.Node(interface=IdentityInterface(fields=['DWI_Corrected','DWI_Corrected_Aligned','DWI_Corrected_Aligned_CS','DWIBrainMask',
                                                               'tensor_image','FAImage','MDImage','RDImage','FrobeniusNormImage',
-                                                              'Lambda1Image','Lambda2Image','Lambda3Image',
-                                                              'ukfTracks']),
+                                                              'Lambda1Image','Lambda2Image','Lambda3Image','ukfTracks',
+                                                              'FA_stats','MD_stats','RD_stats','FrobeniusNorm_stats',
+                                                              'Lambda1_stats','Lambda2_stats','Lambda3_stats']),
                           name='outputsSpec')
 
     correctionWFname = 'CorrectionWorkflow_CACHE_' + sessionID
@@ -67,6 +69,9 @@ def runMainWorkflow(DWI_scan, T2_scan, labelMap_image, BASE_DIR, dataSink_DIR, P
     estimationWFname = 'EstimationWorkflow_CACHE_' + sessionID
     myEstimationWF = CreateEstimationWorkflow(estimationWFname)
 
+    measurementWFname = 'MeasurementWorkflow_CACHE_' + sessionID
+    myMeasurementWF = CreateMeasurementWorkflow(measurementWFname, LABELS_CONFIG_FILE)
+
     #Connect up the components into an integrated workflow.
     DWIWorkflow.connect([(inputsSpec,myCorrectionWF,[('T2Volume','inputsSpec.T2Volume'),
                                            ('DWIVolume','inputsSpec.DWIVolume'),
@@ -77,6 +82,15 @@ def runMainWorkflow(DWI_scan, T2_scan, labelMap_image, BASE_DIR, dataSink_DIR, P
                                                 ]),
                          (myCorrectionWF, myEstimationWF, [('outputsSpec.DWIBrainMask','inputsSpec.DWIBrainMask')]),
                          (myCSWF, myEstimationWF, [('outputsSpec.DWI_Corrected_Aligned_CS','inputsSpec.DWI_Corrected_Aligned_CS')]),
+                         (inputsSpec, myMeasurementWF, [('LabelMapVolume','inputsSpec.T2LabelMapVolume')]),
+                         (myCorrectionWF, myMeasurementWF, [('outputsSpec.DWIBrainMask','inputsSpec.DWIBrainMask')]),
+                         (myEstimationWF, myMeasurementWF, [('outputsSpec.FAImage','inputsSpec.FAImage'),
+                                                            ('outputsSpec.MDImage','inputsSpec.MDImage'),
+                                                            ('outputsSpec.RDImage','inputsSpec.RDImage'),
+                                                            ('outputsSpec.FrobeniusNormImage','inputsSpec.FrobeniusNormImage'),
+                                                            ('outputsSpec.Lambda1Image','inputsSpec.Lambda1Image'),
+                                                            ('outputsSpec.Lambda2Image','inputsSpec.Lambda2Image'),
+                                                            ('outputsSpec.Lambda3Image','inputsSpec.Lambda3Image')]),
                          (myCorrectionWF, outputsSpec, [('outputsSpec.CorrectedDWI','DWI_Corrected'),
                                                         ('outputsSpec.CorrectedDWI_in_T2Space','DWI_Corrected_Aligned'),
                                                         ('outputsSpec.DWIBrainMask','DWIBrainMask')]),
@@ -89,7 +103,14 @@ def runMainWorkflow(DWI_scan, T2_scan, labelMap_image, BASE_DIR, dataSink_DIR, P
                                                         ('outputsSpec.Lambda1Image','Lambda1Image'),
                                                         ('outputsSpec.Lambda2Image','Lambda2Image'),
                                                         ('outputsSpec.Lambda3Image','Lambda3Image'),
-                                                        ('outputsSpec.ukfTracks','ukfTracks')])
+                                                        ('outputsSpec.ukfTracks','ukfTracks')]),
+                         (myMeasurementWF, outputsSpec, [('outputsSpec.FA_stats','FA_stats'),
+                                                         ('outputsSpec.MD_stats','MD_stats'),
+                                                         ('outputsSpec.RD_stats','RD_stats'),
+                                                         ('outputsSpec.FrobeniusNorm_stats','FrobeniusNorm_stats'),
+                                                         ('outputsSpec.Lambda1_stats','Lambda1_stats'),
+                                                         ('outputsSpec.Lambda2_stats','Lambda2_stats'),
+                                                         ('outputsSpec.Lambda3_stats','Lambda3_stats')])
                        ])
 
     ## Write all outputs with DataSink
@@ -110,6 +131,13 @@ def runMainWorkflow(DWI_scan, T2_scan, labelMap_image, BASE_DIR, dataSink_DIR, P
     DWIWorkflow.connect(outputsSpec, 'Lambda2Image', DWIDataSink, 'Outputs.@Lambda2Image')
     DWIWorkflow.connect(outputsSpec, 'Lambda3Image', DWIDataSink, 'Outputs.@Lambda3Image')
     DWIWorkflow.connect(outputsSpec, 'ukfTracks', DWIDataSink, 'Outputs.@ukfTracks')
+    DWIWorkflow.connect(outputsSpec, 'FA_stats', DWIDataSink, 'Outputs.@FA_stats')
+    DWIWorkflow.connect(outputsSpec, 'MD_stats', DWIDataSink, 'Outputs.@MD_stats')
+    DWIWorkflow.connect(outputsSpec, 'RD_stats', DWIDataSink, 'Outputs.@RD_stats')
+    DWIWorkflow.connect(outputsSpec, 'FrobeniusNorm_stats', DWIDataSink, 'Outputs.@FrobeniusNorm_stats')
+    DWIWorkflow.connect(outputsSpec, 'Lambda1_stats', DWIDataSink, 'Outputs.@Lambda1_stats')
+    DWIWorkflow.connect(outputsSpec, 'Lambda2_stats', DWIDataSink, 'Outputs.@Lambda2_stats')
+    DWIWorkflow.connect(outputsSpec, 'Lambda3_stats', DWIDataSink, 'Outputs.@Lambda3_stats')
 
     DWIWorkflow.write_graph()
     DWIWorkflow.run()
@@ -136,6 +164,8 @@ if __name__ == '__main__':
   PROGRAM_PATHS = argv['--program_paths']
 
   PYTHON_AUX_PATHS = argv['--python_aux_paths']
+
+  LABELS_CONFIG_FILE = argv['--labelsConfigFile']
 
   if argv['--workflowCacheDir'] == None:
       print("*** workflow cache directory is set to current working directory.")
@@ -179,11 +209,11 @@ if __name__ == '__main__':
   import nipype.interfaces.matlab as matlab
   from SEMTools import *
   #####################################################################################
-
   from CorrectionWorkflow import CreateCorrectionWorkflow
   from CSWorkflow import CreateCSWorkflow
   from EstimationWorkflow import CreateEstimationWorkflow
+  from MeasurementWorkflow import CreateMeasurementWorkflow
 
-  exit = runMainWorkflow(DWISCAN, T2SCAN, LabelMapImage, CACHEDIR, RESULTDIR, PYTHON_AUX_PATHS)
+  exit = runMainWorkflow(DWISCAN, T2SCAN, LabelMapImage, CACHEDIR, RESULTDIR, PYTHON_AUX_PATHS, LABELS_CONFIG_FILE)
 
   sys.exit(exit)

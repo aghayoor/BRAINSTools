@@ -14,7 +14,7 @@ import nipype.interfaces.io as nio   # Data i/oS
 import nipype.pipeline.engine as pe  # pypeline engine
 from SEMTools import *
 
-def CreateMeasurementWorkflow(WFname):
+def CreateMeasurementWorkflow(WFname, LABELS_CONFIG_FILE):
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     ###### UTILITY FUNCTIONS #######
     # This function returns a label map that only covers the FOV of the input DWI scan
@@ -137,6 +137,7 @@ def CreateMeasurementWorkflow(WFname):
                                                              'FAImage','MDImage','RDImage','FrobeniusNormImage',
                                                              'Lambda1Image','Lambda2Image','Lambda3Image']),
                          name='inputsSpec')
+    inputsSpec.inputs.LabelsConfigFile = LABELS_CONFIG_FILE
 
     outputsSpec = pe.Node(interface=IdentityInterface(fields=['FA_stats','MD_stats','RD_stats','FrobeniusNorm_stats',
                                                               'Lambda1_stats','Lambda2_stats','Lambda3_stats']),
