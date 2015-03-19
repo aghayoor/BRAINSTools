@@ -133,7 +133,7 @@ def CreateMeasurementWorkflow(WFname):
     #\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     MeasurementWF = pe.Workflow(name=WFname)
 
-    inputsSpec = pe.Node(interface=IdentityInterface(fields=['T2LabelMapVolume','DWIBrainMask','inputLabelCodes',
+    inputsSpec = pe.Node(interface=IdentityInterface(fields=['T2LabelMapVolume','DWIBrainMask','LabelsConfigFile',
                                                              'FAImage','MDImage','RDImage','FrobeniusNormImage',
                                                              'Lambda1Image','Lambda2Image','Lambda3Image']),
                          name='inputsSpec')
@@ -189,7 +189,7 @@ def CreateMeasurementWorkflow(WFname):
     MeasurementWF.connect(ResampleRISsNode, 'outputVolume', ComputeStatisticsNode, 'inputVolume')
     MeasurementWF.connect(inputsSpec, 'T2LabelMapVolume', ComputeStatisticsNode, 'T2LabelMapVolume')
     MeasurementWF.connect(CreateDWILabelMapNode, 'DWILabelMapVolume', ComputeStatisticsNode, 'DWILabelMapVolume')
-    MeasurementWF.connect(inputsSpec, 'inputLabelCodes', ComputeStatisticsNode, 'labelCodesFile')
+    MeasurementWF.connect(inputsSpec, 'LabelsConfigFile', ComputeStatisticsNode, 'labelCodesFile')
     MeasurementWF.connect(ComputeStatisticsNode, ('CSVStatisticsFile', pickFromList, 0), outputsSpec, 'FA_stats')
     MeasurementWF.connect(ComputeStatisticsNode, ('CSVStatisticsFile', pickFromList, 1), outputsSpec, 'MD_stats')
     MeasurementWF.connect(ComputeStatisticsNode, ('CSVStatisticsFile', pickFromList, 2), outputsSpec, 'RD_stats')
