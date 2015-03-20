@@ -175,8 +175,8 @@ def CreateMeasurementWorkflow(WFname, LABELS_CONFIG_FILE):
                                   iterfield=['inputVolume', 'outputVolume'])
     ResampleRISsNode.inputs.interpolationMode = 'Linear'
     ResampleRISsNode.inputs.pixelType = 'float'
-    ResampleRISsNode.inputs.outputVolume = ['FA_res.nrrd','MD_res.nrrd','RD_res.nrrd','FrobeniusNorm_res.nrrd',
-                                            'Lambda1_res.nrrd','Lambda2_res.nrrd','Lambda3_res.nrrd']
+    ResampleRISsNode.inputs.outputVolume = ['FA_res.nrrd','MD_res.nrrd','RD_res.nrrd','frobenius_norm_res.nrrd',
+                                            'lambda1_res.nrrd','lambda2_res.nrrd','lambda3_res.nrrd']
     MeasurementWF.connect(inputsSpec,'T2LabelMapVolume',ResampleRISsNode,'referenceVolume')
     MeasurementWF.connect(MakeResamplerInFilesListNode,'RISsList',ResampleRISsNode,'inputVolume')
 
