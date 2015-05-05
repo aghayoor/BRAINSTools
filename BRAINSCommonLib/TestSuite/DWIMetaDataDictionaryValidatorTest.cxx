@@ -27,10 +27,11 @@ static std::string ForceConvert( const itk::MetaDataObjectBase *  myMetaDataObje
     const std::string temp("std::string");
     return myMetaDataObject->GetMetaDataObjectValue()+"         (type): " + temp; //assuming you define print for matrix
     }
-  else{
+  else
+    {
     const std::string temp  = myMetaDataObjectBase->GetMetaDataObjectTypeName();
     return "???_conversion         (type): " + temp;
-  }
+    }
 }
 
 
@@ -58,7 +59,7 @@ typedef std::vector<std::string>        StringVectorType;
 
 static ImageType::Pointer CreateVolume(const size_t numOfComponents)
 {
-  const int imageSize = 10; // each image component has size of imageSize^3
+  const int imageSize = 100; // each image component has size of imageSize^3
 
   ImageType::IndexType start;
   start.Fill(0);
@@ -80,7 +81,7 @@ static ImageType::Pointer CreateVolume(const size_t numOfComponents)
     {
     if( i==0 || i==4 )
       {
-      variableLengthVector[i] = 0; // assumed as b0 images
+      variableLengthVector[i] = 255; // assumed as b0 images
       }
     else
       {
@@ -112,7 +113,8 @@ int main(int , char * [])
   //itk::MetaDataDictionary & referenceDict = nrrdVolume->GetMetaDataDictionary();
   DWIMetaDataDictionaryValidator   bldValidator;
 
-  try {
+  try
+  {
     //spaceUnits testing
     {
     std::vector<std::string> tempSpaceUnits(3,std::string("mm"));
@@ -131,22 +133,6 @@ int main(int , char * [])
 
     //Centerings testing
     {
-      std::vector<std::string> tempCenterings(4,std::string("cell"));
-      tempCenterings[3] = "???";
-      bldValidator.SetCenterings(tempCenterings);
-      const std::vector<std::string> outCenterings = bldValidator.GetCenterings();
-      if(tempCenterings != outCenterings)
-        {
-        std::cout << "ERROR: outCenterings not preserved" << std::endl;
-        for(size_t i = 0 ; i< outCenterings.size(); ++i)
-          {
-          std::cout << "Out outCenterings " << outCenterings[i] << std::endl;
-          }
-        allTestPass=false;
-        }
-    }
-    //Centerings testing
-    {
     std::vector<std::string> tempCenterings(4,std::string("cell"));
     tempCenterings[3] = "???";
     bldValidator.SetCenterings(tempCenterings);
@@ -154,7 +140,7 @@ int main(int , char * [])
     if(tempCenterings != outCenterings)
       {
       std::cout << "ERROR: outCenterings not preserved" << std::endl;
-      for(size_t i = 0 ; i< outCenterings.size(); ++i)
+      for(size_t i = 0 ; i < outCenterings.size(); ++i)
         {
         std::cout << "Out outCenterings " << outCenterings[i] << std::endl;
         }
@@ -179,31 +165,31 @@ int main(int , char * [])
     }
     // Measurement Frame
     {
-      std::vector<std::vector<double> > msrFrame(3);
-      for( unsigned int saxi = 0; saxi < 3; saxi++ )
+    std::vector<std::vector<double> > msrFrame(3);
+    for( unsigned int saxi = 0; saxi < 3; saxi++ )
+      {
+      msrFrame[saxi].resize(3);
+      for( unsigned int saxj = 0; saxj < 3; saxj++ )
         {
-        msrFrame[saxi].resize(3);
-        for( unsigned int saxj = 0; saxj < 3; saxj++ )
-          {
-          msrFrame[saxi][saxj] = 0.0;
-          }
+        msrFrame[saxi][saxj] = 0.0;
         }
-      msrFrame[0][0] = 1.0; msrFrame[1][1] = 1.0; msrFrame[2][2] = 1.0;
-      bldValidator.SetMeasurementFrame(msrFrame);
+      }
+    msrFrame[0][0] = 1.0; msrFrame[1][1] = 1.0; msrFrame[2][2] = 1.0;
+    bldValidator.SetMeasurementFrame(msrFrame);
 
-      const std::vector<std::vector<double> > outMsr = bldValidator.GetMeasurementFrame();
-      if(msrFrame != outMsr)
+    const std::vector<std::vector<double> > outMsr = bldValidator.GetMeasurementFrame();
+    if(msrFrame != outMsr)
+      {
+      std::cout << "ERROR: outMsr not preserved" << std::endl;
+      for(size_t i = 0 ; i< outMsr.size(); ++i)
         {
-        std::cout << "ERROR: outMsr not preserved" << std::endl;
-        for(size_t i = 0 ; i< outMsr.size(); ++i)
-          {
-          for(size_t j=0; j< outMsr[i].size(); ++j)
-          {
-          std::cout << "Out outMsr " << i << " " << j << " " << outMsr[i][j] << std::endl;
-          }
-          }
-        allTestPass=false;
+        for(size_t j=0; j< outMsr[i].size(); ++j)
+        {
+        std::cout << "Out outMsr " << i << " " << j << " " << outMsr[i][j] << std::endl;
         }
+        }
+      allTestPass=false;
+      }
     }
     // Space
     {
@@ -245,31 +231,38 @@ int main(int , char * [])
     {
     /* We should apply direction vcl_cosines to gradient directions if requested by
      the user */
-    std::vector<std::array<double, 3> > GradientTable(6);
-    GradientTable[0][0] =1;
+    std::vector<std::array<double, 3> > GradientTable( numOfComponents );
+    GradientTable[0][0] =0; //first b0 image
     GradientTable[0][1] =0;
     GradientTable[0][2] =0;
 
-    GradientTable[1][0] =0;
-    GradientTable[1][1] =1;
+    GradientTable[1][0] =1;
+    GradientTable[1][1] =0;
     GradientTable[1][2] =0;
 
     GradientTable[2][0] =0;
-    GradientTable[2][1] =0;
-    GradientTable[2][2] =1;
+    GradientTable[2][1] =1;
+    GradientTable[2][2] =0;
 
-    GradientTable[3][0] =2;
+    GradientTable[3][0] =0;
     GradientTable[3][1] =0;
-    GradientTable[3][2] =0;
+    GradientTable[3][2] =1;
 
-    GradientTable[4][0] =0;
-    GradientTable[4][1] =2;
+    GradientTable[4][0] =0; //second b0 image
+    GradientTable[4][1] =0;
     GradientTable[4][2] =0;
 
-
-    GradientTable[5][0] =0;
+    GradientTable[5][0] =2;
     GradientTable[5][1] =0;
-    GradientTable[5][2] =2;
+    GradientTable[5][2] =0;
+
+    GradientTable[6][0] =0;
+    GradientTable[6][1] =2;
+    GradientTable[6][2] =0;
+
+    GradientTable[7][0] =0;
+    GradientTable[7][1] =0;
+    GradientTable[7][2] =2;
 
     bldValidator.SetGradientTable(GradientTable);
 
@@ -304,7 +297,7 @@ int main(int , char * [])
     nrrdWriter->SetInput( nrrdVolume );
     nrrdWriter->SetFileName( "./testNrrdImage.nrrd" );
     nrrdWriter->Update();
-  }
+    }
 
     //Test Replicating DWI Image Image From Disk
     //  --Read Image
@@ -312,7 +305,7 @@ int main(int , char * [])
     //  --Write Image
     //  --Read WrittenImage, Compare to previous metatdata Validator
     {
-    const std::string referenceTestFileName="/Users/johnsonhj/src/NEP-11/BRAINSTools-build/ExternalData/TestData/DWI_TestData_OUTPUTS/PhilipsAchieva2.nrrd";
+    const std::string referenceTestFileName="/scratch/BS/release/BRAINSTools-build/ExternalData/TestData/DWI_TestData_OUTPUTS/PhilipsAchieva2.nrrd";
 
     typedef itk::ImageFileReader<ImageType> ReaderType;
     ReaderType::Pointer nrrdReader = ReaderType::New();
@@ -324,17 +317,16 @@ int main(int , char * [])
     DWIMetaDataDictionaryValidator refVolumeValidator;
     refVolumeValidator.SetMetaDataDictionary(refVolume->GetMetaDataDictionary());
 
-    std::cout << "**** Reference Dictionary ****" << std::endl;
+    std::cout << "****\begin Reference Dictionary ****" << std::endl;
     PrintDictionaryHelper(refVolumeValidator.GetMetaDataDictionary());
-    std::cout << "**** Reference Dictionary ****" << std::endl;
+    std::cout << "****\end Reference Dictionary ****" << std::endl;
 
-    //Now copy over the dictionaries elementby element to test storage/retrieval
+    //Now copy over the dictionaries element by element to test storage/retrieval
     DWIMetaDataDictionaryValidator manualVolumeValidator;
 
 
     //spaceUnits testing
     manualVolumeValidator.SetSpaceUnits(refVolumeValidator.GetSpaceUnits());
-
     //Centerings testing
     manualVolumeValidator.SetCenterings(refVolumeValidator.GetCenterings());
     //Thicknesses
@@ -350,15 +342,15 @@ int main(int , char * [])
     //B-Value
     manualVolumeValidator.SetBValue(refVolumeValidator.GetBValue());
     //Gradient-Directions
-      {
-      DWIMetaDataDictionaryValidator::GradientTableType temp = refVolumeValidator.GetGradientTable();
-      manualVolumeValidator.SetGradientTable(temp);
-      }
+    {
+    DWIMetaDataDictionaryValidator::GradientTableType temp = refVolumeValidator.GetGradientTable();
+    manualVolumeValidator.SetGradientTable(temp);
+    }
 
-    std::cout << "=============================================================" << std::endl;
-    std::cout << "**** Manual Dictionary ****" << std::endl;
+    std::cout << "\n=============================================================\n" << std::endl;
+    std::cout << "****\begin Manual Dictionary ****" << std::endl;
     PrintDictionaryHelper(manualVolumeValidator.GetMetaDataDictionary());
-    std::cout << "**** Manual Dictionary ****" << std::endl;
+    std::cout << "****\end Manual Dictionary ****" << std::endl;
 
     //Now reset MetaDataDictionary from validator
     refVolume->SetMetaDataDictionary((manualVolumeValidator.GetMetaDataDictionary()));
@@ -376,12 +368,12 @@ int main(int , char * [])
     nrrdVolume->SetMetaDataDictionary(bldValidator.GetMetaDataDictionary());
     }
   }
-  catch (...)
+  catch(...)
   {
-  throw;
+    throw;
   }
 
-  if ( allTestPass )
+  if( allTestPass )
     {
     std::cout << "SUCCESS!" << std::endl;
     return EXIT_SUCCESS;
