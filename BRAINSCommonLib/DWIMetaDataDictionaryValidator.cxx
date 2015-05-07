@@ -434,21 +434,3 @@ void DWIMetaDataDictionaryValidator::SetModality(const std::string & value)
     }
   this->SetStringDictObject(KeyBaseName, value);
 }
-
-std::string DWIMetaDataDictionaryValidator::GetSpace() const
-{
-  const std::string KeyBaseName("NRRD_space");
-  std::string valstr;
-  itk::ExposeMetaData<std::string>(m_dict, KeyBaseName, valstr);
-  return valstr;
-}
-
-void DWIMetaDataDictionaryValidator::SetSpace(const std::string & value)
-{
-  const std::string KeyBaseName("NRRD_space");
-  if ( value != "left-posterior-superior" )
-    {
-    std::cout << "ERROR: " << value << " Not a valid modality for ITK" << std::endl;
-    }
-  this->SetStringDictObject(KeyBaseName, value);
-}
