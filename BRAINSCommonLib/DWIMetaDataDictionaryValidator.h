@@ -112,10 +112,6 @@ class DWIMetaDataDictionaryValidator
   std::vector<std::string> GetCenterings() const;
   void SetCenterings(const std::vector<std::string> & );
 
-  // kinds
-  std::vector<std::string> GetKinds() const;
-  void SetKinds(const std::vector<std::string> & );
-
   //spaceUnits
   std::vector<std::string> GetSpaceUnits() const;
   void SetSpaceUnits(const std::vector<std::string> & values);

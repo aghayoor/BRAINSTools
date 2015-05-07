@@ -371,38 +371,6 @@ void DWIMetaDataDictionaryValidator::SetCenterings(const std::vector<std::string
   this->GenericSetStringVector(outValues,KeyBaseName);
 }
 
-
-std::vector<std::string> DWIMetaDataDictionaryValidator::GetKinds() const
-{
-  // kind units are always 4 for DWI
-  const std::string KeyBaseName("NRRD_kinds");
-  return this->GenericGetStringVector(KeyBaseName,4, "list");
-}
-
-void DWIMetaDataDictionaryValidator::SetKinds(const std::vector<std::string> & values)
-{
-  const std::string _spaceString("space");
-  const std::string _listString("list");
-
-  std::vector<std::string> outValues=values;
-  while(outValues.size() < 4)  //PADD to 4D for diffusion last element is list
-    {
-    outValues.push_back(_listString);
-    }
-
-  for(size_t i=0; i< outValues.size(); ++i)
-    {
-    const std::string x = outValues[i];
-    if ( (x != _spaceString ) && (x != _listString) )
-      {
-      std::cout << "ERROR: " << i  << " " << x << " Not a valid NRRD_kinds" << std::endl;
-      }
-    }
-  const std::string KeyBaseName("NRRD_kinds");
-  this->GenericSetStringVector(outValues,KeyBaseName);
-
-}
-
 std::vector<double> DWIMetaDataDictionaryValidator::GetThicknesses() const
 {
   // Thickness units are always 4 for DWI
