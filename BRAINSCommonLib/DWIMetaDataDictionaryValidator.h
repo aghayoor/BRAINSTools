@@ -17,7 +17,7 @@
  *  limitations under the License.
 *=========================================================================*/
 /*
- *  \author Hans J. Johnson, David M. Welch
+ *  \author Hans J. Johnson, David M. Welch and Ali Ghayoor
  *
  *
  * This class is used to build a meta-data dictionary and validate that the
@@ -38,6 +38,28 @@
 #include "itkMetaDataObject.h"
 #include "itkMetaDataDictionary.h"
 
+/*
+ * Note that the following fields do not need to be set by Metadata validator,
+   since itkNrrdImageIO extract them from image information:
+   - type e.g. short
+   - dimension i.e. 4
+   - space i.e. left-posterior-superior
+   - sizes
+   - space directions
+   - kinds
+   - endian
+   - encoding
+   - space origin
+
+ * The following fields should be managed by validator:
+    - thickness
+    - centerings
+    - space units
+    - measurement frame
+    - modality
+    - b-value
+    - gradient_xxxx
+ */
 
 class DWIMetaDataDictionaryValidator
 {
