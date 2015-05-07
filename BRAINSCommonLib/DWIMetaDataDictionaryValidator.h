@@ -84,13 +84,6 @@ class DWIMetaDataDictionaryValidator
   // metadata dictionary methods
   MetaDataDictionaryType GetMetaDataDictionary();
   void SetMetaDataDictionary( ConstMetaDataDictionaryType );
-#if 0
-  // dimension
-  // Currently, these just raise an error saying you should use the itk::Image to get this info
-  int GetNumberOfDimensions();
-  void SetNumberOfDimensions(int);
-  void SetNumberOfDimensions(const Integer3x1ArrayType);
-#endif
 
   // measurement frame
   std::vector<std::vector<double> > GetMeasurementFrame() const;
