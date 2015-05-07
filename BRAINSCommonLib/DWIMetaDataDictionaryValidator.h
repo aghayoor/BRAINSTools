@@ -117,10 +117,6 @@ class DWIMetaDataDictionaryValidator
   //modality
   std::string GetModality() const;
   void SetModality(const std::string & value);
-
-  //Space i.e. left-posterior-superior
-  std::string GetSpace() const;
-  void SetSpace(const std::string & value);
 };
 
 #endif // DWIMetaDataDictionaryValidator_h_
