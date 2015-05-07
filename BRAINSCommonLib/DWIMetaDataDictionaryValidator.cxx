@@ -82,47 +82,6 @@ void DWIMetaDataDictionaryValidator::SetMetaDataDictionary(DWIMetaDataDictionary
   m_dict = rhs;
 }
 
-#if 0
-int DWIMetaDataDictionaryValidator::GetNumberOfDimensions()
-{
-  itkGenericExceptionMacro("NRRD metadata in ITK does not (currently) store the number of dimensions!");
-  /*
-  int retval;
-  if (m_dict.HasKey("dimension"))
-    {
-    itk::ExposeMetaData<int>(m_dict, "dimension", retval);
-    }
-  else if (m_dict.HasKey("NRRD_dimension"))
-    {
-    itk::ExposeMetaData<int>(m_dict, "NRRD_dimension", retval);
-    }
-  else { itkGenericExceptionMacro("Could not find the number of dimensions!"); }
-  return retval;
-  */
-}
-
-void DWIMetaDataDictionaryValidator::SetNumberOfDimensions(const int /*rhs*/)
-{
-  itkGenericExceptionMacro("NRRD metadata in ITK does not (currently) store the number of dimensions!");
-}
-
-void DWIMetaDataDictionaryValidator::SetNumberOfDimensions(const DWIMetaDataDictionaryValidator::Integer3x1ArrayType /*rhs*/)
-{
-  itkGenericExceptionMacro("NRRD metadata in ITK does not (currently) store the number of dimensions!");
-  /*
-  int dims = rhs.size();
-  try
-    {
-    itk::EncapsulateMetaData<int>(m_dict, "dimension", dims);
-    }
-  catch (...)
-    {
-    itkGenericExceptionMacro("Could not set number of dimensions!");
-    }
-  */
-}
-#endif
-
 std::vector<std::vector<double> > DWIMetaDataDictionaryValidator::GetMeasurementFrame() const
 {
   std::vector<std::vector<double> > retval;
