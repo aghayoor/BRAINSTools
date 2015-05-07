@@ -130,7 +130,7 @@ int main(int , char * [])
       allTestPass=false;
       }
     }
-
+/*
     //Centerings testing
     {
     std::vector<std::string> tempCenterings(4,std::string("cell"));
@@ -147,6 +147,7 @@ int main(int , char * [])
       allTestPass=false;
       }
     }
+*/
     //thickness testing
     {
     std::vector<double> tempThickness(4,std::nan(""));
@@ -188,18 +189,6 @@ int main(int , char * [])
         std::cout << "Out outMsr " << i << " " << j << " " << outMsr[i][j] << std::endl;
         }
         }
-      allTestPass=false;
-      }
-    }
-    // Space
-    {
-    std::string tempSpace("left-posterior-superior"); //The only valid DWI modality
-    bldValidator.SetSpace(tempSpace);
-    const std::string outSpace = bldValidator.GetSpace();
-    if(tempSpace != outSpace)
-      {
-      std::cout << "ERROR: outSpace not preserved" << std::endl;
-      std::cout << "Out outSpace " << outSpace << std::endl;
       allTestPass=false;
       }
     }
@@ -317,9 +306,9 @@ int main(int , char * [])
     DWIMetaDataDictionaryValidator refVolumeValidator;
     refVolumeValidator.SetMetaDataDictionary(refVolume->GetMetaDataDictionary());
 
-    std::cout << "****\begin Reference Dictionary ****" << std::endl;
+    std::cout << "****\\begin Reference Dictionary ****" << std::endl;
     PrintDictionaryHelper(refVolumeValidator.GetMetaDataDictionary());
-    std::cout << "****\end Reference Dictionary ****" << std::endl;
+    std::cout << "****\\end Reference Dictionary ****" << std::endl;
 
     //Now copy over the dictionaries element by element to test storage/retrieval
     DWIMetaDataDictionaryValidator manualVolumeValidator;
@@ -331,14 +320,10 @@ int main(int , char * [])
     manualVolumeValidator.SetCenterings(refVolumeValidator.GetCenterings());
     //Thicknesses
     manualVolumeValidator.SetThicknesses(refVolumeValidator.GetThicknesses());
-    //Kinds testing
-    manualVolumeValidator.SetKinds(refVolumeValidator.GetKinds());
     // Measurement Frame
     manualVolumeValidator.SetMeasurementFrame(refVolumeValidator.GetMeasurementFrame());
     // Modality
     manualVolumeValidator.SetModality(refVolumeValidator.GetModality());
-    // Space
-    manualVolumeValidator.SetSpace(refVolumeValidator.GetSpace());
     //B-Value
     manualVolumeValidator.SetBValue(refVolumeValidator.GetBValue());
     //Gradient-Directions
@@ -348,9 +333,9 @@ int main(int , char * [])
     }
 
     std::cout << "\n=============================================================\n" << std::endl;
-    std::cout << "****\begin Manual Dictionary ****" << std::endl;
+    std::cout << "****\\begin Manual Dictionary ****" << std::endl;
     PrintDictionaryHelper(manualVolumeValidator.GetMetaDataDictionary());
-    std::cout << "****\end Manual Dictionary ****" << std::endl;
+    std::cout << "****\\end Manual Dictionary ****" << std::endl;
 
     //Now reset MetaDataDictionary from validator
     refVolume->SetMetaDataDictionary((manualVolumeValidator.GetMetaDataDictionary()));
