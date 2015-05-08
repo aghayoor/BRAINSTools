@@ -14,6 +14,7 @@
 #include <itkImageFileWriter.h>
 #include <itkImageFileReader.h>
 #include <itkVectorImage.h>
+#include <itkImageRegionIteratorWithIndex.h>
 
 #include "DWIMetaDataDictionaryValidator.h"
 
@@ -72,42 +73,55 @@ static void PrintDictionaryHelper(const itk::MetaDataDictionary & dictPrint)
 }
 
 // Create a vector image
-typedef short                           PixelValue;
-typedef itk::VectorImage<PixelValue, 3> ImageType;
+typedef short                           PixelType;
+typedef itk::VectorImage<PixelType, 3>  VectorImageType;
 
-static ImageType::Pointer CreateVolume(const size_t numOfComponents)
+static VectorImageType::Pointer CreateVolume(const size_t numOfComponents)
 {
-  const int imageSize = 100; // each image component has size of imageSize^3
+  const int imageSize = 11; // each image component has size of imageSize^3
 
-  ImageType::IndexType start;
+  VectorImageType::IndexType start;
   start.Fill(0);
 
-  ImageType::SizeType size;
+  VectorImageType::SizeType size;
   size.Fill(imageSize);
 
-  ImageType::RegionType region(start, size);
+  VectorImageType::RegionType region(start, size);
 
-  ImageType::Pointer nrrdVolume = ImageType::New();
+  VectorImageType::Pointer nrrdVolume = VectorImageType::New();
   nrrdVolume->SetRegions(region);
   nrrdVolume->SetVectorLength(numOfComponents);
   nrrdVolume->Allocate();
 
-  typedef itk::VariableLengthVector<short> VariableVectorType;
-  VariableVectorType variableLengthVector;
-  variableLengthVector.SetSize(numOfComponents);
+  itk::VariableLengthVector< PixelType > ZeroPixel( numOfComponents );
+  ZeroPixel.Fill( itk::NumericTraits< PixelType >::Zero );
+  nrrdVolume->FillBuffer(ZeroPixel);
+
+  itk::VariableLengthVector<PixelType> f( numOfComponents );
   for( size_t i = 0; i < numOfComponents; ++i )
     {
     if( i==0 || i==4 )
       {
-      variableLengthVector[i] = 255; // assumed as b0 images
+      f[i] = 255; // assumed as b0 images
       }
     else
       {
-      variableLengthVector[i] = i*10; // assumed as 6 gradient components
+      f[i] = i*10; // assumed as 6 gradient components
       }
     }
+  // define a sub region
+  start.Fill(3);
+  size.Fill(4);
+  VectorImageType::RegionType subRegion( start, size );
+  typedef itk::ImageRegionIterator< VectorImageType > IteratorType;
+  IteratorType it( nrrdVolume, subRegion );
+  it.GoToBegin();
+  while( !it.IsAtEnd() )
+    {
+    it.Set( f );
+    ++it;
+    }
 
-  nrrdVolume->FillBuffer(variableLengthVector);
   return nrrdVolume;
 }
 
@@ -128,7 +142,7 @@ int main(int , char * [])
   const size_t numOfComponents=8;
 
   // Create a vector image
-  ImageType::Pointer nrrdVolume = CreateVolume(numOfComponents);
+  VectorImageType::Pointer nrrdVolume = CreateVolume(numOfComponents);
 
   // Instantiate a validator object
   DWIMetaDataDictionaryValidator   bldValidator;
@@ -152,7 +166,7 @@ int main(int , char * [])
       allTestPass=false;
       }
     }
-
+/*
     //thickness testing
     {
     std::vector<double> tempThickness(4,std::nan(""));
@@ -173,7 +187,7 @@ int main(int , char * [])
         allTestPass=false;
         }
     }
-
+*/
     // Measurement Frame
     {
     std::vector<std::vector<double> > msrFrame(3);
@@ -293,7 +307,7 @@ int main(int , char * [])
     nrrdVolume->SetMetaDataDictionary(bldValidator.GetMetaDataDictionary());
 
     // Write Nrrd volume to disk
-    typedef itk::ImageFileWriter<ImageType> WriterType;
+    typedef itk::ImageFileWriter<VectorImageType> WriterType;
     WriterType::Pointer nrrdWriter = WriterType::New();
     nrrdWriter->UseCompressionOn();
     nrrdWriter->UseInputMetaDataDictionaryOn();
@@ -320,12 +334,12 @@ int main(int , char * [])
     {
     const std::string referenceTestFileName="/scratch/BS/release/BRAINSTools-build/ExternalData/TestData/DWI_TestData_OUTPUTS/PhilipsAchieva2.nrrd";
 
-    typedef itk::ImageFileReader<ImageType> ReaderType;
+    typedef itk::ImageFileReader<VectorImageType> ReaderType;
     ReaderType::Pointer nrrdReader = ReaderType::New();
     nrrdReader->SetFileName( referenceTestFileName );
     nrrdReader->Update();
 
-    ImageType::Pointer refVolume =nrrdReader->GetOutput();
+    VectorImageType::Pointer refVolume =nrrdReader->GetOutput();
 
     // Create a reference validator by setting its MetaDataDictionary from the input reference volume
     DWIMetaDataDictionaryValidator refVolumeValidator;
@@ -371,7 +385,7 @@ int main(int , char * [])
     refVolume->SetMetaDataDictionary(manualVolumeValidator.GetMetaDataDictionary());
 
     // Write Nrrd volume to disk
-    typedef itk::ImageFileWriter<ImageType> WriterType;
+    typedef itk::ImageFileWriter<VectorImageType> WriterType;
     WriterType::Pointer nrrdWriter = WriterType::New();
     nrrdWriter->UseCompressionOn();
     nrrdWriter->UseInputMetaDataDictionaryOn();
