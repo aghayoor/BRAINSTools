@@ -17,7 +17,7 @@
 
 #include "DWIMetaDataDictionaryValidator.h"
 
-//Force printing of strings nicely
+//Force printing of key values nicely
 static std::string ForceConvert( const itk::MetaDataObjectBase *  myMetaDataObjectBase)
 {
   const itk::MetaDataObject<std::string> * myMetaDataObject = dynamic_cast<const itk::MetaDataObject<std::string> * >(myMetaDataObjectBase);
@@ -29,33 +29,51 @@ static std::string ForceConvert( const itk::MetaDataObjectBase *  myMetaDataObje
     }
   else
     {
-    const std::string temp  = myMetaDataObjectBase->GetMetaDataObjectTypeName();
-    return "???_conversion         (type): " + temp;
+    // double type for thickness field
+    const itk::MetaDataObject<double> * doubleMetaDataObject = dynamic_cast<const itk::MetaDataObject<double> * >(myMetaDataObjectBase);
+    if(doubleMetaDataObject)
+      {
+      const std::string temp("double");
+      // convert double value to string
+      std::ostringstream strs;
+      strs << doubleMetaDataObject->GetMetaDataObjectValue();
+      std::string str = strs.str();
+
+      return str+"         (type): " + temp;
+      }
+    else
+      {
+      const std::string temp  = myMetaDataObjectBase->GetMetaDataObjectTypeName();
+      return "???_conversion         (type): " + temp;
+      }
     }
 }
-
 
 static void PrintDictionaryHelper(const itk::MetaDataDictionary & dictPrint)
 {
 
   //  Print keys and values?
+  /*
   std::vector<std::string> keys = dictPrint.GetKeys();
-
-
+  std::cout << "****keys: " << std::endl;
+  for(unsigned int i=0; i<keys.size(); ++i)
+    {
+    std::cout << keys[i] << std::endl;
+    }
+  std::cout << std::endl;
+  */
   std::cout << "----------------" << std::endl;
   itk::MetaDataDictionary::ConstIterator end = dictPrint.End();
   for ( itk::MetaDataDictionary::ConstIterator it = dictPrint.Begin(); it != end; ++it)
     {
     std::cout << ' ' << it->first << ":=" << ForceConvert( it->second ) << std::endl;
     }
+  std::cout << "----------------" << std::endl;
 }
 
-
-#define KEY_PREFIX "NRRD_"
-
+// Create a vector image
 typedef short                           PixelValue;
 typedef itk::VectorImage<PixelValue, 3> ImageType;
-typedef std::vector<std::string>        StringVectorType;
 
 static ImageType::Pointer CreateVolume(const size_t numOfComponents)
 {
@@ -90,47 +108,34 @@ static ImageType::Pointer CreateVolume(const size_t numOfComponents)
     }
 
   nrrdVolume->FillBuffer(variableLengthVector);
-  // nrrdVolume = CreateMetaData(nrrdVolume);
   return nrrdVolume;
 }
 
-/*
- ImageType::Pointer CreateMetaData(ImageType::Pointer nrrdVolume)
- {
- nrrdVolume->SetMetaDataDictionary(referenceDict);
- ...
- return nrrdVolume
- }
- */
+// TEST PROGRAM
 
 int main(int , char * [])
 {
   bool allTestPass = true;
 
+  // TEST #1
+  /*
+   * FIRST TEST:
+   *  - Sets individual fields in the validator to create an output MetaDataDictionary
+   *  - Creates a vector image with default values
+   *  - Writes the created volume with output MetaDataDictionary
+   */
+
   const size_t numOfComponents=8;
+
   // Create a vector image
   ImageType::Pointer nrrdVolume = CreateVolume(numOfComponents);
-  //itk::MetaDataDictionary & referenceDict = nrrdVolume->GetMetaDataDictionary();
+
+  // Instantiate a validator object
   DWIMetaDataDictionaryValidator   bldValidator;
 
+  // Set and test validator fields individually
   try
   {
-    //spaceUnits testing
-    {
-    std::vector<std::string> tempSpaceUnits(3,std::string("mm"));
-    bldValidator.SetSpaceUnits(tempSpaceUnits);
-    const std::vector<std::string> outSpaceUnits = bldValidator.GetSpaceUnits();
-    if(tempSpaceUnits != outSpaceUnits)
-      {
-      std::cout << "ERROR: SpaceUnits not preserved" << std::endl;
-      for(size_t i = 0 ; i< outSpaceUnits.size(); ++i)
-        {
-        std::cout << "out outSpaceUnits " << outSpaceUnits[i] << std::endl;
-        }
-      allTestPass=false;
-      }
-    }
-/*
     //Centerings testing
     {
     std::vector<std::string> tempCenterings(4,std::string("cell"));
@@ -147,7 +152,7 @@ int main(int , char * [])
       allTestPass=false;
       }
     }
-*/
+
     //thickness testing
     {
     std::vector<double> tempThickness(4,std::nan(""));
@@ -157,13 +162,18 @@ int main(int , char * [])
       if(tempThickness != outThicknesses)
         {
         std::cout << "ERROR: outThicknesses not preserved" << std::endl;
+        for(size_t i = 0 ; i< tempThickness.size(); ++i)
+          {
+          std::cout << "Input  Thicknesses " << tempThickness[i] << std::endl;
+          }
         for(size_t i = 0 ; i< outThicknesses.size(); ++i)
           {
-          std::cout << "Out outThicknesses " << outThicknesses[i] << std::endl;
+          std::cout << "Output Thicknesses " << outThicknesses[i] << std::endl;
           }
         allTestPass=false;
         }
     }
+
     // Measurement Frame
     {
     std::vector<std::vector<double> > msrFrame(3);
@@ -192,6 +202,7 @@ int main(int , char * [])
       allTestPass=false;
       }
     }
+
     // Modality
     {
     std::string tempModality("DWMRI"); //The only valid DWI modality
@@ -204,6 +215,7 @@ int main(int , char * [])
       allTestPass=false;
       }
     }
+
     //B-Value
     {
     const double bValue=10000.0/3; //The only valid DWI modality
@@ -216,6 +228,7 @@ int main(int , char * [])
       allTestPass=false;
       }
     }
+
     //Gradient-Directions
     {
     /* We should apply direction vcl_cosines to gradient directions if requested by
@@ -255,7 +268,7 @@ int main(int , char * [])
 
     bldValidator.SetGradientTable(GradientTable);
 
-    const std::vector<std::array<double, 3> > outGT=bldValidator.GetGradientTable();
+    const std::vector<std::array<double, 3> > outGT = bldValidator.GetGradientTable();
     if(GradientTable != outGT)
       {
       std::cout << "ERROR: outGT not preserved" << std::endl;
@@ -269,10 +282,11 @@ int main(int , char * [])
       allTestPass=false;
       }
     }
+    std::cout << "\n****\\begin Artificial Dictionary ****" << std::endl;
     PrintDictionaryHelper(bldValidator.GetMetaDataDictionary());
+    std::cout << "****\\end Artificial Dictionary ****" << std::endl;
 
-
-    std::cout << "\n\n\nTesting IO based copy from reference data\n" << std::endl;
+    std::cout << "\nWrite the artificial vector image to the disk using the created artificial MetaDataDictionary...\n" << std::endl;
     //Write DWI Image To Disk
     {
     // Add meta data to nrrd volume
@@ -288,6 +302,16 @@ int main(int , char * [])
     nrrdWriter->Update();
     }
 
+    // TEST #2
+    /*
+     * SECOND TEST:
+     *  - Read a reference DWI image as a vector image in ITK
+     *  - Set individual fields of a manual validator from the reference image metaDataDictionary
+     *  - Writes the itk reference image with the manual MetaDataDictionary
+     *  - Compares the input reference image with the replicated reference volume
+     */
+
+    std::cout << "\n\n\n>>>Testing IO based copy from reference data:\n" << std::endl;
     //Test Replicating DWI Image Image From Disk
     //  --Read Image
     //  --Replicate Image, Store Meta in Validator
@@ -303,6 +327,7 @@ int main(int , char * [])
 
     ImageType::Pointer refVolume =nrrdReader->GetOutput();
 
+    // Create a reference validator by setting its MetaDataDictionary from the input reference volume
     DWIMetaDataDictionaryValidator refVolumeValidator;
     refVolumeValidator.SetMetaDataDictionary(refVolume->GetMetaDataDictionary());
 
@@ -310,12 +335,17 @@ int main(int , char * [])
     PrintDictionaryHelper(refVolumeValidator.GetMetaDataDictionary());
     std::cout << "****\\end Reference Dictionary ****" << std::endl;
 
-    //Now copy over the dictionaries element by element to test storage/retrieval
+    // Now copy over the dictionaries element by element to test storage/retrieval
     DWIMetaDataDictionaryValidator manualVolumeValidator;
 
-
-    //spaceUnits testing
-    manualVolumeValidator.SetSpaceUnits(refVolumeValidator.GetSpaceUnits());
+    /* Fields that need to be set:
+       - thickness
+       - centerings
+       - measurement frame
+       - modality
+       - b-value
+       - gradients
+     */
     //Centerings testing
     manualVolumeValidator.SetCenterings(refVolumeValidator.GetCenterings());
     //Thicknesses
@@ -338,7 +368,7 @@ int main(int , char * [])
     std::cout << "****\\end Manual Dictionary ****" << std::endl;
 
     //Now reset MetaDataDictionary from validator
-    refVolume->SetMetaDataDictionary((manualVolumeValidator.GetMetaDataDictionary()));
+    refVolume->SetMetaDataDictionary(manualVolumeValidator.GetMetaDataDictionary());
 
     // Write Nrrd volume to disk
     typedef itk::ImageFileWriter<ImageType> WriterType;
@@ -348,9 +378,6 @@ int main(int , char * [])
     nrrdWriter->SetInput( refVolume );
     nrrdWriter->SetFileName( "./outSameAsRefVolume.nrrd");
     nrrdWriter->Update();
-
-    // Add meta data to nrrd volume
-    nrrdVolume->SetMetaDataDictionary(bldValidator.GetMetaDataDictionary());
     }
   }
   catch(...)
@@ -363,6 +390,6 @@ int main(int , char * [])
     std::cout << "SUCCESS!" << std::endl;
     return EXIT_SUCCESS;
     }
-  std::cout << "FAILRE!" << std::endl;
+  std::cout << "FAILURE!" << std::endl;
   return EXIT_FAILURE;
 }
