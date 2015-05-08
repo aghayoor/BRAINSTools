@@ -150,6 +150,11 @@ int main(int , char * [])
   // Set and test validator fields individually
   try
   {
+    /*
+     NOTE: "centerings" and "thickness" should be created based on "volume interleaved".
+           If the image is "pixel interleave" (like vectorImage in ITK), the NrrdIO
+           will automatically handle the correct permutation.
+    */
     //Centerings testing
     {
     std::vector<std::string> tempCenterings(4,std::string("cell"));
@@ -171,7 +176,7 @@ int main(int , char * [])
     {
     bool thicknessPass = true;
     std::vector<double> tempThickness(4,std::nan(""));
-    tempThickness[2] = 2.123; // Note that the chosen axis for thickness should be compatible with centerings set
+    tempThickness[2] = 2.123;
     bldValidator.SetThicknesses(tempThickness);
     const std::vector<double> outThicknesses = bldValidator.GetThicknesses();
     if(tempThickness.size() != outThicknesses.size())
