@@ -169,23 +169,44 @@ int main(int , char * [])
 
     //thickness testing
     {
+    bool thicknessPass = true;
     std::vector<double> tempThickness(4,std::nan(""));
-      tempThickness[2] = 2.123;
-      bldValidator.SetThicknesses(tempThickness);
-      const std::vector<double> outThicknesses = bldValidator.GetThicknesses();
-      if(tempThickness != outThicknesses)
+    tempThickness[2] = 2.123; // Note that the chosen axis for thickness should be compatible with centerings set
+    bldValidator.SetThicknesses(tempThickness);
+    const std::vector<double> outThicknesses = bldValidator.GetThicknesses();
+    if(tempThickness.size() != outThicknesses.size())
+      {
+      thicknessPass = false;
+      }
+    else
+      {
+      for(size_t i = 0 ; i < outThicknesses.size(); ++i)
+         {
+         if( std::isnan(outThicknesses[i]) )
+           {
+           if( !std::isnan(tempThickness[i]) )
+             {
+             thicknessPass = false;
+             }
+           }
+         else
+           {
+           if( outThicknesses[i] != tempThickness[i] )
+             {
+             thicknessPass = false;
+             }
+           }
+         }
+      }
+    if( thicknessPass == false )
+      {
+      std::cout << "ERROR: outThicknesses not preserved" << std::endl;
+      for(size_t i = 0 ; i < outThicknesses.size(); ++i)
         {
-        std::cout << "ERROR: outThicknesses not preserved" << std::endl;
-        for(size_t i = 0 ; i< tempThickness.size(); ++i)
-          {
-          std::cout << "Input  Thicknesses " << tempThickness[i] << std::endl;
-          }
-        for(size_t i = 0 ; i< outThicknesses.size(); ++i)
-          {
-          std::cout << "Output Thicknesses " << outThicknesses[i] << std::endl;
-          }
-        allTestPass=false;
+        std::cout << "Output Thicknesses " << outThicknesses[i] << std::endl;
         }
+      allTestPass = false;
+      }
     }
 
     // Measurement Frame
