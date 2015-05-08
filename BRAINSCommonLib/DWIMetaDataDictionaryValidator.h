@@ -17,7 +17,7 @@
  *  limitations under the License.
 *=========================================================================*/
 /*
- *  \author Hans J. Johnson, David M. Welch and Ali Ghayoor
+ *  \authors Hans J. Johnson, David M. Welch, Ali Ghayoor
  *
  *
  * This class is used to build a meta-data dictionary and validate that the
