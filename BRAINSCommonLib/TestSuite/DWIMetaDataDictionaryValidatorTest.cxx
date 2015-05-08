@@ -166,11 +166,11 @@ int main(int , char * [])
       allTestPass=false;
       }
     }
-/*
+
     //thickness testing
     {
     std::vector<double> tempThickness(4,std::nan(""));
-      tempThickness[3] = 2.123;
+      tempThickness[2] = 2.123;
       bldValidator.SetThicknesses(tempThickness);
       const std::vector<double> outThicknesses = bldValidator.GetThicknesses();
       if(tempThickness != outThicknesses)
@@ -187,7 +187,7 @@ int main(int , char * [])
         allTestPass=false;
         }
     }
-*/
+
     // Measurement Frame
     {
     std::vector<std::vector<double> > msrFrame(3);
