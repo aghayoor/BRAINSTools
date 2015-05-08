@@ -267,9 +267,18 @@ void DWIMetaDataDictionaryValidator::GenericSetDoubleVector(const std::vector<do
   for(size_t index=0; index< values.size(); ++index)
     {
     const std::string currKey = this->GetIndexedKeyString(KeyBaseName,index);
-    itk::EncapsulateMetaData< double >(this->m_dict,
-                                            currKey,
-                                            values[index]);
+    /*
+     * thickness is a per axis value, and the only axis that has information associated with it needs to be set here.
+     * itkNrrdIO uses "nan" for the other axis.
+     * Also, itkNrrdIO handles the correct permutation based on the "kinds" field in image. It sets the thickness value
+     * for the 3rd space/domain.
+     */
+    if( !std::isnan(values[index]) )
+      {
+      itk::EncapsulateMetaData< double >(this->m_dict,
+                                         currKey,
+                                         values[index]);
+      }
     }
 }
 
