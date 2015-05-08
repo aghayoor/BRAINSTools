@@ -51,10 +51,14 @@
    - encoding
    - space origin
 
+ * Also, "space units" is an optional field, and ITK does not set that
+   in the output MetaDataDictionary even if it exists in the header of
+   read Nrrd file. Therefore, this field does not need to be set by the
+   validator.
+
  * The following fields should be managed by validator:
     - thickness
     - centerings
-    - space units
     - measurement frame
     - modality
     - b-value
@@ -126,11 +130,6 @@ class DWIMetaDataDictionaryValidator
   // centering
   std::vector<std::string> GetCenterings() const;
   void SetCenterings(const std::vector<std::string> & );
-
-  //spaceUnits
-  std::vector<std::string> GetSpaceUnits() const;
-  void SetSpaceUnits(const std::vector<std::string> & values);
-
 
   //thickness
   std::vector<double> GetThicknesses() const;

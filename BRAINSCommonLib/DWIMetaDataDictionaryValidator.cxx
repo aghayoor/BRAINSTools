@@ -316,30 +316,6 @@ std::vector<double> DWIMetaDataDictionaryValidator::GenericGetDoubleVector(const
   return values;
 }
 
-void DWIMetaDataDictionaryValidator::SetSpaceUnits(const std::vector<std::string> & values)
-{
-  const std::string _spaceString("mm"); //Only mm supported
-  for(auto x: values)
-    {
-    if ( (x != _spaceString ) )
-      {
-      std::cout << "ERROR: " << x << " Not a valid NRRD_space units" << std::endl;
-      }
-    }
-  const std::string KeyBaseName("NRRD_space units");
-  this->GenericSetStringVector(values,KeyBaseName);
-}
-
-std::vector<std::string> DWIMetaDataDictionaryValidator::GetSpaceUnits() const
-{
-
-  // space units are always 3
-  const std::string KeyBaseName("NRRD_space units");
-
-  return this->GenericGetStringVector(KeyBaseName,3, "mm");
-}
-
-
 std::vector<std::string>  DWIMetaDataDictionaryValidator::GetCenterings() const
 {
   // centerings units are always 4  for DWI
