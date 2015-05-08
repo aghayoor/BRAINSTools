@@ -256,9 +256,17 @@ void DWIMetaDataDictionaryValidator::GenericSetStringVector(const std::vector<st
   for(size_t index=0; index< values.size(); ++index)
     {
     const std::string currKey = this->GetIndexedKeyString(KeyBaseName,index);
-    itk::EncapsulateMetaData< std::string >(this->m_dict,
-                                            currKey,
-                                            values[index]);
+    /*
+     * Only those axises that have information associated with it need to be set here.
+     * itkNrrdIO uses "???" for the list/vector axis.
+     * Also, it handles the permutation properly based on the "kinds" field in image.
+     */
+    if( values[index] != "???" )
+      {
+      itk::EncapsulateMetaData< std::string >(this->m_dict,
+                                              currKey,
+                                              values[index]);
+      }
     }
 }
 
@@ -284,14 +292,14 @@ void DWIMetaDataDictionaryValidator::GenericSetDoubleVector(const std::vector<do
 
 
 std::vector<std::string> DWIMetaDataDictionaryValidator::GenericGetStringVector(const std::string & KeyBaseName,
-                                                                          const size_t  numElements,
-                                                                          const std::string defaultValue) const
+                                                                                const size_t  numElements,
+                                                                                const std::string defaultValue) const
 {
   std::vector<std::string> values(numElements);
   for(size_t index=0; index< values.size() ; ++index)
     {
     const std::string currKey = this->GetIndexedKeyString(KeyBaseName,index);
-    double temp;
+    std::string temp;
     if (itk::ExposeMetaData(this->m_dict, currKey, temp ) )
       {
       values[index]=temp;
@@ -305,8 +313,8 @@ std::vector<std::string> DWIMetaDataDictionaryValidator::GenericGetStringVector(
 }
 
 std::vector<double> DWIMetaDataDictionaryValidator::GenericGetDoubleVector(const std::string & KeyBaseName,
-                                                                                const size_t  numElements,
-                                                                                const double defaultValue) const
+                                                                           const size_t  numElements,
+                                                                           const double defaultValue) const
 {
   std::vector<double> values(numElements);
   for(size_t index=0; index< values.size() ; ++index)
