@@ -67,7 +67,25 @@ static void PrintDictionaryHelper(const itk::MetaDataDictionary & dictPrint)
   itk::MetaDataDictionary::ConstIterator end = dictPrint.End();
   for ( itk::MetaDataDictionary::ConstIterator it = dictPrint.Begin(); it != end; ++it)
     {
-    std::cout << ' ' << it->first << ":=" << ForceConvert( it->second ) << std::endl;
+    if( it->first.find("NRRD_measurement frame") != std::string::npos )
+      {
+      std::cout << ' ' << it->first << ":=" << std::endl;
+      typedef std::vector<std::vector<double> > msrFrameType;
+      const itk::MetaDataObject<msrFrameType> * msrFrameMetaDataObject =
+                                                    dynamic_cast<const itk::MetaDataObject<msrFrameType> * >(it->second.GetPointer());
+      const msrFrameType outMsr = msrFrameMetaDataObject->GetMetaDataObjectValue();
+      for(size_t i = 0 ; i< outMsr.size(); ++i)
+        {
+        for(size_t j=0; j< outMsr[i].size(); ++j)
+          {
+          std::cout << "Out outMsr " << i << " " << j << " " << outMsr[i][j] << std::endl;
+          }
+        }
+      }
+    else
+      {
+      std::cout << ' ' << it->first << ":=" << ForceConvert( it->second ) << std::endl;
+      }
     }
   std::cout << "----------------" << std::endl;
 }
@@ -235,9 +253,9 @@ int main(int , char * [])
       for(size_t i = 0 ; i< outMsr.size(); ++i)
         {
         for(size_t j=0; j< outMsr[i].size(); ++j)
-        {
-        std::cout << "Out outMsr " << i << " " << j << " " << outMsr[i][j] << std::endl;
-        }
+           {
+           std::cout << "Out outMsr " << i << " " << j << " " << outMsr[i][j] << std::endl;
+           }
         }
       allTestPass=false;
       }
@@ -316,7 +334,7 @@ int main(int , char * [])
         {
         for(size_t j=0; j< outGT[i].size(); ++j)
           {
-          std::cout << "Out outMsr " << i << " " << j << " " << outGT[i][j] << std::endl;
+          std::cout << "Output outGT " << i << " " << j << " " << outGT[i][j] << std::endl;
           }
         }
       allTestPass=false;
