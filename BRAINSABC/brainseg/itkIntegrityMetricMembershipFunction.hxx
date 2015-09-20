@@ -20,108 +20,87 @@
 
 #include "itkIntegrityMetricMembershipFunction.h"
 
-#include "vnl/vnl_vector.h"
-#include "vnl/vnl_matrix.h"
-#include "vnl/algo/vnl_matrix_inverse.h"
+#include "itkVector.h"
+#include "itkListSample.h"
+#include "itkCovarianceSampleFilter.h"
+#include "itkMahalanobisDistanceMetric.h"
+#include "itkEuclideanDistanceMetric.h"
 
 namespace itk
 {
 namespace Statistics
 {
-template< typename TMatrix, unsigned int MeasurementSize >
-IntegrityMetricMembershipFunction< TMatrix, MeasurementSize >
+template< typename TSample >
+IntegrityMetricMembershipFunction< TSample >
 ::IntegrityMetricMembershipFunction()
 {
-  NumericTraits<MeanVectorType>::SetLength(m_Mean, MeasurementSize);
+  m_MeasurementVectorSize = NumericTraits<MeasurementVectorType>::GetLength(                                                                          MeasurementVectorType() );
+
+  NumericTraits<MeanVectorType>::SetLength(m_Mean, this->GetMeasurementVectorSize());
   m_Mean.Fill(0.0f);
 
-  m_Covariance.SetSize(MeasurementSize, MeasurementSize);
+  m_Covariance.SetSize(this->GetMeasurementVectorSize(), this->GetMeasurementVectorSize());
   m_Covariance.SetIdentity();
-
-  m_InverseCovariance = m_Covariance;
-
-  m_CovarianceNonsingular = true;
 }
 
-template< typename TMatrix, unsigned int MeasurementSize >
-void
-IntegrityMetricMembershipFunction< TMatrix, MeasurementSize >
-::ComputeMean(void)
-{
-
-
-  m_Mean = mean;
-  this->Modified();
-}
-
-template< typename TMatrix, unsigned int MeasurementSize >
-void
-IntegrityMetricMembershipFunction< TMatrix, MeasurementSize >
-::ComputeCovariance(void)
-{
-
-
-  m_Covariance = cov;
-
-  // the inverse of the covariance matrix is first computed by SVD
-  vnl_matrix_inverse< double > inv_cov( m_Covariance.GetVnlMatrix() );
-
-  // the determinant is then costless this way
-  double det = inv_cov.determinant_magnitude();
-
-  if( det < 0.)
-    {
-    itkExceptionMacro( << "det( m_Covariance ) < 0" );
-    }
-
-  // 1e-6 is an arbitrary value!!!
-  const double singularThreshold = 1.0e-6;
-  m_CovarianceNonsingular = ( det > singularThreshold );
-
-  if( m_CovarianceNonsingular )
-    {
-    // allocate the memory for m_InverseCovariance matrix
-    m_InverseCovariance.GetVnlMatrix() = inv_cov.inverse();
-    }
-  else
-    {
-    // define the inverse to be diagonal with large values along the
-    // diagonal. value chosen so (X-M)'inv(C)*(X-M) will usually stay
-    // below NumericTraits<double>::max()
-    const double aLargeDouble = std::pow(NumericTraits<double>::max(), 1.0/3.0)
-      / (double) this->GetMeasurementVectorSize();
-    m_InverseCovariance.SetSize(this->GetMeasurementVectorSize(), this->GetMeasurementVectorSize());
-    m_InverseCovariance.SetIdentity();
-    m_InverseCovariance *= aLargeDouble;
-    }
-
-  this->Modified();
-}
-
-template< typename TMatrix, unsigned int MeasurementSize >
+template< typename TSample >
 bool
-IntegrityMetricMembershipFunction< TMatrix, MeasurementSize >
-::Evaluate(const MeasurementMatrixType & measurement) const
+IntegrityMetricMembershipFunction< TSample >
+::Evaluate(const SampleType & measurementSample) const
 {
+  // compute mean and covariance
+  typedef itk::Statistics::CovarianceSampleFilter< SampleType > CovarianceAlgorithmType;
+  typename CovarianceAlgorithmType::Pointer covarianceAlgorithm = CovarianceAlgorithmType::New();
+  covarianceAlgorithm->SetInput( measurementSample );
+  covarianceAlgorithm->Update();
 
+  this->m_Mean = covarianceAlgorithm->GetMean();
+  this->m_Covariance = covarianceAlgorithm->GetCovarianceMatrix();
 
-  return isPure;
+  // Compute Mahalanobis and Euclidean distances for each sample and put them in vectors
+  typedef itk::Statistics::EuclideanDistanceMetric< MeasurementVectorType >  EDMetricType;
+  typename EDMetricType::Pointer euclideanDist = EDMetricType::New();
+
+  typedef itk::Statistics::MahalanobisDistanceMetric< MeasurementVectorType >  MDMetricType;
+  typename MDMetricType::Pointer mahalanobisDist = MDMetricType::New();
+  mahalanobisDist->SetCovariance( this->m_Covariance.GetVnlMatrix() );
+
+  vnl_vector<double> ed_vector( measurementSample->Size() ); // vector including euclidean distances for each sample
+  vnl_vector<double> md_vector( measurementSample->Size() ); // vector including mahalanobis distances for each sample
+
+  unsigned int i = 0;
+  for( typename SampleType::ConstIterator s_iter = measurementSample->Begin();
+        s_iter != measurementSample->End(); ++s_iter)
+     {
+     //std::cout << euclideanDist->Evaluate(mean, s_iter.GetMeasurementVector()) << std::endl;
+     //std::cout << mahalanobisDist->Evaluate(mean, s_iter.GetMeasurementVector()) << std::endl;
+     //std::cout << std::endl;
+     ed_vector[i] = euclideanDist->Evaluate( this->m_Mean, s_iter.GetMeasurementVector() );
+     md_vector[i] = mahalanobisDist->Evaluate( this->m_Mean, s_iter.GetMeasurementVector() );
+     ++i;
+     }
+
+  md_vector /= md_vector.max_value(); // Normalize mahalanobis distances to the maximum distance
+  vnl_vector<double> weightedDistanceVector = element_product(ed_vector, md_vector);
+  //std::cout << weightedDistanceVector << std::endl;
+
+  this->m_IsPure = (weightedDistanceVector.max_value() < this->m_Threshold);
+  return this->m_IsPure;
 }
 
-template< typename TMatrix, unsigned int MeasurementSize >
+template< typename TSample >
 void
-IntegrityMetricMembershipFunction< TMatrix, MeasurementSize >
+IntegrityMetricMembershipFunction< TSample >
 ::PrintSelf(std::ostream & os, Indent indent) const
 {
   Superclass::PrintSelf(os, indent);
-
-  os << indent << "Mean: " << m_Mean << std::endl;
+  os << indent << "Measurement vector size: " <<
+    this->m_MeasurementVectorSize << std::endl;
+  os << indent << "Mean: " << this->m_Mean << std::endl;
   os << indent << "Covariance: " << std::endl;
-  os << m_Covariance.GetVnlMatrix();
-  os << indent << "InverseCovariance: " << std::endl;
-  os << indent << m_InverseCovariance.GetVnlMatrix();
-  os << indent << "Covariance nonsingular: " <<
-    (m_CovarianceNonsingular ? "true" : "false") << std::endl;
+  os << this->m_Covariance.GetVnlMatrix();
+  os << indent << "Is pure: " <<
+    (this->m_IsPure ? "true" : "false") << std::endl;
 }
 
 } // end namespace Statistics

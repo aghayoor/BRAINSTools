@@ -37,14 +37,14 @@ namespace Statistics
  * \ingroup ITKStatistics
  */
 
-template< typename TMatrix, unsigned int MeasurementSize >
+template< typename TSample >
 class IntegrityMetricMembershipFunction:
-  public FunctionBase< TMatrix, bool >
+  public FunctionBase< TSample, bool >
 {
 public:
   /** Standard class typedefs */
   typedef IntegrityMetricMembershipFunction     Self;
-  typedef FunctionBase< TMatrix, bool >         Superclass;
+  typedef FunctionBase< TSample, bool >         Superclass;
   typedef SmartPointer< Self >                  Pointer;
   typedef SmartPointer< const Self >            ConstPointer;
 
@@ -52,28 +52,35 @@ public:
   itkTypeMacro(IntegrityMetricMembershipFunction, FunctionBase);
   itkNewMacro(Self);
 
-  /** Typedef alias for the measurement matrix */
-  typedef TMatrix MeasurementMatrixType;
+  typedef TSample                                                     SampleType;
+
+  /** Type of each measurement vector in sample */
+  typedef typename SampleType::MeasurementVectorType                  MeasurementVectorType;
+
+  /** Type of the length of each measurement vector */
+  typedef typename SampleType::MeasurementVectorSizeType              MeasurementVectorSizeType;
+
+  /** Type of measurement vector component value */
+  typedef typename SampleType::MeasurementType                        MeasurementType;
+
+  /** Type of a measurement vector, holding floating point values */
+  typedef typename NumericTraits< MeasurementVectorType >::RealType   MeasurementVectorRealType;
+
+  /** Type of a floating point measurement component value */
+  typedef typename NumericTraits< MeasurementType >::RealType         MeasurementRealType;
 
   /** Type of the mean vector.  */
-  // HACK: Can it be a vector type that its size derives from TMatrix?
-  typedef VariableLengthVector< double >  MeanVectorType;
+  typedef MeasurementVectorRealType                    MeanVectorType;
 
   /** Type of the covariance matrix */
-  typedef VariableSizeMatrix< double >    CovarianceMatrixType;
+  typedef VariableSizeMatrix< MeasurementRealType >    CovarianceMatrixType;
 
   /** Set threshold */
-  itkSetMacro(Threshold, double);
-
-  /** Compute mean from the input measurement matrix  */
-  void ComputeMean(void);
+  itkSetMacro(Threshold, float);
 
   /** Get the mean of the Mahalanobis distance. Mean is a vector type
    * similar to the measurement type but with a real element type. */
   itkGetConstReferenceMacro(Mean, MeanVectorType);
-
-  /** Compute the covariance matrix from the input measurement matrix */
-  void ComputeCovariance(void);
 
   /** Get the covariance matrix. Covariance matrix is a
    * VariableSizeMatrix of doubles. */
@@ -84,7 +91,10 @@ public:
    * prescribed mean and covariance. Note that the Mahalanobis
    * distance is not a probability density. The square of the
    * distance is returned. */
-  double Evaluate(const MeasurementMatrixType & measurement) const ITK_OVERRIDE;
+  bool Evaluate(const SampleType & measurementSample) const ITK_OVERRIDE;
+
+  /** Get the length of the measurement vector */
+  itkGetConstMacro(MeasurementVectorSize, MeasurementVectorSizeType);
 
 protected:
   IntegrityMetricMembershipFunction();
@@ -92,16 +102,11 @@ protected:
   void PrintSelf(std::ostream & os, Indent indent) const ITK_OVERRIDE;
 
 private:
-  double               m_Threshold;          // threshold value
-  MeanVectorType       m_Mean;               // mean
-  CovarianceMatrixType m_Covariance;         // covariance matrix
-
-  // inverse covariance matrix. automatically calculated
-  // when covariace matirx is set.
-  CovarianceMatrixType m_InverseCovariance;
-
-  /** Boolean to cache whether the covarinace is singular or nearly singular */
-  bool m_CovarianceNonsingular;
+  MeasurementVectorSizeType   m_MeasurementVectorSize;
+  bool                        m_IsPure;
+  float                       m_Threshold;          // threshold value
+  MeanVectorType              m_Mean;               // mean
+  CovarianceMatrixType        m_Covariance;         // covariance matrix
 };
 } // end of namespace Statistics
 } // end namespace itk
