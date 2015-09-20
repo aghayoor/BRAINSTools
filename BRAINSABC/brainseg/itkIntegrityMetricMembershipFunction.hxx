@@ -43,6 +43,8 @@ IntegrityMetricMembershipFunction< TSample >
   m_Covariance.SetIdentity();
 
   m_Threshold = 0.0;
+
+  m_WeightedDistanceVector.set_size(0);
 }
 
 template< typename TSample >
@@ -119,10 +121,9 @@ IntegrityMetricMembershipFunction< TSample >
      }
 
   md_vector /= md_vector.max_value(); // Normalize mahalanobis distances to the maximum distance
-  vnl_vector<double> weightedDistanceVector = element_product(ed_vector, md_vector);
-  //std::cout << weightedDistanceVector << std::endl;
+  this->m_WeightedDistanceVector = element_product(ed_vector, md_vector);
 
-  bool belongs = (weightedDistanceVector.max_value() < this->m_Threshold);
+  bool belongs = (this->m_WeightedDistanceVector.max_value() < this->m_Threshold);
   return belongs;
 }
 
@@ -137,6 +138,8 @@ IntegrityMetricMembershipFunction< TSample >
   os << indent << "Mean: " << this->m_Mean << std::endl;
   os << indent << "Covariance: " << std::endl;
   os << this->m_Covariance.GetVnlMatrix();
+  os << indent << "Weighted distance matrix: " << std::endl;
+  os << this->m_WeightedDistanceVector << std::endl;
 }
 
 } // end namespace Statistics

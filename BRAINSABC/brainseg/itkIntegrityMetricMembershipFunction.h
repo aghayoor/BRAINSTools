@@ -76,6 +76,9 @@ public:
   /** Type of the covariance matrix */
   typedef VariableSizeMatrix< MeasurementRealType >    CovarianceMatrixType;
 
+  /** Type of the output distance vector */
+  typedef vnl_vector<double>                           DistanceVectorType;
+
   /** Set threshold */
   itkSetMacro(Threshold, float);
 
@@ -97,6 +100,9 @@ public:
   /** Get the length of the measurement vector */
   itkGetConstMacro(MeasurementVectorSize, MeasurementVectorSizeType);
 
+  /** Get calculated weighted distance vector */
+  itkGetConstMacro(WeightedDistanceVector, DistanceVectorType);
+
 protected:
   IntegrityMetricMembershipFunction();
   virtual ~IntegrityMetricMembershipFunction(void) {}
@@ -116,6 +122,7 @@ private:
   float                       m_Threshold;          // threshold value
   MeanVectorType              m_Mean;               // mean
   CovarianceMatrixType        m_Covariance;         // covariance matrix
+  DistanceVectorType          m_WeightedDistanceVector;
 };
 } // end of namespace Statistics
 } // end namespace itk
