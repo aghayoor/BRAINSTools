@@ -18,8 +18,8 @@
  *=========================================================================*/
 /*
  * Author: Ali Ghayoor
- * at Psychiatry Imaging Lab,
- * University of Iowa Health Care 2011
+ * at SINAPSE Lab,
+ * The University of Iowa 2015
  */
 
 #include "itkIntegrityMetricMembershipFunction.h"
