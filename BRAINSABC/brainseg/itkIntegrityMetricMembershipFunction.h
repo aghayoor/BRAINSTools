@@ -15,6 +15,12 @@
  *  limitations under the License.
  *
  *=========================================================================*/
+/*
+ * Author: Ali Ghayoor
+ * at SINAPSE Lab,
+ * The University of Iowa 2015
+ */
+
 #ifndef itkIntegrityMetricMembershipFunction_h
 #define itkIntegrityMetricMembershipFunction_h
 
@@ -28,12 +34,20 @@ namespace itk
 namespace Statistics
 {
 /** \class IntegrityMetricMembershipFunction
- * \brief IntegrityMetricMembershipFunction models class
- * membership using Mahalanobis distance and Euclidean distance.
+ * \brief IntegrityMetricMembershipFunction models class membership
+ * based on an Mahalanobis-weighted Euclidean distance.
  *
- * IntegrityMetricMembershipFunction
- * models class membership (or likelihood)
- * using the Mahalanobis-weighted Euclidean distance.
+ * This class first calculates the Euclidean and the Mahalanobis distance
+ * for each sample measurement from the computed mean point.
+ * Then, Mahalanobis distances are scaled based on the maximum distance.
+ * Scaled Mahalanobis distances are then used to wieght the calculated
+ * Euclidean distances to create the output weighted distance vector.
+ *
+ * MahalanobisDistanceWeights = MahalanobisDistance/max(MahalanobisDistance)
+ * OutputWeighteDistanceVector = EuclideanDistance * MahalanobisDistanceWeights
+ *
+ * The ``Evaluate()'' method returns true if all members of the OutputWeighteDistanceVector
+ * are smaller than an input threshold value.
  *
  * \ingroup ITKStatistics
  */
@@ -82,19 +96,20 @@ public:
   /** Set threshold */
   itkSetMacro(Threshold, float);
 
-  /** Get the mean of the Mahalanobis distance. Mean is a vector type
+  /** Get the mean of the measurement samples. Mean is a vector type
    * similar to the measurement type but with a real element type. */
   itkGetConstReferenceMacro(Mean, MeanVectorType);
 
-  /** Get the covariance matrix. Covariance matrix is a
-   * VariableSizeMatrix of doubles. */
+  /** Get the covariance matrix of the measurement samples. Covariance
+   * matrix is a VariableSizeMatrix of real element type. */
   itkGetConstReferenceMacro(Covariance, CovarianceMatrixType);
 
   /**
-   * Evaluate the Mahalanobis distance of a measurement using the
-   * prescribed mean and covariance. Note that the Mahalanobis
-   * distance is not a probability density. The square of the
-   * distance is returned. */
+   * Evaluate the weighted distance of a measurement using the
+   * calculated Euclidean and Mahalanobis distances.
+   * Note mean and covariance are computed to derive Mahalanobis distance.
+   * This method returns true if all computed weighted distances are less
+   * than input threshold. */
   bool Evaluate(const SampleType * measurementSample);
 
   /** Get the length of the measurement vector */
@@ -108,21 +123,20 @@ protected:
   virtual ~IntegrityMetricMembershipFunction(void) {}
   void PrintSelf(std::ostream & os, Indent indent) const;
 
-  /** Set the mean used in the Mahalanobis distance. Mean is a vector type
-   * similar to the measurement type but with a real element type.  */
+  /** Set the mean used in the Mahalanobis distance.
+    * This method run sanity checks after mean is computed.  */
   void SetMean(const MeanVectorType & mean);
 
-  /** Set the covariance matrix. Covariance matrix is a
-   * VariableSizeMatrix of doubles. The inverse of the covariance
-   * matrix is calculated whenever the covaraince matrix is changed. */
+  /** Set the covariance matrix.
+    * This method run sanity checks after covariance is computed. */
   void SetCovariance(const CovarianceMatrixType & cov);
 
 private:
   MeasurementVectorSizeType   m_MeasurementVectorSize;
-  float                       m_Threshold;          // threshold value
-  MeanVectorType              m_Mean;               // mean
-  CovarianceMatrixType        m_Covariance;         // covariance matrix
-  DistanceVectorType          m_WeightedDistanceVector;
+  float                       m_Threshold;                // threshold value
+  MeanVectorType              m_Mean;                     // mean
+  CovarianceMatrixType        m_Covariance;               // covariance matrix
+  DistanceVectorType          m_WeightedDistanceVector;   // output weighted distance vector
 };
 } // end of namespace Statistics
 } // end namespace itk
