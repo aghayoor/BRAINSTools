@@ -77,9 +77,9 @@ IntegrityMetricMembershipFunction< TSample >
                       << " the same as the size of the covariance.");
     }
 
-  if( m_Covariance != cov )
+  if( this->m_Covariance != cov )
     {
-     m_Covariance = cov;
+    this->m_Covariance = cov;
     this->Modified();
     }
 }
