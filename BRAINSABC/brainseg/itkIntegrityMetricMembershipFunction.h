@@ -116,7 +116,6 @@ private:
   float                       m_Threshold;          // threshold value
   MeanVectorType              m_Mean;               // mean
   CovarianceMatrixType        m_Covariance;         // covariance matrix
-  bool                        m_IsPure;
 };
 } // end of namespace Statistics
 } // end namespace itk
