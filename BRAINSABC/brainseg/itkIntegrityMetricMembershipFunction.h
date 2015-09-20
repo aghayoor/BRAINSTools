@@ -20,7 +20,8 @@
 
 #include "itkVariableSizeMatrix.h"
 
-#include "itkFunctionBase.h"
+#include "itkObject.h"
+#include "itkObjectFactory.h"
 
 namespace itk
 {
@@ -30,8 +31,8 @@ namespace Statistics
  * \brief IntegrityMetricMembershipFunction models class
  * membership using Mahalanobis distance and Euclidean distance.
  *
- * IntegrityMetricMembershipFunction is a subclass of
- * FunctionBase that models class membership (or likelihood)
+ * IntegrityMetricMembershipFunction
+ * models class membership (or likelihood)
  * using the Mahalanobis-weighted Euclidean distance.
  *
  * \ingroup ITKStatistics
@@ -39,17 +40,17 @@ namespace Statistics
 
 template< typename TSample >
 class IntegrityMetricMembershipFunction:
-  public FunctionBase< TSample, bool >
+  public Object
 {
 public:
   /** Standard class typedefs */
   typedef IntegrityMetricMembershipFunction     Self;
-  typedef FunctionBase< TSample, bool >         Superclass;
+  typedef Object                                Superclass;
   typedef SmartPointer< Self >                  Pointer;
   typedef SmartPointer< const Self >            ConstPointer;
 
   /** Strandard macros */
-  itkTypeMacro(IntegrityMetricMembershipFunction, FunctionBase);
+  itkTypeMacro(IntegrityMetricMembershipFunction, Object);
   itkNewMacro(Self);
 
   typedef TSample                                                     SampleType;
@@ -91,7 +92,7 @@ public:
    * prescribed mean and covariance. Note that the Mahalanobis
    * distance is not a probability density. The square of the
    * distance is returned. */
-  bool Evaluate(const SampleType & measurementSample) const ITK_OVERRIDE;
+  bool Evaluate(const SampleType * measurementSample);
 
   /** Get the length of the measurement vector */
   itkGetConstMacro(MeasurementVectorSize, MeasurementVectorSizeType);
@@ -99,14 +100,23 @@ public:
 protected:
   IntegrityMetricMembershipFunction();
   virtual ~IntegrityMetricMembershipFunction(void) {}
-  void PrintSelf(std::ostream & os, Indent indent) const ITK_OVERRIDE;
+  void PrintSelf(std::ostream & os, Indent indent) const;
+
+  /** Set the mean used in the Mahalanobis distance. Mean is a vector type
+   * similar to the measurement type but with a real element type.  */
+  void SetMean(const MeanVectorType & mean);
+
+  /** Set the covariance matrix. Covariance matrix is a
+   * VariableSizeMatrix of doubles. The inverse of the covariance
+   * matrix is calculated whenever the covaraince matrix is changed. */
+  void SetCovariance(const CovarianceMatrixType & cov);
 
 private:
   MeasurementVectorSizeType   m_MeasurementVectorSize;
-  bool                        m_IsPure;
   float                       m_Threshold;          // threshold value
   MeanVectorType              m_Mean;               // mean
   CovarianceMatrixType        m_Covariance;         // covariance matrix
+  bool                        m_IsPure;
 };
 } // end of namespace Statistics
 } // end namespace itk
