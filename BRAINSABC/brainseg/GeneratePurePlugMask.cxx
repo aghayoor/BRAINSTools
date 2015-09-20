@@ -80,10 +80,15 @@ int main( int argc, char * argv[] )
 
   IntegrityMetricType::MeanVectorType mean = integrityMetric->GetMean();
   IntegrityMetricType::CovarianceMatrixType cov = integrityMetric->GetCovariance();
+  IntegrityMetricType::DistanceVectorType dist = integrityMetric->GetWeightedDistanceVector();
 
   std::cout << "Mean = " << mean << std::endl;
   std::cout << "Covariance = " << cov << std::endl;
+  std::cout << "Distance vector = " << dist << std::endl;
   std::cout << "Is pure: " << ispure << std::endl;
+  std::cout << "-------------" << std::endl;
+
+  integrityMetric->Print(std::cout);
 
   return EXIT_SUCCESS;
 }
