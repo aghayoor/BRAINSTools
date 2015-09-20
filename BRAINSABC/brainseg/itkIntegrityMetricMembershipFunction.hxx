@@ -52,9 +52,18 @@ void
 IntegrityMetricMembershipFunction< TSample >
 ::SetMean(const MeanVectorType & mean)
 {
-  MeasurementVectorTraits::Assert(mean,
-                                  this->GetMeasurementVectorSize(),
-                                  "IntegrityMetricMembershipFunction::SetMean(): Size of mean vector specified does not match the size of a measurement vector.");
+  if( this->GetMeasurementVectorSize() )
+    {
+    MeasurementVectorTraits::Assert(mean,
+                                    this->GetMeasurementVectorSize(),
+                                    "IntegrityMetricMembershipFunction::SetMean(): Size of mean vector specified does not match the size of a measurement vector.");
+    }
+  else
+    {
+    // not already set, cache the size
+    this->SetMeasurementVectorSize( mean.Size() );
+    }
+
   if( this->m_Mean != mean )
     {
     this->m_Mean = mean;
@@ -73,10 +82,19 @@ IntegrityMetricMembershipFunction< TSample >
     itkExceptionMacro(<< "Covariance matrix must be square");
     }
 
-  if( cov.GetVnlMatrix().rows() != this->GetMeasurementVectorSize() )
+  if( this->GetMeasurementVectorSize() )
     {
-    itkExceptionMacro(<< "Length of measurement vectors must be"
-                      << " the same as the size of the covariance.");
+    if( cov.GetVnlMatrix().rows() != this->GetMeasurementVectorSize() )
+      {
+      itkExceptionMacro(<< "Length of measurement vectors (" << this->GetMeasurementVectorSize()
+                        << ") must be the same as the size of the covariance matrix ("
+                        << cov.GetVnlMatrix().rows() << ").");
+      }
+    }
+  else
+    {
+    // not already set, cache the size
+    this->SetMeasurementVectorSize( cov.GetVnlMatrix().rows() );
     }
 
   if( this->m_Covariance != cov )
@@ -106,6 +124,7 @@ IntegrityMetricMembershipFunction< TSample >
 
   typedef itk::Statistics::MahalanobisDistanceMetric< MeasurementVectorType >  MDMetricType;
   typename MDMetricType::Pointer mahalanobisDist = MDMetricType::New();
+  mahalanobisDist->SetMeasurementVectorSize( this->GetMeasurementVectorSize() );
   mahalanobisDist->SetCovariance( this->GetCovariance().GetVnlMatrix() );
 
   vnl_vector<double> ed_vector( measurementSample->Size() ); // vector including euclidean distances for each sample

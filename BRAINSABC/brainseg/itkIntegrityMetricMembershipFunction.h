@@ -25,7 +25,7 @@
 #define itkIntegrityMetricMembershipFunction_h
 
 #include "itkVariableSizeMatrix.h"
-
+#include "itkMeasurementVectorTraits.h"
 #include "itkObject.h"
 #include "itkObjectFactory.h"
 
@@ -112,11 +112,51 @@ public:
    * than input threshold. */
   bool Evaluate(const SampleType * measurementSample);
 
-  /** Get the length of the measurement vector */
-  itkGetConstMacro(MeasurementVectorSize, MeasurementVectorSizeType);
-
   /** Get calculated weighted distance vector */
   itkGetConstMacro(WeightedDistanceVector, DistanceVectorType);
+
+  /** Set the length of the measurement vector. If this membership
+   * function is templated over a vector type that can be resized,
+   * the new size is set. If the vector type has a fixed size and an
+   * attempt is made to change its size, an exception is
+   * thrown. */
+  virtual void SetMeasurementVectorSize(MeasurementVectorSizeType s)
+  {
+    // Test whether the vector type is resizable or not
+  MeasurementVectorType m;
+
+  if ( MeasurementVectorTraits::IsResizable(m) )
+    {
+    // then this is a resizable vector type
+    //
+    // if the new size is the same as the previou size, just return
+    if ( s == this->m_MeasurementVectorSize )
+      {
+      return;
+      }
+    else
+      {
+      this->m_MeasurementVectorSize = s;
+      this->Modified();
+      }
+    }
+  else
+    {
+    // If this is a non-resizable vector type
+    MeasurementVectorType     m3;
+    MeasurementVectorSizeType defaultLength =
+    NumericTraits<MeasurementVectorType>::GetLength(m3);
+    // and the new length is different from the default one, then throw an exception
+    if ( defaultLength != s )
+      {
+      itkExceptionMacro(
+        "Attempting to change the measurement vector size of a non-resizable vector type" );
+      }
+    }
+  }
+
+  /** Get the length of the measurement vector */
+  itkGetConstMacro(MeasurementVectorSize, MeasurementVectorSizeType);
 
 protected:
   IntegrityMetricMembershipFunction();
