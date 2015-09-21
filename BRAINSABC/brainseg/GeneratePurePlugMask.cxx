@@ -61,7 +61,7 @@ int main( int argc, char * argv[] )
     return EXIT_FAILURE;
     }
   const unsigned int numberOfImageModalities = inputFileNames.size(); // number of modality images
-  const float threshold( Threshold ); // threshold value
+  //const float threshold( Threshold ); // threshold value
 
   // Read the input modalities and set them in a vector of images
   typedef LocalReaderType::Pointer             LocalReaderPointer;

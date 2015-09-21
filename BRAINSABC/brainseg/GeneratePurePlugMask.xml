@@ -25,8 +25,8 @@
     </string-vector>
 
     <double>
-      <name>Threshold</name>
-      <longflag>Threshold</longflag>
+      <name>threshold</name>
+      <longflag>threshold</longflag>
       <label>Threshold Value</label>
       <channel>input</channel>
       <description>threshold value to define class membership.</description>
