@@ -46,13 +46,13 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
   set_target_properties(BRAINSABCCOMMONLIB PROPERTIES COMPILE_FLAGS "-fPIC")
 endif()
 
-set(PROGS_LIST_1
-  GeneratePurePlugMask
-  )
-foreach(prog ${PROGS_LIST_1})
-  add_executable(${prog} ${prog}.cxx)
-  target_link_libraries(${prog} BRAINSCommonLib ${BRAINSABC_ITK_LIBRARIES} ${VTK_LIBRARIES})
-endforeach()
+#set(PROGS_LIST_1
+#  GeneratePurePlugMask
+#  )
+#foreach(prog ${PROGS_LIST_1})
+#  add_executable(${prog} ${prog}.cxx)
+#  target_link_libraries(${prog} BRAINSCommonLib ${BRAINSABC_ITK_LIBRARIES} ${VTK_LIBRARIES})
+#endforeach()
 
 
 ## Build all the programs
@@ -61,6 +61,7 @@ set(ALL_PROGS_LIST
   BRAINSABC
   ESLR
   GenerateLabelMapFromProbabilityMap
+  GeneratePurePlugMask
   )
 foreach( prog ${ALL_PROGS_LIST} )
   StandardBRAINSBuildMacro( NAME ${prog}
