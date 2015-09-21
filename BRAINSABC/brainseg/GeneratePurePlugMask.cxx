@@ -24,7 +24,10 @@
 
 #include "itkImage.h"
 #include "itkImageFileReader.h"
+#include "itkImageFileWriter.h"
 #include "itkRescaleIntensityImageFilter.h"
+#include "itkImageRegionIteratorWithIndex.h"
+#include "itkNearestNeighborInterpolateImageFunction.h"
 
 #include "itkIntegrityMetricMembershipFunction.h"
 
@@ -40,6 +43,12 @@ int main( int argc, char * argv[] )
   typedef itk::ImageFileReader<FloatImageType>                                LocalReaderType;
   typedef itk::RescaleIntensityImageFilter< FloatImageType, FloatImageType >  RescaleFilterType;
   typedef itk::Image<unsigned char, 3>                                        MaskImageType;
+
+  typedef itk::NearestNeighborInterpolateImageFunction< FloatImageType, double > NNInterpolationType;
+
+  typedef itk::VariableLengthVector< float >                               MeasurementVectorType;
+  typedef itk::Statistics::ListSample< MeasurementVectorType >             SampleType;
+  typedef itk::Statistics::IntegrityMetricMembershipFunction< SampleType > IntegrityMetricType;
 
   std::vector<std::string> inputFileNames;
   if( inputImageModalities.size() > 1 )
@@ -124,80 +133,98 @@ int main( int argc, char * argv[] )
   mask->FillBuffer(0);
   //------------------------------------------
 
-
-
-
-
-  std::cout << "=============" << std::endl;
-  inputImageModalitiesList[0]->Print(std::cout);
-  mask->Print(std::cout);
-
-
-
-
-
-  // create a sample test ListSample object
-  typedef itk::VariableLengthVector< float > MeasurementVectorType;
-  typedef itk::Statistics::ListSample< MeasurementVectorType > SampleType;
-  SampleType::Pointer sample = SampleType::New();
-  sample->SetMeasurementVectorSize( numberOfImageModalities );
-
-  MeasurementVectorType mv;
-  mv.SetSize( numberOfImageModalities );
-
-  mv[0] = 0;
-  mv[1] = 1;
-  sample->PushBack( mv );
-
-  mv[0] = 0;
-  mv[1] = -1;
-  sample->PushBack( mv );
-
-  mv[0] = 3;
-  mv[1] = 1;
-  sample->PushBack( mv );
-
-  mv[0] = -3;
-  mv[1] = 1;
-  sample->PushBack( mv );
-
-  mv[0] = 3;
-  mv[1] = -1;
-  sample->PushBack( mv );
-
-  mv[0] = -3;
-  mv[1] = -1;
-  sample->PushBack( mv );
-
-  mv[0] = -3;
-  mv[1] = 0;
-  sample->PushBack( mv );
-
-  mv[0] = 3;
-  mv[1] = 0;
-  sample->PushBack( mv );
-
-  mv[0] = 0;
-  mv[1] = 3;
-  sample->PushBack( mv );
-
-  // compute mean and covariance
-  typedef itk::Statistics::IntegrityMetricMembershipFunction< SampleType > IntegrityMetricType;
   IntegrityMetricType::Pointer integrityMetric = IntegrityMetricType::New();
   integrityMetric->SetThreshold( threshold );
-  bool ispure = integrityMetric->Evaluate( sample );
 
-  IntegrityMetricType::MeanVectorType mean = integrityMetric->GetMean();
-  IntegrityMetricType::CovarianceMatrixType cov = integrityMetric->GetCovariance();
-  IntegrityMetricType::DistanceVectorType dist = integrityMetric->GetWeightedDistanceVector();
+  // define step size
+  const unsigned int numberOfSubsamplesAtEachDirection = 2;
 
-  std::cout << "Mean = " << mean << std::endl;
-  std::cout << "Covariance = " << cov << std::endl;
-  std::cout << "Distance vector = " << dist << std::endl;
-  std::cout << "Is pure: " << ispure << std::endl;
-  std::cout << "-------------" << std::endl;
+  MaskImageType::SpacingType stepSize;
+  stepSize[0] = maskSpacing[0]/numberOfSubsamplesAtEachDirection;
+  stepSize[1] = maskSpacing[1]/numberOfSubsamplesAtEachDirection;
+  stepSize[2] = maskSpacing[2]/numberOfSubsamplesAtEachDirection;
 
-  integrityMetric->Print(std::cout);
+  // Now iterate through the mask image
+  itk::ImageRegionIteratorWithIndex< MaskImageType > MaskItType;
+  MaskItType maksIt( mask, mask->GetLargestPossibleRegion() );
+  maskIt.Begin();
+
+  while( ! maskIt.IsAtEnd() )
+   {
+   MaskImageType::IndexType idx = maskIt.GetIndex();
+
+   // A sample list is created for each index that is inside the images buffers
+   SampleType::Pointer sample = SampleType::New();
+   sample->SetMeasurementVectorSize( numberOfImageModalities );
+
+   // flag that helps to break from loops if the current continous index is
+   // not inside the buffer of any input modality image
+   bool isInside = true;
+
+   for( double iss = idx[0]-(maskSpacing[0]/2)+(stepSize[0]/2); iss < idx[0]+(maskSpacing[0]/2); iss += stepSize[0] )
+      {
+      for( double jss = idx[1]-(maskSpacing[1]/2)+(stepSize[1]/2); jss < idx[1]+(maskSpacing[1]/2); jss += stepSize[1] )
+         {
+         for( double kss = idx[2]-(maskSpacing[2]/2)+(stepSize[2]/2); kss < idx[2]+(maskSpacing[2]/2); kss += stepSize[2] )
+            {
+            /////////
+            itk::ContinuousIndex<double,3> cidx = {iss, jss, kss}
+
+            MeasurementVectorType mv;
+            mv.SetSize( numberOfImageModalities );
+
+            for( unsigned int i = 0; i < numberOfImageModalities; i++ )
+              {
+              NNInterpolationType::Pointer imInterp = NNInterpolationType::New();
+              imInterp->SetInputImage( inputImageModalitiesList[i] );
+              if( imInterp->IsInsideBuffer(cidx) )
+                {
+                mv[i] = imInterp->EvaluateAtContinuousIndex(cidx);
+                }
+              else
+                {
+                isInside = false;
+                break;
+                }
+              }
+            if( isInside )
+              {
+              sample->PushBack( mv );
+              }
+            else
+              {
+              break;
+              }
+            //////// end of nested loop 3
+            }
+         if( !isInside )
+          {
+          break;
+          }
+         } // end of nested loop 2
+      if( !isInside )
+        {
+        break;
+        }
+      } // end of nested loop 1
+
+   if( isInside )
+     {
+     if( integrityMetric->Evaluate( sample ) )
+       {
+       maskIt.Set(1);
+       }
+     }
+
+   ++maskIt;
+   } // end of mask iterator
+
+  typedef itk::ImageFileWriter<MaskImageType> MaskWriterType;
+  MaskWriterType::Pointer writer = MaskWriterType::New();
+  writer->SetInput( mask );
+  writer->SetFileName( outputMaskFile );
+  writer->UseCompressionOn();
+  writer->Update();
 
   return EXIT_SUCCESS;
 }
