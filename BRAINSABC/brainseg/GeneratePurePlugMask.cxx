@@ -161,6 +161,7 @@ int main( int argc, char * argv[] )
    // not inside the buffer of any input modality image
    bool isInside = true;
 
+   // around each mask index, subsamples are taken as continues indices
    for( double iss = idx[0]-(maskSpacing[0]/2)+(stepSize[0]/2); iss < idx[0]+(maskSpacing[0]/2); iss += stepSize[0] )
       {
       for( double jss = idx[1]-(maskSpacing[1]/2)+(stepSize[1]/2); jss < idx[1]+(maskSpacing[1]/2); jss += stepSize[1] )
@@ -173,6 +174,12 @@ int main( int argc, char * argv[] )
             cidx[1] = jss;
             cidx[2] = kss;
 
+            // All input modality images are aligned in physical space,
+            // so we need to transform each continuous index to physical point,
+            // so it represent the same location in all input images
+            FloatImageType::PointType p;
+            inputImageModalitiesList[0]->TransformContinuousIndexToPhysicalPoint(cidx, p);
+
             MeasurementVectorType mv;
             mv.SetSize( numberOfImageModalities );
 
@@ -180,9 +187,9 @@ int main( int argc, char * argv[] )
               {
               NNInterpolationType::Pointer imInterp = NNInterpolationType::New();
               imInterp->SetInputImage( inputImageModalitiesList[i] );
-              if( imInterp->IsInsideBuffer(cidx) )
+              if( imInterp->IsInsideBuffer(p) )
                 {
-                mv[i] = imInterp->EvaluateAtContinuousIndex(cidx);
+                mv[i] = imInterp->Evaluate(p);
                 }
               else
                 {
