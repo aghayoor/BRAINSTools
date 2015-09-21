@@ -145,9 +145,9 @@ int main( int argc, char * argv[] )
   stepSize[2] = maskSpacing[2]/numberOfSubsamplesAtEachDirection;
 
   // Now iterate through the mask image
-  itk::ImageRegionIteratorWithIndex< MaskImageType > MaskItType;
-  MaskItType maksIt( mask, mask->GetLargestPossibleRegion() );
-  maskIt.Begin();
+  typedef itk::ImageRegionIteratorWithIndex< MaskImageType > MaskItType;
+  MaskItType maskIt( mask, mask->GetLargestPossibleRegion() );
+  maskIt.GoToBegin();
 
   while( ! maskIt.IsAtEnd() )
    {
@@ -168,7 +168,10 @@ int main( int argc, char * argv[] )
          for( double kss = idx[2]-(maskSpacing[2]/2)+(stepSize[2]/2); kss < idx[2]+(maskSpacing[2]/2); kss += stepSize[2] )
             {
             /////////
-            itk::ContinuousIndex<double,3> cidx = {iss, jss, kss}
+            itk::ContinuousIndex<double,3> cidx;
+            cidx[0] = iss;
+            cidx[1] = jss;
+            cidx[2] = kss;
 
             MeasurementVectorType mv;
             mv.SetSize( numberOfImageModalities );
