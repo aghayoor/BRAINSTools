@@ -156,6 +156,11 @@ int main( int argc, char * argv[] )
    {
    MaskImageType::IndexType idx = maskIt.GetIndex();
 
+   if( verbose )
+     {
+     std::cout << "index: " << idx << std::endl;
+     }
+
    // A sample list is created for each index that is inside the images buffers
    SampleType::Pointer sample = SampleType::New();
    sample->SetMeasurementVectorSize( numberOfImageModalities );
@@ -183,6 +188,12 @@ int main( int argc, char * argv[] )
             FloatImageType::PointType p;
             inputImageModalitiesList[0]->TransformContinuousIndexToPhysicalPoint(cidx, p);
 
+            if( verbose )
+              {
+              std::cout << "continous index: " << cidx << std::endl;
+              std::cout << "physical point: " << p << std::endl;
+              }
+
             MeasurementVectorType mv;
             mv.SetSize( numberOfImageModalities );
 
@@ -202,10 +213,18 @@ int main( int argc, char * argv[] )
               }
             if( isInside )
               {
+              if( verbose )
+                {
+                std::cout << "Is inside, mv: " << mv << std::endl;
+                }
               sample->PushBack( mv );
               }
             else
               {
+              if( verbose )
+                {
+                std::cout << "is not inside! so not pure!" << std::endl;
+                }
               break;
               }
             //////// end of nested loop 3
@@ -223,10 +242,31 @@ int main( int argc, char * argv[] )
 
    if( isInside )
      {
+     if( verbose )
+       {
+       std::cout << "Integrity filter: " << std::endl;
+       integrityMetric->Print(std::cout);
+       }
      if( integrityMetric->Evaluate( sample ) )
        {
        maskIt.Set(1);
+       if( verbose )
+         {
+         std::cout << "Is pure: True" << std::endl;
+         }
        }
+      else
+       {
+       if( verbose )
+         {
+         std::cout << "Is pure: False" << std::endl;
+         }
+       }
+     }
+
+   if( verbose )
+     {
+     std::cout << "-----------" << std::endl;
      }
 
    ++maskIt;
