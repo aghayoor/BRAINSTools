@@ -42,6 +42,15 @@
       <default>2,2,2</default>
     </integer-vector>
 
+    <boolean>
+      <name>verbose</name>
+      <flag>v</flag>
+      <longflag>verbose</longflag>
+      <label>verbose</label>
+      <default>false</default>
+      <description>Print out some debugging information.</description>
+    </boolean>
+
     <image>
       <name>outputMaskFile</name>
       <longflag>outputMaskFile</longflag>
