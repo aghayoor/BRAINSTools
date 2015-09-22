@@ -129,6 +129,7 @@ IntegrityMetricMembershipFunction< TSample >
 
   vnl_vector<double> ed_vector( measurementSample->Size() ); // vector including euclidean distances for each sample
   vnl_vector<double> md_vector( measurementSample->Size() ); // vector including mahalanobis distances for each sample
+  this->m_WeightedDistanceVector.clear();
 
   unsigned int i = 0;
   for( typename SampleType::ConstIterator s_iter = measurementSample->Begin();
@@ -138,6 +139,13 @@ IntegrityMetricMembershipFunction< TSample >
      md_vector[i] = mahalanobisDist->Evaluate( this->GetMean(), s_iter.GetMeasurementVector() );
      ++i;
      }
+
+  // If points are so close to the mean, you can rest assure they belong to a pure plug.
+  // However, this ideal case mostly happen in background area!
+  if( ed_vector.max_value() < 1e-2 )
+    {
+    return true;
+    }
 
   md_vector /= md_vector.max_value(); // Normalize mahalanobis distances to the maximum distance
   this->m_WeightedDistanceVector = element_product(ed_vector, md_vector);
