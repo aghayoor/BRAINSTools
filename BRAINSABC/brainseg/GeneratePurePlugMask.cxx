@@ -136,13 +136,16 @@ int main( int argc, char * argv[] )
   IntegrityMetricType::Pointer integrityMetric = IntegrityMetricType::New();
   integrityMetric->SetThreshold( threshold );
 
-  // define step size
-  const unsigned int numberOfSubsamplesAtEachDirection = 2;
+  // define step size based on the number of sub-samples at each direction
+  MaskImageType::SizeType numberOfContinuousIndexSubSamples;
+  numberOfContinuousIndexSubSamples[0] = numberOfSubSamples[0];
+  numberOfContinuousIndexSubSamples[1] = numberOfSubSamples[1];
+  numberOfContinuousIndexSubSamples[2] = numberOfSubSamples[2];
 
   MaskImageType::SpacingType stepSize;
-  stepSize[0] = maskSpacing[0]/numberOfSubsamplesAtEachDirection;
-  stepSize[1] = maskSpacing[1]/numberOfSubsamplesAtEachDirection;
-  stepSize[2] = maskSpacing[2]/numberOfSubsamplesAtEachDirection;
+  stepSize[0] = maskSpacing[0]/numberOfContinuousIndexSubSamples[0];
+  stepSize[1] = maskSpacing[1]/numberOfContinuousIndexSubSamples[1];
+  stepSize[2] = maskSpacing[2]/numberOfContinuousIndexSubSamples[2];
 
   // Now iterate through the mask image
   typedef itk::ImageRegionIteratorWithIndex< MaskImageType > MaskItType;

@@ -24,14 +24,23 @@
       <description>Input image files names (.nii.gz or .nrrd)</description>
     </string-vector>
 
-    <double>
+    <float>
       <name>threshold</name>
       <longflag>threshold</longflag>
       <label>Threshold Value</label>
       <channel>input</channel>
       <description>threshold value to define class membership.</description>
       <default>0.2</default>
-    </double>
+    </float>
+
+    <integer-vector>
+      <name>numberOfSubSamples</name>
+      <longflag>numberOfSubSamples</longflag>
+      <label>Number of sub-samples at each direction</label>
+      <channel>input</channel>
+      <description>Number of continous index samples taken at each direction of lattice space for each plug volume.</description>
+      <default>2,2,2</default>
+    </integer-vector>
 
     <image>
       <name>outputMaskFile</name>
