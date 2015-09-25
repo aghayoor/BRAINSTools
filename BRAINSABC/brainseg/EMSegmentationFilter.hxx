@@ -241,7 +241,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   // Phase 1: create train sample set, label vector, and the test matrix
   // Phase 2: pass the above vectors to the "dokNNClassification" function
 
-  const unsigned int numClasses = Priors.size();
+  const size_t numClasses = Priors.size();
   muLogMacro(<< "Number of posteriors classes (label codes): " << numClasses << "(" << labelClasses.size() << ")" << std::endl);
 
   // change the map of input image vectors to a probability image vector type
@@ -252,7 +252,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       mapIt != intensityImages.end();
       ++mapIt)
     {
-    const double numCurModality = static_cast<double>(mapIt->second.size());
+    const size_t numCurModality = mapIt->second.size();
     // HACK: print for test
     muLogMacro(<<"Modality name: " << mapIt->first << std::endl);
     muLogMacro(<<"Number of current modality images: " << numCurModality << std::endl);
@@ -265,7 +265,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       }
     }
 
-  const unsigned int numOfInputImages = inputImagesVector.size();
+  const size_t numOfInputImages = inputImagesVector.size();
   muLogMacro(<< "Number of input images: " << numOfInputImages << std::endl);
 
   const size_t KNN_SamplesPerLabel = 75;//std::min<size_t>(minLabelCount,75);
