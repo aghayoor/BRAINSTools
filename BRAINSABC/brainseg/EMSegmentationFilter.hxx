@@ -1266,6 +1266,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     NormalizeProbListInPlace<TProbabilityImage>( KNNPosteriors );
     this->WriteDebugPosteriors(IterationID, "KNN", KNNPosteriors);
 
+    // Merge KNN and EMPosteriors here by averaging.
+    //
     ProbabilityImageVectorType AveragePosteriors;
     AveragePosteriors.resize(numClasses);
     for(size_t pp = 0 ; pp < KNNPosteriors.size(); ++pp )
@@ -1284,13 +1286,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       }
     NormalizeProbListInPlace<TProbabilityImage>( AveragePosteriors );
     this->WriteDebugPosteriors(IterationID, "AVG_KNN_EM", AveragePosteriors);
-    return AveragePosteriors;
     }
 
-  ////
-  //TODO: Merge KNN and EMPosteriors here by averaging.
-  ////
-  return (this->m_UseKNN) ? KNNPosteriors : EMPosteriors;
+  return (this->m_UseKNN) ? AveragePosteriors : EMPosteriors;
 }
 
 
