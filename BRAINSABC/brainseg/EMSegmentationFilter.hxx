@@ -253,6 +253,11 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       ++mapIt)
     {
     const double numCurModality = static_cast<double>(mapIt->second.size());
+    // HACK: print for test
+    muLogMacro(<<"Modality name: " << mapIt->first << std::endl);
+    muLogMacro(<<"Number of current modality images: " << numCurModality << std::endl);
+    //
+
     for(unsigned m = 0; m < numCurModality; ++m)
       {
       // Normalize the input images since the priors are normalized already
