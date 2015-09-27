@@ -355,8 +355,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
        // have the same voxel lattice, so the current index should be transformed
        // to a physical point, and the image values should be evaluated in physical location.
        //
-       ByteImageType::PointType p;
-       labelsImage->TransformIndexToPhysicalPoint( *vit, p );
+       ByteImageType::PointType currPoint;
+       labelsImage->TransformIndexToPhysicalPoint( *vit, currPoint );
 
        for( typename InputImageVectorType::const_iterator inIt = inputImagesVector.begin();
             inIt != inputImagesVector.end();
@@ -364,9 +364,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
          {
          // evluate the value of the input image at the current physical location
          // via a nearest neighbor interpolator
-         InputImageNNInterpolationType::Pointer inImgInterp = InputImageNNInterpolationType::New();
+         NNInterpolationType::Pointer inImgInterp = NNInterpolationType::New();
          inImgInterp->SetInputImage( inIt->GetPointer() );
-         mv.push_back( inImgInterp->Evaluate( p ) );
+         mv.push_back( inImgInterp->Evaluate( currPoint ) );
          }
        // Other features are from input priors.
        // Since input priors have the same voxel lattice as input thresholded label map,
@@ -396,6 +396,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   muLogMacro(<< "\nTrain matrix is created using " << trainSampleSet->Size() << " samples, ");
   muLogMacro(<< "having feature space size of: " << trainSampleSet->GetMeasurementVectorSize() << std::endl);
 
+  //||||||||||
+  // TODO: FIX the debugging csv file
+  //||||||||||
   // DEBUGGING: Write csv file
   {
   const bool generateLogScript = true; //HACK:  SHOULD BE FALSE EVENTUALLY
@@ -443,11 +446,17 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       for( LOOPITERTYPE ii = 0; ii < (LOOPITERTYPE)size[0]; ii++ )
         {
         const typename InputImageType::IndexType currIndex = {{ii, jj, kk}};
+        InputImageType::PointType currTestPoint;
+        inputImagesVector[0]->TransformIndexToPhysicalPoint( currIndex, currTestPoint );
+
         unsigned int colIndex = 0;
         typename ProbabilityImageVectorType::const_iterator inIt = inputImagesVector.begin();
         while( ( inIt != inputImagesVector.end() ) && ( colIndex < numOfInputImages ) )
           {
-          testMatrix(rowIndex,colIndex) = inIt->GetPointer()->GetPixel( currIndex ); // set first two cols from T1 and T2
+          NNInterpolationType::Pointer testImgInterp = NNInterpolationType::New();
+          testImgInterp->SetInputImage( inIt->GetPointer() );
+
+          testMatrix(rowIndex,colIndex) = testImgInterp->Evaluate( currTestPoint ); // set first few colmuns from input images
           ++colIndex;
           ++inIt;
           }
