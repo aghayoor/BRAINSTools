@@ -270,7 +270,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   const size_t KNN_SamplesPerLabel = 75;//std::min<size_t>(minLabelCount,75);
 
-  // set train sample set and the label vector by picking samples from label image.
+  // Set train sample set and the label vector by picking samples from label image.
+  // Make sure each train sample is chosen from pure plugs
   //
   const size_t numberOfSamples = numClasses * KNN_SamplesPerLabel;
 
@@ -313,7 +314,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       {
       if( SampledLabelsMap[ labelClasses[i] ].size() < KNN_SamplesPerLabel )
         {
-        muLogMacro(<<"WARNING: There is not enough samples for all label codes." << std::endl );
+        muLogMacro(<<"WARNING: There is not enough samples for label code: " << labelClasses[i] << std::endl );
         }
       }
     }
