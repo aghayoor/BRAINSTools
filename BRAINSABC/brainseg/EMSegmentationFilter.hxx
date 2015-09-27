@@ -302,6 +302,10 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     if( currLabelCode != 99   && SampledLabelsMap[ currLabelCode ].size() < KNN_SamplesPerLabel )
       {
       const typename ByteImageType::IndexType currentIndex = NRit.GetIndex();
+      ////
+      // Changes should be applied here. We should check wether the currentIndex is inside pure plug mask or not
+
+      ////
       SampledLabelsMap[ currLabelCode ].push_back( currentIndex );
       ++sampleCount;
       }
@@ -325,7 +329,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   // set kNN train sample set. it has #numberOfSamples training cases with (#numOfInputImages + #numClasses) features
   muLogMacro(<< "\n* Computing train matrix as a list of samples" << std::endl);
   SampleType::Pointer trainSampleSet = SampleType::New();
-  trainSampleSet->SetMeasurementVectorSize( numOfInputImages + labelClasses.size() ); // Feature space has 2+15 elements
+  trainSampleSet->SetMeasurementVectorSize( numOfInputImages + labelClasses.size() ); // Feature space elements
 
    // NOW PROCESS ALL ELEMENTS OF THE std::Map SampledLabelsMap
    unsigned int rowIndx = 0;
@@ -343,15 +347,32 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                    << numberOfSamples << std::endl );
          }
 
-       // Fill the corresponding row of the train matrix with the values of feature space in the sampled voxel
+       // Fill the corresponding row of the train matrix with the values of feature space at the sampled index location
        MeasurementVectorType mv;
+       //
+       // First features are from input images (e.g. T1, T2, etc images)
+       // Input images are aligned in physical space, but they don't necessary
+       // have the same voxel lattice, so the current index should be transformed
+       // to a physical point, and the image values should be evaluated in physical location.
+       //
+       ByteImageType::PointType p;
+       labelsImage->TransformIndexToPhysicalPoint( *vit, p );
+
        for( typename InputImageVectorType::const_iterator inIt = inputImagesVector.begin();
             inIt != inputImagesVector.end();
-            ++inIt ) // First features are from input images (usually two T1 and T2 images)
+            ++inIt )
          {
-         mv.push_back( inIt->GetPointer()->GetPixel( *vit ) );
+         // evluate the value of the input image at the current physical location
+         // via a nearest neighbor interpolator
+         InputImageNNInterpolationType::Pointer inImgInterp = InputImageNNInterpolationType::New();
+         inImgInterp->SetInputImage( inIt->GetPointer() );
+         mv.push_back( inImgInterp->Evaluate( p ) );
          }
-       for( unsigned int c_indx = 0; c_indx<labelClasses.size() ; ++c_indx) // Add 15 more features from posteriors
+       // Other features are from input priors.
+       // Since input priors have the same voxel lattice as input thresholded label map,
+       // we can evaluate the priors value directly at index location.
+       //
+       for( unsigned int c_indx = 0; c_indx<labelClasses.size() ; ++c_indx) // Add 15 more features from priors
          {
          //mv.push_back( Priors[c_indx]->GetPixel( *vit ) );
          mv.push_back( (  Priors[c_indx]->GetPixel( *vit ) > 0.01 ) ? 1 : 0 );

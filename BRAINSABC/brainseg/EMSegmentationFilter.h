@@ -116,6 +116,8 @@ public:
   typedef std::vector< FloatingPrecision >                      MeasurementVectorType;
   typedef itk::Statistics::ListSample< MeasurementVectorType >  SampleType;
 
+  typedef itk::NearestNeighborInterpolateImageFunction< InputImageType, double > InputImageNNInterpolationType;
+
   itkSetMacro(UseKNN, bool);
   itkGetMacro(UseKNN, bool);
 
