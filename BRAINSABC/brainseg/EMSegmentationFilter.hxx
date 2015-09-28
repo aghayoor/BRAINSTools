@@ -123,6 +123,168 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 }
 
 template <class TInputImage, class TProbabilityImage>
+typename EMSegmentationFilter<TInputImage, TProbabilityImage>::ByteImagePointer
+EMSegmentationFilter<TInputImage, TProbabilityImage>
+::GeneratePurePlugMask(const InputImageVector & inputImageList,
+                       const float threshold,
+                       const ByteImageType::SizeType & numberOfContinuousIndexSubSamples)
+{
+  typedef itk::RescaleIntensityImageFilter< InputImageType, InputImageType >  RescaleFilterType;
+
+  const unsigned int numberOfImageModalities = inputImageList.size(); // number of modality images
+  InputImageVector inputImageModalitiesList( numberOfImageModalities ); // store rescaled input images
+
+  typename ByteImageType::SpacingType maskSpacing;
+  maskSpacing.Fill(0);
+
+  for( size_t i = 0; i < numberOfImageModalities; i++ )
+     {
+     // Rescale intensity range of input images between 0 and 1
+     typename RescaleFilterType::Pointer rescaleFilter = RescaleFilterType::New();
+     rescaleFilter->SetInput( inputImageList[i] );
+     rescaleFilter->SetOutputMinimum(0);
+     rescaleFilter->SetOutputMaximum(1);
+     rescaleFilter->Update();
+     inputImageModalitiesList[i] = rescaleFilter->GetOutput();
+
+     // Pure plug mask should have the highest spacing (lowest resolution) at each direction
+     typename InputImageType::SpacingType currImageSpacing = inputImageModalitiesList[i]->GetSpacing();
+     for( size_t s = 0; s < 3; s++ )
+       {
+       if( currImageSpacing[s] > maskSpacing[s] )
+         {
+         maskSpacing[s] = currImageSpacing[s];
+         }
+       }
+     }
+
+  // Create an empty image for mask
+  //
+  ByteImageType::Pointer mask = ByteImageType::New();
+  // Spacing is set as the largest spacing at each direction
+  mask->SetSpacing( maskSpacing );
+  // Origin and direction are set from the first modality image
+  mask->SetOrigin( inputImageModalitiesList[0]->GetOrigin() );
+  mask->SetDirection( inputImageModalitiesList[0]->GetDirection() );
+  // The FOV of mask is set as the FOV of the first modality image
+  ByteImageType::SizeType maskSize;
+  typename InputImageType::SizeType inputSize = inputImageModalitiesList[0]->GetLargestPossibleRegion().GetSize();
+  typename InputImageType::SpacingType inputSpacing = inputImageModalitiesList[0]->GetSpacing();
+  maskSize[0] = itk::Math::Ceil<itk::SizeValueType>( inputSize[0]*inputSpacing[0]/maskSpacing[0] );
+  maskSize[1] = itk::Math::Ceil<itk::SizeValueType>( inputSize[1]*inputSpacing[1]/maskSpacing[1] );
+  maskSize[2] = itk::Math::Ceil<itk::SizeValueType>( inputSize[2]*inputSpacing[2]/maskSpacing[2] );
+  // mask start index
+  ByteImageType::IndexType maskStart;
+  maskStart.Fill(0);
+  // Set mask region
+  ByteImageType::RegionType maskRegion(maskStart, maskSize);
+  mask->SetRegions( maskRegion );
+  mask->Allocate();
+  mask->FillBuffer(0);
+  //////
+
+  IntegrityMetricType::Pointer integrityMetric = IntegrityMetricType::New();
+  integrityMetric->SetThreshold( threshold );
+
+  // define step size based on the number of sub-samples at each direction
+  ByteImageType::SpacingType stepSize;
+  stepSize[0] = maskSpacing[0]/numberOfContinuousIndexSubSamples[0];
+  stepSize[1] = maskSpacing[1]/numberOfContinuousIndexSubSamples[1];
+  stepSize[2] = maskSpacing[2]/numberOfContinuousIndexSubSamples[2];
+
+  // Now iterate through the mask image
+  typedef itk::ImageRegionIteratorWithIndex< ByteImageType > MaskItType;
+  MaskItType maskIt( mask, mask->GetLargestPossibleRegion() );
+  maskIt.GoToBegin();
+
+  while( ! maskIt.IsAtEnd() )
+    {
+    typename ByteImageType::IndexType idx = maskIt.GetIndex();
+
+    // A sample list is created for each index that is inside the images buffers
+    typename SampleType::Pointer sample = SampleType::New();
+    sample->SetMeasurementVectorSize( numberOfImageModalities );
+
+    // flag that helps to break from loops if the current continous index is
+    // not inside the buffer of any input modality image
+    bool isInside = true;
+
+      // around each mask index, subsamples are taken as continues indices
+    for( double iss = idx[0]-(maskSpacing[0]/2)+(stepSize[0]/2); iss < idx[0]+(maskSpacing[0]/2); iss += stepSize[0] )
+      {
+      for( double jss = idx[1]-(maskSpacing[1]/2)+(stepSize[1]/2); jss < idx[1]+(maskSpacing[1]/2); jss += stepSize[1] )
+        {
+        for( double kss = idx[2]-(maskSpacing[2]/2)+(stepSize[2]/2); kss < idx[2]+(maskSpacing[2]/2); kss += stepSize[2] )
+          {
+          itk::ContinuousIndex<double,3> cidx;
+          cidx[0] = iss;
+          cidx[1] = jss;
+          cidx[2] = kss;
+
+          // All input modality images are aligned in physical space,
+          // so we need to transform each continuous index to physical point,
+          // so it represent the same location in all input images
+          typename ByteImageType::PointType currPoint;
+          mask->TransformContinuousIndexToPhysicalPoint(cidx, currPoint);
+
+          MeasurementVectorType mv( numberOfImageModalities );
+
+          for( unsigned int i = 0; i < numberOfImageModalities; i++ )
+            {
+            typename NNInterpolationType::Pointer imInterp = NNInterpolationType::New();
+            imInterp->SetInputImage( inputImageModalitiesList[i] );
+            if( imInterp->IsInsideBuffer( currPoint ) )
+              {
+              mv[i] = imInterp->Evaluate( currPoint );
+              }
+            else
+              {
+              isInside = false;
+              break;
+              }
+            }
+
+          if( isInside )
+            {
+            sample->PushBack( mv );
+            }
+          else
+            {
+            break;
+            }
+          } // end of nested loop 3
+        if( !isInside )
+          {
+          break;
+          }
+        } // end of nested loop 2
+      if( !isInside )
+        {
+        break;
+        }
+      } // end of nested loop 1
+
+    if( isInside )
+      {
+      if( integrityMetric->Evaluate( sample ) )
+        {
+        maskIt.Set(1);
+        }
+      }
+
+    ++maskIt;
+    } // end of while loop
+
+  typedef itk::ImageFileWriter<ByteImageType> MaskWriterType;
+  typename MaskWriterType::Pointer maskwriter = MaskWriterType::New();
+  maskwriter->SetInput( mask );
+  maskwriter->SetFileName("DEBUG_PURE_PLUG_MASK.nii.gz");
+  maskwriter->Update();
+
+  return mask;
+}
+
+template <class TInputImage, class TProbabilityImage>
 void
 EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::kNNCore( SampleType * trainSampleSet,
@@ -245,8 +407,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   muLogMacro(<< "Number of posteriors classes (label codes): " << numClasses << "(" << labelClasses.size() << ")" << std::endl);
 
   // change the map of input image vectors to a probability image vector type
-  typedef std::vector<InputImagePointer>       InputImageVectorType;
-  InputImageVectorType                         inputImagesVector;
+  InputImageVector                         inputImagesVector;
 
   for(typename MapOfInputImageVectors::const_iterator mapIt = intensityImages.begin();
       mapIt != intensityImages.end();
@@ -358,7 +519,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
        ByteImageType::PointType currPoint;
        labelsImage->TransformIndexToPhysicalPoint( *vit, currPoint );
 
-       for( typename InputImageVectorType::const_iterator inIt = inputImagesVector.begin();
+       for( typename InputImageVector::const_iterator inIt = inputImagesVector.begin();
             inIt != inputImagesVector.end();
             ++inIt )
          {
