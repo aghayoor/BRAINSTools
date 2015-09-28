@@ -129,6 +129,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                        const float threshold,
                        const ByteImageType::SizeType & numberOfContinuousIndexSubSamples)
 {
+  muLogMacro(<< "Generating pure plug mask..." << std::endl);
+
   // Note that creation of the pure plug mask needs the input images being normalized between 0 and 1.
   // Fortunately, this is already performed in ComputeKNNPosteriors function when input image modalities
   // are adding to the inputImageVector by calling the "NormalizeInputIntensityImage" function.
@@ -421,7 +423,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   muLogMacro(<< "Number of total input images: " << numOfInputImages << std::endl);
 
   ///// TODO: These should be set by command line
-  bool usePurePlugs = true;
+  bool usePurePlugs = false;
   float threshold = 0.2;
   ByteImageType::SizeType numberOfContinuousIndexSubSamples;
   numberOfContinuousIndexSubSamples[0] = 2;
