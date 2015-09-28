@@ -400,8 +400,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                        const IntVectorType & labelClasses)
 
 {
-  // Phase 1: create train sample set, label vector, and the test matrix
-  // Phase 2: pass the above vectors to the "dokNNClassification" function
+  // Phase 1: create train sample set, label vector, and the test matrix.
+  // Phase 2: pass the above vectors to the "kNNCore" function to create likelihood matrix.
+  // Phase 3: create each posterior image from a column of likelihood matrix using "assignVectorToImage" function.
 
   const size_t numClasses = Priors.size();
   muLogMacro(<< "Number of posteriors classes (label codes): " << numClasses << "(" << labelClasses.size() << ")" << std::endl);
@@ -428,6 +429,25 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   const size_t numOfInputImages = inputImagesVector.size();
   muLogMacro(<< "Number of input images: " << numOfInputImages << std::endl);
+
+  ///// TODO: These should be set by command line
+  bool usePurePlugs = true;
+  float threshold = 0.2;
+  ByteImageType::SizeType numberOfContinuousIndexSubSamples;
+  numberOfContinuousIndexSubSamples[0] = 2;
+  numberOfContinuousIndexSubSamples[1] = 2;
+  numberOfContinuousIndexSubSamples[2] = 2;
+  ////////////////////
+  ByteImagePointer purePlugMask = ITK_NULLPTR;
+  if( usePurePlugs )
+    {
+    purePlugMask = GeneratePurePlugMask(inputImagesVector, threshold, numberOfContinuousIndexSubSamples);
+    if( purePlugMask.IsNull() )
+      {
+      itkGenericExceptionMacro( << "Error: Output pure plug mask is null."
+                                << std::endl );
+      }
+    }
 
   const size_t KNN_SamplesPerLabel = 75;//std::min<size_t>(minLabelCount,75);
 
@@ -463,12 +483,24 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     if( currLabelCode != 99   && SampledLabelsMap[ currLabelCode ].size() < KNN_SamplesPerLabel )
       {
       const typename ByteImageType::IndexType currentIndex = NRit.GetIndex();
-      ////
-      // Changes should be applied here. We should check wether the currentIndex is inside pure plug mask or not
 
-      ////
-      SampledLabelsMap[ currLabelCode ].push_back( currentIndex );
-      ++sampleCount;
+      // Now check whether the currentIndex belongs to a pure plug or not.
+      bool isPure = true;
+      if( usePurePlugs && purePlugMask.IsNotNull() )
+        {
+        ByteImageType::PointType samplePoint;
+        labelsImage->TransformIndexToPhysicalPoint( currentIndex, samplePoint );
+
+        typename NNInterpolationType::Pointer purePlugMaskInterp = NNInterpolationType::New();
+        purePlugMaskInterp->SetInputImage( purePlugMask );
+        isPure = bool( purePlugMaskInterp->Evaluate( samplePoint ) );
+        }
+
+      if( isPure ) // To keep legacy behaviour, this flag is always true if "usePurePlugs" is not used.
+        {
+        SampledLabelsMap[ currLabelCode ].push_back( currentIndex );
+        ++sampleCount;
+        }
       }
     ++NRit;
     }
