@@ -431,10 +431,17 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   numberOfContinuousIndexSubSamples[2] = 2;
   ////////////////////
   ByteImagePointer purePlugMask = ITK_NULLPTR;
+  typename MaskNNInterpolationType::Pointer purePlugMaskInterp = MaskNNInterpolationType::New();
   if( usePurePlugs )
     {
-    purePlugMask = GeneratePurePlugMask(inputImagesVector, threshold, numberOfContinuousIndexSubSamples);
-    if( purePlugMask.IsNull() )
+    purePlugMask = GeneratePurePlugMask(inputImagesVector,
+                                        threshold,
+                                        numberOfContinuousIndexSubSamples);
+    if( purePlugMask.IsNotNull() )
+      {
+      purePlugMaskInterp->SetInputImage( purePlugMask.GetPointer() );
+      }
+    else
       {
       itkGenericExceptionMacro( << "Error: Output pure plug mask is null."
                                 << std::endl );
@@ -482,9 +489,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
         {
         ByteImageType::PointType samplePoint;
         labelsImage->TransformIndexToPhysicalPoint( currentIndex, samplePoint );
-
-        typename MaskNNInterpolationType::Pointer purePlugMaskInterp = MaskNNInterpolationType::New();
-        purePlugMaskInterp->SetInputImage( purePlugMask.GetPointer() );
         isPure = bool( purePlugMaskInterp->Evaluate( samplePoint ) );
         }
 
