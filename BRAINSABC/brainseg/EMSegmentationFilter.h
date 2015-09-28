@@ -119,7 +119,8 @@ public:
 
   typedef itk::Statistics::IntegrityMetricMembershipFunction< SampleType > IntegrityMetricType;
 
-  typedef itk::NearestNeighborInterpolateImageFunction< InputImageType, double > NNInterpolationType;
+  typedef itk::NearestNeighborInterpolateImageFunction< InputImageType, double > InputImageNNInterpolationType;
+  typedef itk::NearestNeighborInterpolateImageFunction< ByteImageType, double >  MaskNNInterpolationType;
 
   itkSetMacro(UseKNN, bool);
   itkGetMacro(UseKNN, bool);
