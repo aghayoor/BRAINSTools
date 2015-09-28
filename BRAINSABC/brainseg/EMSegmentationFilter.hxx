@@ -125,28 +125,21 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 template <class TInputImage, class TProbabilityImage>
 typename EMSegmentationFilter<TInputImage, TProbabilityImage>::ByteImagePointer
 EMSegmentationFilter<TInputImage, TProbabilityImage>
-::GeneratePurePlugMask(const InputImageVector & inputImageList,
+::GeneratePurePlugMask(const InputImageVector & inputImageModalitiesList,
                        const float threshold,
                        const ByteImageType::SizeType & numberOfContinuousIndexSubSamples)
 {
-  typedef itk::RescaleIntensityImageFilter< InputImageType, InputImageType >  RescaleFilterType;
+  // Note that creation of the pure plug mask needs the input images being normalized between 0 and 1.
+  // Fortunately, this is already performed in ComputeKNNPosteriors function when input image modalities
+  // are adding to the inputImageVector by calling the "NormalizeInputIntensityImage" function.
 
-  const unsigned int numberOfImageModalities = inputImageList.size(); // number of modality images
-  InputImageVector inputImageModalitiesList( numberOfImageModalities ); // store rescaled input images
+  const unsigned int numberOfImageModalities = inputImageModalitiesList.size(); // number of modality images
 
   typename ByteImageType::SpacingType maskSpacing;
   maskSpacing.Fill(0);
 
   for( size_t i = 0; i < numberOfImageModalities; i++ )
      {
-     // Rescale intensity range of input images between 0 and 1
-     typename RescaleFilterType::Pointer rescaleFilter = RescaleFilterType::New();
-     rescaleFilter->SetInput( inputImageList[i] );
-     rescaleFilter->SetOutputMinimum(0);
-     rescaleFilter->SetOutputMaximum(1);
-     rescaleFilter->Update();
-     inputImageModalitiesList[i] = rescaleFilter->GetOutput();
-
      // Pure plug mask should have the highest spacing (lowest resolution) at each direction
      typename InputImageType::SpacingType currImageSpacing = inputImageModalitiesList[i]->GetSpacing();
      for( size_t s = 0; s < 3; s++ )
