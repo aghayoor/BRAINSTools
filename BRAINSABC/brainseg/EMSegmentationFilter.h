@@ -33,6 +33,7 @@
 #ifndef __EMSegmentationFilter_h
 #define __EMSegmentationFilter_h
 
+#include "itkIntegrityMetricMembershipFunction.h"
 #include "BRAINSABCUtilities.h"
 #include <map>
 #include <list>
@@ -115,6 +116,8 @@ public:
 
   typedef std::vector< FloatingPrecision >                      MeasurementVectorType;
   typedef itk::Statistics::ListSample< MeasurementVectorType >  SampleType;
+
+  typedef itk::Statistics::IntegrityMetricMembershipFunction< SampleType > IntegrityMetricType;
 
   typedef itk::NearestNeighborInterpolateImageFunction< InputImageType, double > NNInterpolationType;
 
@@ -296,6 +299,11 @@ private:
 
   typename TInputImage::Pointer
   NormalizeInputIntensityImage(const typename TInputImage::Pointer inputImage);
+
+  ByteImagePointer
+  GeneratePurePlugMask(const InputImageVector & inputImageList,
+                       const float threshold,
+                       const ByteImageType::SizeType & numberOfContinuousIndexSubSamples);
 
   void
   kNNCore( SampleType * trainMatrix,
