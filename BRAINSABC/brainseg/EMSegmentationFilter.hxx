@@ -408,10 +408,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       ++mapIt)
     {
     const size_t numCurModality = mapIt->second.size();
-    // HACK: print for test
-    muLogMacro(<<"Modality name: " << mapIt->first << std::endl);
-    muLogMacro(<<"Number of current modality images: " << numCurModality << std::endl);
-    //
+    muLogMacro(<< "Number of modality images for (" << mapIt->first << ") is: " << numCurModality << std::endl);
 
     for(unsigned m = 0; m < numCurModality; ++m)
       {
@@ -421,7 +418,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     }
 
   const size_t numOfInputImages = inputImagesVector.size();
-  muLogMacro(<< "Number of input images: " << numOfInputImages << std::endl);
+  muLogMacro(<< "Number of total input images: " << numOfInputImages << std::endl);
 
   ///// TODO: These should be set by command line
   bool usePurePlugs = true;
