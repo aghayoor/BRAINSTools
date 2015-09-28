@@ -300,7 +300,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
     // represent each class label as an array
   vnl_matrix<FloatingPrecision> localLabels(numTraining, numClasses, 0);
-  for( unsigned int iTrain = 0; iTrain < numTraining; ++iTrain )
+  for( size_t iTrain = 0; iTrain < numTraining; ++iTrain )
     {
     localLabels( iTrain, labelVector(iTrain) ) = 1;
     }
@@ -316,13 +316,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   TreeType::Pointer tree = treeGenerator->GetOutput();
 
   // Compute Likelihood matrix
-  for( unsigned int iTest = 0; iTest < numTest; ++iTest ) ///////
+  for( size_t iTest = 0; iTest < numTest; ++iTest ) ///////
     {
     // each test case is a query point
-    MeasurementVectorType queryPoint;
-    for(unsigned int i=0; i<numFeatures; ++i)
+    MeasurementVectorType queryPoint( numFeatures );
+    for( size_t i = 0; i < numFeatures; ++i)
        {
-       queryPoint.push_back( testMatrix(iTest,i) );
+       queryPoint[i] = testMatrix(iTest,i);
        }
 
     // compute the distances
@@ -336,7 +336,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     vnl_matrix<FloatingPrecision> weights(1,K,0);
     FloatingPrecision sumOfWeights = 0;
 
-    for( unsigned int n = 0; n < K; ++n )
+    for( size_t n = 0; n < K; ++n )
       {
       // Labels of the K neighbors
       neighborLabels.set_row( n, localLabels.get_row( neighbors[n] ) );
@@ -509,7 +509,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
          }
 
        // Fill the corresponding row of the train matrix with the values of feature space at the sampled index location
-       MeasurementVectorType mv;
+       MeasurementVectorType mv( numOfInputImages + labelClasses.size() );
+       MeasurementVectorType::SizeValueType mvIndx = 0;
        //
        // First features are from input images (e.g. T1, T2, etc images)
        // Input images are aligned in physical space, but they don't necessary
@@ -527,7 +528,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
          // via a nearest neighbor interpolator
          typename NNInterpolationType::Pointer inImgInterp = NNInterpolationType::New();
          inImgInterp->SetInputImage( inIt->GetPointer() );
-         mv.push_back( inImgInterp->Evaluate( currPoint ) );
+         mv[mvIndx] = inImgInterp->Evaluate( currPoint );
+         ++mvIndx;
          }
        // Other features are from input priors.
        // Since input priors have the same voxel lattice as input thresholded label map,
@@ -536,9 +538,15 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
        for( unsigned int c_indx = 0; c_indx<labelClasses.size() ; ++c_indx) // Add 15 more features from priors
          {
          //mv.push_back( Priors[c_indx]->GetPixel( *vit ) );
-         mv.push_back( (  Priors[c_indx]->GetPixel( *vit ) > 0.01 ) ? 1 : 0 );
+         mv[mvIndx] = (  Priors[c_indx]->GetPixel( *vit ) > 0.01 ) ? 1 : 0;
+         ++mvIndx;
          }
        trainSampleSet->PushBack( mv );
+       if( mvIndx != (numOfInputImages + labelClasses.size()) )
+         {
+         itkGenericExceptionMacro( << "Error: Measurement vector size exceeds the feature space size."
+                                   << std::endl );
+         }
        }
      }
 
