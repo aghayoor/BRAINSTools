@@ -224,7 +224,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
           for( unsigned int i = 0; i < numberOfImageModalities; i++ )
             {
-            typename NNInterpolationType::Pointer imInterp = NNInterpolationType::New();
+            typename InputImageNNInterpolationType::Pointer imInterp = InputImageNNInterpolationType::New();
             imInterp->SetInputImage( inputImageModalitiesList[i] );
             if( imInterp->IsInsideBuffer( currPoint ) )
               {
@@ -484,8 +484,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
         ByteImageType::PointType samplePoint;
         labelsImage->TransformIndexToPhysicalPoint( currentIndex, samplePoint );
 
-        typename NNInterpolationType::Pointer purePlugMaskInterp = NNInterpolationType::New();
-        purePlugMaskInterp->SetInputImage( purePlugMask );
+        typename MaskNNInterpolationType::Pointer purePlugMaskInterp = MaskNNInterpolationType::New();
+        purePlugMaskInterp->SetInputImage( purePlugMask.GetPointer() );
         isPure = bool( purePlugMaskInterp->Evaluate( samplePoint ) );
         }
 
@@ -551,7 +551,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
          {
          // evluate the value of the input image at the current physical location
          // via a nearest neighbor interpolator
-         typename NNInterpolationType::Pointer inImgInterp = NNInterpolationType::New();
+         typename InputImageNNInterpolationType::Pointer inImgInterp = InputImageNNInterpolationType::New();
          inImgInterp->SetInputImage( inIt->GetPointer() );
          mv[mvIndx] = inImgInterp->Evaluate( currPoint );
          ++mvIndx;
@@ -647,7 +647,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
         typename ProbabilityImageVectorType::const_iterator inIt = inputImagesVector.begin();
         while( ( inIt != inputImagesVector.end() ) && ( colIndex < numOfInputImages ) )
           {
-          typename NNInterpolationType::Pointer testImgInterp = NNInterpolationType::New();
+          typename InputImageNNInterpolationType::Pointer testImgInterp = InputImageNNInterpolationType::New();
           testImgInterp->SetInputImage( inIt->GetPointer() );
 
           testMatrix(rowIndex,colIndex) = testImgInterp->Evaluate( currTestPoint ); // set first few colmuns from input images
