@@ -364,7 +364,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
          {
          // evluate the value of the input image at the current physical location
          // via a nearest neighbor interpolator
-         NNInterpolationType::Pointer inImgInterp = NNInterpolationType::New();
+         typename NNInterpolationType::Pointer inImgInterp = NNInterpolationType::New();
          inImgInterp->SetInputImage( inIt->GetPointer() );
          mv.push_back( inImgInterp->Evaluate( currPoint ) );
          }
@@ -446,14 +446,14 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       for( LOOPITERTYPE ii = 0; ii < (LOOPITERTYPE)size[0]; ii++ )
         {
         const typename InputImageType::IndexType currIndex = {{ii, jj, kk}};
-        InputImageType::PointType currTestPoint;
+        typename InputImageType::PointType currTestPoint;
         inputImagesVector[0]->TransformIndexToPhysicalPoint( currIndex, currTestPoint );
 
         unsigned int colIndex = 0;
         typename ProbabilityImageVectorType::const_iterator inIt = inputImagesVector.begin();
         while( ( inIt != inputImagesVector.end() ) && ( colIndex < numOfInputImages ) )
           {
-          NNInterpolationType::Pointer testImgInterp = NNInterpolationType::New();
+          typename NNInterpolationType::Pointer testImgInterp = NNInterpolationType::New();
           testImgInterp->SetInputImage( inIt->GetPointer() );
 
           testMatrix(rowIndex,colIndex) = testImgInterp->Evaluate( currTestPoint ); // set first few colmuns from input images
@@ -1265,6 +1265,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   // Run KNN on posteriors
   ProbabilityImageVectorType KNNPosteriors;
   KNNPosteriors.resize(numClasses);
+  // KNNPosteriors and EMPosteriors will be merged by averaging
+  ProbabilityImageVectorType AveragePosteriors;
+  AveragePosteriors.resize(numClasses);
   if( this->m_UseKNN )
     {
     ByteImagePointer thresholdedLabels = ITK_NULLPTR;
@@ -1304,8 +1307,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
     // Merge KNN and EMPosteriors here by averaging.
     //
-    ProbabilityImageVectorType AveragePosteriors;
-    AveragePosteriors.resize(numClasses);
     for(size_t pp = 0 ; pp < KNNPosteriors.size(); ++pp )
       {
       typedef itk::MultiplyImageFilter<TProbabilityImage,TProbabilityImage> MultiplyFilterType;
