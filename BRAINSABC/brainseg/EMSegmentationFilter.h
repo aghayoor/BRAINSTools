@@ -114,7 +114,7 @@ public:
 
   typedef itk::Transform<double, 3, 3>  GenericTransformType;
 
-  typedef std::vector< FloatingPrecision >                      MeasurementVectorType;
+  typedef itk::Array< FloatingPrecision >                       MeasurementVectorType;
   typedef itk::Statistics::ListSample< MeasurementVectorType >  SampleType;
 
   typedef itk::Statistics::IntegrityMetricMembershipFunction< SampleType > IntegrityMetricType;
