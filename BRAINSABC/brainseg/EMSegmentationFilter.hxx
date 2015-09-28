@@ -509,13 +509,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   const typename InputImageType::SizeType finalPosteriorSize = Posteriors[0]->GetLargestPossibleRegion().GetSize();
   muLogMacro(<< "Size of return posteriors: " << finalPosteriorSize  << std::endl);
-
+  /*
   typedef itk::ImageFileWriter<TProbabilityImage> PostImageWriterType;
   typename PostImageWriterType::Pointer posetriorwriter = PostImageWriterType::New();
   posetriorwriter->SetInput(Posteriors[14]);
   posetriorwriter->SetFileName("DEBUG_WHITE_MATTER.nii.gz");
   posetriorwriter->Update();
-
+  */
   return Posteriors;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
