@@ -87,6 +87,7 @@ CombinedComputeDistributions( const std::vector<typename ByteImageType::Pointer>
         for( long ii = 0; ii < (long)size[0]; ii++ )
           {
           const typename TProbabilityImage::IndexType currIndex = {{ii, jj, kk}};
+          // HACK(ALI): here pure plug mask also comes in!
           if( currentCandidateRegion->GetPixel(currIndex) )
             {
             const double currentProbValue = currentProbImage->GetPixel(currIndex);
@@ -131,13 +132,15 @@ CombinedComputeDistributions( const std::vector<typename ByteImageType::Pointer>
             for( long ii = 0; ii < (long)size[0]; ii++ )
               {
               const typename TProbabilityImage::IndexType currIndex = {{ii, jj, kk}};
+              // HACK(ALI): here agian pure plug mask comes in!
               if( currentCandidateRegion->GetPixel(currIndex) )
                 {
                 const double currentProbValue = currentProbImage->GetPixel(currIndex);
+                // HACK(ALI): here is assumed that probability images and input volumes have the same voxel lattice
                 const double currentInputValue = im1->GetPixel(currIndex);
                 if( logConvertValues )
                   {
-                  muSum += currentProbValue * LOGP(currentInputValue);
+                  muSum += currentProbValue * LOGP( currentInputValue );
                   }
                 else
                   {
@@ -154,6 +157,13 @@ CombinedComputeDistributions( const std::vector<typename ByteImageType::Pointer>
       ListOfClassStatistics[iclass].m_Means[mapIt->first] /= mapIt->second.size();
       }
     }
+
+  // for each prior (posterior) class, different means are computed for each modality channel.
+
+  ////////////////////////////////
+  // Now compute covariance matrix( numOfModalities x numOfModalities )
+  // e.g. A 2x2 matrix if only T1 and T2 modality channels are involved.
+  // Note that we can have several T1s and several T2 images.
 
   std::vector<MatrixType> oldCovariances(ListOfClassStatistics.size() );
   if( (LOOPITERTYPE)oldCovariances.size() != numClasses )
@@ -236,19 +246,23 @@ CombinedComputeDistributions( const std::vector<typename ByteImageType::Pointer>
                 for( long ii = 0; ii < (long)size[0]; ii++ )
                   {
                   const typename TInputImage::IndexType currIndex = {{ii, jj, kk}};
+                  // HACK(ALI): Again here pure plug mask comes in!
                   if( currentCandidateRegion->GetPixel(currIndex) )
                     {
                     const double currentProbValue = currentProbImage->GetPixel(currIndex);
+                    // HACK(ALI): input image values should be evaluated in physical space.
+                    const double inputValue1 = im1->GetPixel(currIndex);
+                    const double inputValue2 = im2->GetPixel(currIndex);
                     if( logConvertValues )
                       {
-                      const double diff1 = LOGP( static_cast<double>( im1->GetPixel(currIndex) ) ) - mu1;
-                      const double diff2 = LOGP( static_cast<double>( im2->GetPixel(currIndex) ) ) - mu2;
+                      const double diff1 = LOGP( inputValue1 ) - mu1;
+                      const double diff2 = LOGP( inputValue2 ) - mu2;
                       var += currentProbValue * ( diff1 * diff2 );
                       }
                     else
                       {
-                      const double diff1 = ( static_cast<double>( im1->GetPixel(currIndex) ) ) - mu1;
-                      const double diff2 = ( static_cast<double>( im2->GetPixel(currIndex) ) ) - mu2;
+                      const double diff1 = inputValue1 - mu1;
+                      const double diff2 = inputValue2 - mu2;
                       var += currentProbValue * ( diff1 * diff2 );
                       }
                     }
