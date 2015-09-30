@@ -1356,6 +1356,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
           const double numCurModality = static_cast<double>(mapIt->second.size());
           for(unsigned xx = 0; xx < numCurModality; ++xx)
             {
+            // HACK(ALI): input images should be evaluated in physical space
             curAvg += (mapIt->second[xx]->GetPixel(currIndex) - curMean);
             }
           X(zz,0) = curAvg / numCurModality;
