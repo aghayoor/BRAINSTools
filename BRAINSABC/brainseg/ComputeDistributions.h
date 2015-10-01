@@ -49,6 +49,8 @@ CombinedComputeDistributions( const std::vector<typename ByteImageType::Pointer>
   typedef std::vector<typename TInputImage::Pointer> InputImageVector;
   typedef std::map<std::string,InputImageVector> MapOfInputImageVectors;
 
+  typedef itk::NearestNeighborInterpolateImageFunction< TInputImage, double > InputImageNNInterpolationType;
+
   const LOOPITERTYPE numClasses =     PosteriorsList.size();
   const LOOPITERTYPE numModalities = InputImageMap.size();
 
@@ -121,6 +123,10 @@ CombinedComputeDistributions( const std::vector<typename ByteImageType::Pointer>
           imIt != mapIt->second.end(); ++imIt, ++meanIndex)
         {
         typename TInputImage::Pointer im1 = *imIt;
+        typename InputImageNNInterpolationType::Pointer im1Interp =
+          InputImageNNInterpolationType::New();
+        im1Interp->SetInputImage( im1 );
+
         double muSum = 0.0;
 #if defined(LOCAL_USE_OPEN_MP)
 #pragma omp parallel for default(shared) reduction(+:muSum)
@@ -132,12 +138,15 @@ CombinedComputeDistributions( const std::vector<typename ByteImageType::Pointer>
             for( long ii = 0; ii < (long)size[0]; ii++ )
               {
               const typename TProbabilityImage::IndexType currIndex = {{ii, jj, kk}};
+              // transform probability image index to physical point
+              typename TProbabilityImage::PointType currPoint;
+              PosteriorsList[0]->TransformIndexToPhysicalPoint(currIndex, currPoint);
               // HACK(ALI): here agian pure plug mask comes in!
               if( currentCandidateRegion->GetPixel(currIndex) )
                 {
                 const double currentProbValue = currentProbImage->GetPixel(currIndex);
-                // HACK(ALI): here is assumed that probability images and input volumes have the same voxel lattice
-                const double currentInputValue = im1->GetPixel(currIndex);
+                // input volumes may have a different voxel lattice than the probability image
+                const double currentInputValue = im1Interp->Evaluate(currPoint);
                 if( logConvertValues )
                   {
                   muSum += currentProbValue * LOGP( currentInputValue );
@@ -218,6 +227,9 @@ CombinedComputeDistributions( const std::vector<typename ByteImageType::Pointer>
       for(unsigned i = 0; i < mapIt->second.size(); ++i)
         {
         typename TInputImage::Pointer im1 = mapIt->second[i];
+        typename InputImageNNInterpolationType::Pointer im1Interp =
+          InputImageNNInterpolationType::New();
+        im1Interp->SetInputImage( im1 );
 
         bool first_through_inner_loop(true);
 
@@ -235,6 +247,10 @@ CombinedComputeDistributions( const std::vector<typename ByteImageType::Pointer>
           for (; j < mapIt2->second.size(); ++j)
             {
             typename TInputImage::Pointer im2 = mapIt2->second[j];
+            typename InputImageNNInterpolationType::Pointer im2Interp =
+              InputImageNNInterpolationType::New();
+            im2Interp->SetInputImage( im2 );
+
             double var = 0.0;
 #if defined(LOCAL_USE_OPEN_MP)
 #pragma omp parallel for default(shared) reduction(+:var)
@@ -245,14 +261,17 @@ CombinedComputeDistributions( const std::vector<typename ByteImageType::Pointer>
                 {
                 for( long ii = 0; ii < (long)size[0]; ii++ )
                   {
-                  const typename TInputImage::IndexType currIndex = {{ii, jj, kk}};
+                  const typename TProbabilityImage::IndexType currIndex = {{ii, jj, kk}};
+                  // transform probability image index to physical point
+                  typename TProbabilityImage::PointType currPoint;
+                  PosteriorsList[0]->TransformIndexToPhysicalPoint(currIndex, currPoint);
                   // HACK(ALI): Again here pure plug mask comes in!
                   if( currentCandidateRegion->GetPixel(currIndex) )
                     {
                     const double currentProbValue = currentProbImage->GetPixel(currIndex);
-                    // HACK(ALI): input image values should be evaluated in physical space.
-                    const double inputValue1 = im1->GetPixel(currIndex);
-                    const double inputValue2 = im2->GetPixel(currIndex);
+                    // input image values should be evaluated in physical space.
+                    const double inputValue1 = im1Interp->Evaluate(currPoint);
+                    const double inputValue2 = im2Interp->Evaluate(currPoint);
                     if( logConvertValues )
                       {
                       const double diff1 = LOGP( inputValue1 ) - mu1;
