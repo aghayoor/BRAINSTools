@@ -629,7 +629,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   //////
 
   // set kNN input test matrix of size : #OfVoxels x #OfInputImages
-  const typename InputImageType::SizeType size = inputImagesVector[0]->GetLargestPossibleRegion().GetSize();
+  const typename InputImageType::SizeType size = GetMapVectorFirstElement(intensityImages)->GetLargestPossibleRegion().GetSize();
   unsigned int numOfVoxels = inputImagesVector[0]->GetLargestPossibleRegion().GetNumberOfPixels();
 
   muLogMacro(<< "\n* Computing test matrix ( " << numOfVoxels << " x " << numOfInputImages + labelClasses.size() << " )" << std::endl);
@@ -642,14 +642,15 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       {
       for( LOOPITERTYPE ii = 0; ii < (LOOPITERTYPE)size[0]; ii++ )
         {
-        const typename InputImageType::IndexType currIndex = {{ii, jj, kk}};
+        const typename InputImageType::IndexType currTestIndex = {{ii, jj, kk}};
         typename InputImageType::PointType currTestPoint;
-        inputImagesVector[0]->TransformIndexToPhysicalPoint( currIndex, currTestPoint );
+        GetMapVectorFirstElement(intensityImages)->TransformIndexToPhysicalPoint( currTestIndex, currTestPoint );
 
         unsigned int colIndex = 0;
         typename ProbabilityImageVectorType::const_iterator inIt = inputImagesVector.begin();
         while( ( inIt != inputImagesVector.end() ) && ( colIndex < numOfInputImages ) )
           {
+          // input images are aligned in physical space but not necessarily in voxel space
           typename InputImageNNInterpolationType::Pointer testImgInterp = InputImageNNInterpolationType::New();
           testImgInterp->SetInputImage( inIt->GetPointer() );
 
@@ -659,7 +660,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
           }
         while( colIndex-numOfInputImages < labelClasses.size() ) // Add 15 more features from posteriors
           {
-          testMatrix(rowIndex,colIndex) = ( Priors[colIndex-numOfInputImages]->GetPixel( currIndex ) > 0.01 ) ? 1 : 0 ;
+          // first input image and posteriors are in the same voxel space
+          testMatrix(rowIndex,colIndex) = ( Priors[colIndex-numOfInputImages]->GetPixel( currTestIndex ) > 0.01 ) ? 1 : 0 ;
           ++colIndex;
           }
         ++rowIndex;
