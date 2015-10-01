@@ -413,6 +413,8 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
   // Compute means and variances
   this->ComputeDistributions();
 
+// sampleofft and workingofft are not used!
+/*
 #ifdef USE_HALF_RESOLUTION
   // Compute skips along each dimension
   const InputImageSpacingType spacing = this->GetFirstInputImage()->GetSpacing();
@@ -469,7 +471,7 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
 #else
   //  const unsigned int workingofft[3] ={ {1,1,1} };
 #endif
-
+*/
   unsigned int numModalities = this->m_InputImages.size();
 
   const unsigned int numClasses = m_BiasPosteriors.size();
@@ -569,6 +571,10 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
 #if defined(LOCAL_USE_OPEN_MP)
 #pragma omp parallel for default(shared)
 #endif
+        typename InputImageNNInterpolationType::Pointer inputImageInterp =
+          InputImageNNInterpolationType::New();
+        inputImageInterp->SetInputImage( mapIt2->second[imIndex].GetPointer() );
+
         for( unsigned int eq = 0; eq < numEquations; eq++ )
           {
           const ProbabilityImageIndexType & currProbIndex = m_ValidIndicies[eq];
@@ -590,8 +596,6 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
           typename ProbabilityImageType::PointType currProbPoint;
           m_BiasPosteriors[0]->TransformIndexToPhysicalPoint(currProbIndex, currProbPoint);
 
-          typename InputImageNNInterpolationType::Pointer inputImageInterp = InputImageNNInterpolationType::New();
-          inputImageInterp->SetInputImage( mapIt2->second[imIndex].GetPointer() );
           const double bias = LOGP( inputImageInterp->Evaluate(currProbPoint) ) - recon;
           // divide by # of images of current modality -- in essence
           // you're averaging them.
@@ -721,6 +725,14 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
      voxel space than the brain mask and posteriors.
    */
   {
+  typename MaskNNInterpolationType::Pointer foregroundBrainMaskInterp =
+    MaskNNInterpolationType::New();
+  foregroundBrainMaskInterp->SetInputImage( this->m_ForegroundBrainMask.GetPointer() );
+
+  typename MaskNNInterpolationType::Pointer allTissueMaskInterp =
+    MaskNNInterpolationType::New();
+  allTissueMaskInterp->SetInputImage( this->m_AllTissueMask.GetPointer() );
+
   unsigned int ichan = 0;
   for(typename MapOfInputImageVectors::const_iterator mapIt = this->m_InputImages.begin();
       mapIt != this->m_InputImages.end(); ++mapIt,++ichan)
@@ -785,8 +797,6 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
                 }
               }
 
-            typename MaskNNInterpolationType::Pointer foregroundBrainMaskInterp = MaskNNInterpolationType::New();
-            foregroundBrainMaskInterp->SetInputImage( this->m_ForegroundBrainMask.GetPointer() );
             const ByteImagePixelType maskValue = foregroundBrainMaskInterp->Evaluate( currOutPoint );
             /* NOTE:  For regions listed as background, clamp the outputs[ichan
               */
@@ -846,8 +856,7 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
               biasIntensityScaleFactor->SetPixel(currOutIndex,
                                                  (InternalImagePixelType) multiplicitiveBiasCorrectionFactor );
               }
-            typename MaskNNInterpolationType::Pointer allTissueMaskInterp = MaskNNInterpolationType::New();
-            allTissueMaskInterp->SetInputImage( this->m_AllTissueMask.GetPointer() );
+
             if( allTissueMaskInterp->Evaluate(currOutPoint) == 0 )
               {
               // Now clamp intensities outside the probability mask region to
