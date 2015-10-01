@@ -594,7 +594,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   muLogMacro(<< "having feature space size of: " << trainSampleSet->GetMeasurementVectorSize() << std::endl);
 
   //||||||||||
-  // TODO: FIX the debugging csv file
+  // HACK(ALI) TODO: FIX the debugging csv file
   //||||||||||
   // DEBUGGING: Write csv file
   {
@@ -1323,6 +1323,10 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       for( LOOPITERTYPE ii = 0; ii < (LOOPITERTYPE)size[0]; ii++ )
         {
         const typename TProbabilityImage::IndexType currIndex = {{ii, jj, kk}};
+        // transform posterior image index to physical point
+        typename TProbabilityImage::PointType currPoint;
+        post->TransformIndexToPhysicalPoint(currIndex, currPoint);
+
         // At a minimum, every class has at least a 0.001% chance of being
         // true no matter what.
         // I realize that this small value makes the priors equal slightly
@@ -1356,8 +1360,11 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
           const double numCurModality = static_cast<double>(mapIt->second.size());
           for(unsigned xx = 0; xx < numCurModality; ++xx)
             {
-            // HACK(ALI): input images should be evaluated in physical space
-            curAvg += (mapIt->second[xx]->GetPixel(currIndex) - curMean);
+            // Input images should be evaluated in physical space
+            typename InputImageNNInterpolationType::Pointer inputImageInterp =
+              InputImageNNInterpolationType::New();
+            inputImageInterp->SetInputImage( mapIt->second[xx].GetPointer() );
+            curAvg += ( inputImageInterp->Evaluate(currPoint) - curMean );
             }
           X(zz,0) = curAvg / numCurModality;
           }
