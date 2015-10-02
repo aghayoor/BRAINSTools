@@ -1313,6 +1313,22 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   post->SetRegions(prior->GetLargestPossibleRegion() );
   post->Allocate();
 
+  MapOfInputImageInterpolatorVectors inputImageNNInterpolatorsList;
+  for(typename MapOfInputImageVectors::const_iterator mapIt = intensityImages.begin();
+      mapIt != intensityImages.end();
+      ++mapIt)
+    {
+    const size_t numCurModality = mapIt->second.size();
+    for(unsigned m = 0; m < numCurModality; ++m)
+      {
+      typename InputImageNNInterpolationType::Pointer inputImageInterp =
+          InputImageNNInterpolationType::New();
+      inputImageInterp->SetInputImage( mapIt->second[m].GetPointer() );
+
+      inputImageNNInterpolatorsList[mapIt->first].push_back( inputImageInterp );
+      }
+    }
+
   const typename TProbabilityImage::SizeType size = post->GetLargestPossibleRegion().GetSize();
 
 #if defined(LOCAL_USE_OPEN_MP)
@@ -1363,10 +1379,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
           for(unsigned xx = 0; xx < numCurModality; ++xx)
             {
             // Input images should be evaluated in physical space
-            typename InputImageNNInterpolationType::Pointer inputImageInterp =
-              InputImageNNInterpolationType::New();
-            inputImageInterp->SetInputImage( mapIt->second[xx].GetPointer() );
-            curAvg += ( inputImageInterp->Evaluate(currPoint) - curMean );
+            curAvg += ( inputImageNNInterpolatorsList[mapIt->first][xx]->Evaluate(currPoint) - curMean );
             }
           X(zz,0) = curAvg / numCurModality;
           }

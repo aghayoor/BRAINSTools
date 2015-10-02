@@ -122,6 +122,9 @@ public:
   typedef itk::NearestNeighborInterpolateImageFunction< InputImageType, double > InputImageNNInterpolationType;
   typedef itk::NearestNeighborInterpolateImageFunction< ByteImageType, double >  MaskNNInterpolationType;
 
+  typedef std::vector<typename InputImageNNInterpolationType::Pointer> InputImageInterpolatorVector;
+  typedef std::map<std::string, InputImageInterpolatorVector>          MapOfInputImageInterpolatorVectors;
+
   itkSetMacro(UseKNN, bool);
   itkGetMacro(UseKNN, bool);
 
