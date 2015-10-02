@@ -306,13 +306,15 @@ void
 AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
 ::AverageIntraSubjectRegisteredImages()
 {
-  muLogMacro(<< "Warp intra subject images to the first image" << std::endl);
+  muLogMacro(<< "Warp intra subject images within one modality to the first image of that modality channel..." << std::endl);
 
   for(MapOfFloatImageVectors::iterator mapOfModalImageListsIt = this->m_IntraSubjectOriginalImageList.begin();
       mapOfModalImageListsIt != this->m_IntraSubjectOriginalImageList.end();
       ++mapOfModalImageListsIt)
     {
     FloatImageVector::iterator currModeImageListIt = mapOfModalImageListsIt->second.begin();
+    InternalImagePointer currModalityKeySubjectImage = (*currModeImageListIt).GetPointer(); // the first image of current modality
+
     FloatImageVector::iterator intraImIt = this->m_IntraSubjectOriginalImageList[mapOfModalImageListsIt->first].begin(); // each intra subject image
     TransformList::iterator intraTxIt = this->m_IntraSubjectTransforms[mapOfModalImageListsIt->first].begin(); // each intra registration transform
 
@@ -320,11 +322,11 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
     int i = 0;
     while(currModeImageListIt != mapOfModalImageListsIt->second.end() )
       {
-      if( (*intraImIt).GetPointer() == this->m_KeySubjectImage.GetPointer() )
+      if( (*intraImIt).GetPointer() == currModalityKeySubjectImage.GetPointer() ) // if the current intra subject image is the first image
         {
         this->m_RegisteredIntraSubjectImagesList[mapOfModalImageListsIt->first].push_back( (*intraImIt).GetPointer() );
         }
-      else
+      else // resample the current intra subject image to the first image of the current modality
         {
         typedef float                               VectorComponentType;
         typedef itk::Vector<VectorComponentType, 3> VectorPixelType;
@@ -333,7 +335,7 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
                                 = GenericTransformImage<InternalImageType,
                                                         InternalImageType,
                                                         DisplacementFieldType>( (*intraImIt).GetPointer(),
-                                                                               this->GetModifiableKeySubjectImage(),
+                                                                               currModalityKeySubjectImage.GetPointer(),
                                                                                (*intraTxIt).GetPointer(),
                                                                                0,
                                                                                "Linear",
@@ -372,7 +374,7 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
       mapOfRegisteredModalImageListsIt != this->m_RegisteredIntraSubjectImagesList.end();
       ++mapOfRegisteredModalImageListsIt)
     {
-    // If number of image of a modality (T1 or T2) is greater than one; then, the average image between them is computed
+    // If number of image of a modality (e.g. T1, T2, etc) is greater than one; then, the average image between them is computed
     const int numbOfImagesPerModality = mapOfRegisteredModalImageListsIt->second.size();
     if( numbOfImagesPerModality > 1 )
       {
