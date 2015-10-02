@@ -90,11 +90,9 @@
     <name>subjectIntermodeTransformType</name>
     <label>Atlas to Subject Transform Type</label>
     <longflag>subjectIntermodeTransformType</longflag>
-    <description> What type of linear transform type do you want to use to register the atlas to the reference subject image.</description>
+    <description> What type of transform type do you want to run intra subject registeration. Only Identity and Rigid are allowed.</description>
     <element>Identity</element>
     <element>Rigid</element>
-    <element>Affine</element>
-    <element>BSpline</element>
     <default>Rigid</default>
   </string-enumeration>
   </parameters>

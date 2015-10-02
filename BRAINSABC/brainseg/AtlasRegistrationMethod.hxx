@@ -142,7 +142,6 @@ void
 AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
 ::RegisterIntraSubjectImages()
 {
-
   muLogMacro(<< "Register Intra subject images" << std::endl);
 
   int i = 0;
@@ -180,7 +179,7 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
         muLogMacro(<< "Key image registered to itself with Identity transform." << std::endl);
         m_IntraSubjectTransforms[mapOfModalImageListsIt->first].push_back(MakeRigidIdentity());
         }
-      else
+      else // when m_ImageLinearTransformChoice == "Rigid"
         {
         typedef itk::BRAINSFitHelper HelperType;
         HelperType::Pointer intraSubjectRegistrationHelper = HelperType::New();
@@ -257,75 +256,14 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
             }
           }
         intraSubjectRegistrationHelper->SetFixedBinaryVolume(m_InputSpatialObjectTissueRegion);
-        if( m_ImageLinearTransformChoice == "Rigid" )
-          {
-          muLogMacro(<< "Registering (Rigid) image " << i << " to first image." << std::endl);
-          std::vector<double> minimumStepSize(1);
-          minimumStepSize[0] = 0.00005;
-          intraSubjectRegistrationHelper->SetMinimumStepLength(minimumStepSize);
-          std::vector<std::string> transformType(1);
-          transformType[0] = "Rigid";
-          intraSubjectRegistrationHelper->SetTransformType(transformType);
-          }
-        else if( m_ImageLinearTransformChoice == "Affine" )
-          {
-          muLogMacro(<< "Registering (Affine) image " << i << " to first image." << std::endl);
-          std::vector<double> minimumStepSize(4);
-          minimumStepSize[0] = 0.00005;
-          minimumStepSize[1] = 0.005;
-          minimumStepSize[2] = 0.005;
-          minimumStepSize[3] = 0.005;
-          intraSubjectRegistrationHelper->SetMinimumStepLength(minimumStepSize);
-          std::vector<std::string> transformType(4);
-          transformType[0] = "Rigid";
-          transformType[1] = "ScaleVersor3D";
-          transformType[2] = "ScaleSkewVersor3D";
-          transformType[3] = "Affine";
-          intraSubjectRegistrationHelper->SetTransformType(transformType);
-          }
-        else if( m_ImageLinearTransformChoice == "BSpline" )
-          {
-          muLogMacro(<< "Registering (BSpline) image " << i << " to first subject image." << std::endl);
-          std::vector<double> minimumStepSize(5);
-          minimumStepSize[0] = 0.00005;
-          minimumStepSize[1] = 0.005;
-          minimumStepSize[2] = 0.005;
-          minimumStepSize[3] = 0.005;
-          minimumStepSize[4] = 0.005;
-          intraSubjectRegistrationHelper->SetMinimumStepLength(minimumStepSize);
-          std::vector<std::string> transformType(5);
-          transformType[0] = "Rigid";
-          transformType[1] = "ScaleVersor3D";
-          transformType[2] = "ScaleSkewVersor3D";
-          transformType[3] = "Affine";
-          transformType[4] = "BSpline";
-          intraSubjectRegistrationHelper->SetTransformType(transformType);
-          std::vector<int> splineGridSize(3);
-          splineGridSize[0] = this->m_WarpGrid[0];
-          splineGridSize[1] = this->m_WarpGrid[1];
-          splineGridSize[2] = this->m_WarpGrid[2];
-          intraSubjectRegistrationHelper->SetSplineGridSize(splineGridSize);
-          // Setting max displace
-          intraSubjectRegistrationHelper->SetMaxBSplineDisplacement(6.0);
-          }
-        else if( m_ImageLinearTransformChoice == "SyN" )
-          {
-          muLogMacro(<< "Registering (SyN) image " << i << " to first subject image." << std::endl);
-          std::vector<double> minimumStepSize(5);
-          minimumStepSize[0] = 0.00005;
-          minimumStepSize[1] = 0.005;
-          minimumStepSize[2] = 0.005;
-          minimumStepSize[3] = 0.005;
-          minimumStepSize[4] = 0.000005;
-          intraSubjectRegistrationHelper->SetMinimumStepLength(minimumStepSize);
-          std::vector<std::string> transformType(5);
-          transformType[0] = "Rigid";
-          transformType[1] = "ScaleVersor3D";
-          transformType[2] = "ScaleSkewVersor3D";
-          transformType[3] = "Affine";
-          transformType[4] = "SyN";
-          intraSubjectRegistrationHelper->SetTransformType(transformType);
-          }
+
+        muLogMacro(<< "Registering (Rigid) image " << i << " to first image." << std::endl);
+        std::vector<double> minimumStepSize(1);
+        minimumStepSize[0] = 0.00005;
+        intraSubjectRegistrationHelper->SetMinimumStepLength(minimumStepSize);
+        std::vector<std::string> transformType(1);
+        transformType[0] = "Rigid";
+        intraSubjectRegistrationHelper->SetTransformType(transformType);
         //
         // intraSubjectRegistrationHelper->SetBackgroundFillValue(backgroundFillValue);
         // NOT VALID When using initializeTransformMode
@@ -801,6 +739,9 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
   // Intra subject MUST be done first
   // This function registers all the input subjects to the First image (m_KeySubjectImage),
   // and provides a map of registration transforms (m_IntraSubjectTransforms).
+  /*
+  NOTE: Intra subject image registration must only be rigid!
+  */
   this->RegisterIntraSubjectImages();
 
   // This function warps all of intra subject images (m_IntraSubjectOrigImageList) to the

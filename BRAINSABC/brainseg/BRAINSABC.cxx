@@ -863,14 +863,12 @@ int main(int argc, char * *argv)
     }
 
   if( !( ( subjectIntermodeTransformType.compare("Identity") == 0 )
-         || ( subjectIntermodeTransformType.compare("Rigid") == 0 )
-         || ( subjectIntermodeTransformType.compare("Affine") == 0 )
-         || ( subjectIntermodeTransformType.compare("BSpline") == 0 )
-         || ( subjectIntermodeTransformType.compare("SyN") == 0 ) )
+         || ( subjectIntermodeTransformType.compare("Rigid") == 0 ) )
     )
     {
     muLogMacro("ERROR:  Invalid subjectIntermodeTransformType specified"
-               << subjectIntermodeTransformType << std::endl);
+               << subjectIntermodeTransformType << std::endl
+               << "Only identity or rigid transforms are allowed." << std::endl);
     return EXIT_FAILURE;
     }
 
