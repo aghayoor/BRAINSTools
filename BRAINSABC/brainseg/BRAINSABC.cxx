@@ -642,6 +642,10 @@ int main(int argc, char * *argv)
       std::cerr << "STATUS:  Atlas image of type: " << typeIt->first
                 << " added with filename: " << temp << std::endl;
       }
+    else if( typeIt->first == "IDWI" ) // do not throw when IDWI is an input type
+      {
+      std::cerr << "WARNING: No atlas image of type IDWI." << std::endl;
+      }
     else
       {
       std::cerr << "ERROR:  Atlas image of type: " << typeIt->first
