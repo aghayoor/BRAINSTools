@@ -1313,96 +1313,94 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   post->SetRegions(prior->GetLargestPossibleRegion() );
   post->Allocate();
 
-  const typename TProbabilityImage::SizeType size = post->GetLargestPossibleRegion().GetSize();
-
 #if defined(LOCAL_USE_OPEN_MP)
 #pragma omp parallel for
 #endif
-  for( LOOPITERTYPE kk = 0; kk < (LOOPITERTYPE)size[2]; kk++ )
+  // Now iterate through the post image
+  typedef itk::ImageRegionIteratorWithIndex< TProbabilityImage > PostItType;
+  PostItType postIt( post, post->GetLargestPossibleRegion() );
+  postIt.GoToBegin();
+
+  while( ! postIt.IsAtEnd() )
     {
-    for( LOOPITERTYPE jj = 0; jj < (LOOPITERTYPE)size[1]; jj++ )
+    const typename TProbabilityImage::IndexType currIndex = postIt.GetIndex();
+    // transform posterior image index to physical point
+    typename TProbabilityImage::PointType currPoint;
+    post->TransformIndexToPhysicalPoint(currIndex, currPoint);
+
+      // At a minimum, every class has at least a 0.001% chance of being
+      // true no matter what.
+      // I realize that this small value makes the priors equal slightly
+      // larger than 100%, but everything
+      // is renormalized anyway, so it is not really that big of a deal as
+      // long as the main priors for
+      // the desired class is significantly higher than 1%.
+    const typename TProbabilityImage::PixelType minPriorValue = 0.0;
+    const typename TProbabilityImage::PixelType priorValue = (prior->GetPixel(currIndex) + minPriorValue);
+      // MatrixType X(numModalities, 1);
+      // {
+      // for(typename RegionStats::MeanMapType::const_iterator mapIt = currMeans.begin();
+      //     mapIt != currMeans.end(); ++mapIt)
+      //   {
+      //   for(typename RegionStats::VectorType::const_iterator vecIt = mapIt->second.begin();
+      //       vecIt != mapIt->second.end(); ++vecIt, ++ichan)
+      //     {
+      //     X(ichan, 0) =
+      //       tmpIntensityImages[ichan]->GetPixel(currIndex) - (*vecIt);
+      //     }
+      //   }
+      // }
+
+    MatrixType X(numModalities, 1);
+    unsigned long zz = 0;
+    for(typename MapOfInputImageVectors::const_iterator mapIt = intensityImages.begin();
+        mapIt != intensityImages.end(); ++mapIt, ++zz)
       {
-      for( LOOPITERTYPE ii = 0; ii < (LOOPITERTYPE)size[0]; ii++ )
+      double curAvg(0.0);
+      const double curMean = currMeans[mapIt->first];
+      const double numCurModality = static_cast<double>(mapIt->second.size());
+      for(unsigned xx = 0; xx < numCurModality; ++xx)
         {
-        const typename TProbabilityImage::IndexType currIndex = {{ii, jj, kk}};
-        // transform posterior image index to physical point
-        typename TProbabilityImage::PointType currPoint;
-        post->TransformIndexToPhysicalPoint(currIndex, currPoint);
-
-        // At a minimum, every class has at least a 0.001% chance of being
-        // true no matter what.
-        // I realize that this small value makes the priors equal slightly
-        // larger than 100%, but everything
-        // is renormalized anyway, so it is not really that big of a deal as
-        // long as the main priors for
-        // the desired class is significantly higher than 1%.
-        const typename TProbabilityImage::PixelType minPriorValue = 0.0;
-        const typename TProbabilityImage::PixelType priorValue = (prior->GetPixel(currIndex) + minPriorValue);
-        // MatrixType X(numModalities, 1);
-        // {
-        // for(typename RegionStats::MeanMapType::const_iterator mapIt = currMeans.begin();
-        //     mapIt != currMeans.end(); ++mapIt)
-        //   {
-        //   for(typename RegionStats::VectorType::const_iterator vecIt = mapIt->second.begin();
-        //       vecIt != mapIt->second.end(); ++vecIt, ++ichan)
-        //     {
-        //     X(ichan, 0) =
-        //       tmpIntensityImages[ichan]->GetPixel(currIndex) - (*vecIt);
-        //     }
-        //   }
-        // }
-
-        MatrixType X(numModalities, 1);
-        unsigned long zz = 0;
-        for(typename MapOfInputImageVectors::const_iterator mapIt = intensityImages.begin();
-            mapIt != intensityImages.end(); ++mapIt, ++zz)
-          {
-          double curAvg(0.0);
-          const double curMean = currMeans[mapIt->first];
-          const double numCurModality = static_cast<double>(mapIt->second.size());
-          for(unsigned xx = 0; xx < numCurModality; ++xx)
-            {
-            // Input images should be evaluated in physical space
-            typename InputImageNNInterpolationType::Pointer inputImageInterp =
-              InputImageNNInterpolationType::New();
-            inputImageInterp->SetInputImage( mapIt->second[xx].GetPointer() );
-            curAvg += ( inputImageInterp->Evaluate(currPoint) - curMean );
-            }
-          X(zz,0) = curAvg / numCurModality;
-          }
-
-        const MatrixType  Y = invcov * X;
-        FloatingPrecision mahalo = 0.0;
-        for(unsigned int ichan = 0; ichan < numModalities; ichan++ )
-          {
-          const FloatingPrecision & currVal = X(ichan, 0) * Y(ichan, 0);
-          CHECK_NAN(currVal, __FILE__, __LINE__, "\n  currIndex: " << currIndex
-                    << "\n  mahalo: " << mahalo
-                    << "\n  ichan: " << ichan
-                    << "\n  invcov: " << invcov
-                    << "\n  X:  " << X
-                    << "\n  Y:  " << Y );
-          mahalo += currVal;
-          }
-
-        // Note:  This is the maximum likelyhood estimate as described in
-        // formula at bottom of
-        //       http://en.wikipedia.org/wiki/Maximum_likelihood_estimation
-        const FloatingPrecision likelihood = vcl_exp(-0.5 * mahalo) * invdenom;
-
-        const typename TProbabilityImage::PixelType currentPosterior =
-          static_cast<typename TProbabilityImage::PixelType>( (priorScale * priorValue * likelihood) );
-        CHECK_NAN(currentPosterior, __FILE__, __LINE__, "\n  currIndex: " << currIndex
-                  << "\n  priorScale: " << priorScale << "\n  priorValue: " << priorValue
-                  << "\n  likelihood: " << likelihood
-                  << "\n  mahalo: " << mahalo
-                  << "\n  invcov: " << invcov
-                  << "\n  X:  " << X
-                  << "\n  Y:  " << Y );
-        post->SetPixel(currIndex, currentPosterior);
+          // Input images should be evaluated in physical space
+        typename InputImageNNInterpolationType::Pointer inputImageInterp =
+        InputImageNNInterpolationType::New();
+        inputImageInterp->SetInputImage( mapIt->second[xx].GetPointer() );
+        curAvg += ( inputImageInterp->Evaluate(currPoint) - curMean );
         }
+      X(zz,0) = curAvg / numCurModality;
       }
+
+    const MatrixType  Y = invcov * X;
+    FloatingPrecision mahalo = 0.0;
+    for(unsigned int ichan = 0; ichan < numModalities; ichan++ )
+      {
+      const FloatingPrecision & currVal = X(ichan, 0) * Y(ichan, 0);
+      CHECK_NAN(currVal, __FILE__, __LINE__, "\n  currIndex: " << currIndex
+                << "\n  mahalo: " << mahalo
+                << "\n  ichan: " << ichan
+                << "\n  invcov: " << invcov
+                << "\n  X:  " << X
+                << "\n  Y:  " << Y );
+      mahalo += currVal;
+      }
+
+      // Note:  This is the maximum likelyhood estimate as described in
+      // formula at bottom of
+      //       http://en.wikipedia.org/wiki/Maximum_likelihood_estimation
+    const FloatingPrecision likelihood = vcl_exp(-0.5 * mahalo) * invdenom;
+
+    const typename TProbabilityImage::PixelType currentPosterior =
+    static_cast<typename TProbabilityImage::PixelType>( (priorScale * priorValue * likelihood) );
+    CHECK_NAN(currentPosterior, __FILE__, __LINE__, "\n  currIndex: " << currIndex
+              << "\n  priorScale: " << priorScale << "\n  priorValue: " << priorValue
+              << "\n  likelihood: " << likelihood
+              << "\n  mahalo: " << mahalo
+              << "\n  invcov: " << invcov
+              << "\n  X:  " << X
+              << "\n  Y:  " << Y );
+    postIt.Set(currentPosterior);
     }
+
   return post;
 }
 
