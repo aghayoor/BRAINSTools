@@ -407,6 +407,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   // change the map of input image vectors to a probability image vector type
   InputImageVector                         inputImagesVector;
+  InputImageInterpolatorVector             inputImageNNInterpolatorsVector;
 
   for(typename MapOfInputImageVectors::const_iterator mapIt = intensityImages.begin();
       mapIt != intensityImages.end();
@@ -418,7 +419,14 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     for(unsigned m = 0; m < numCurModality; ++m)
       {
       // Normalize the input images since the priors are normalized already
-      inputImagesVector.push_back( NormalizeInputIntensityImage( mapIt->second[m] ) );
+      InputImagePointer normalizedInputImage = NormalizeInputIntensityImage( mapIt->second[m] );
+      // Set the normalized input image into the input images vector
+      inputImagesVector.push_back( normalizedInputImage );
+      // create a vector of input image interpolators for evaluation of image values in physical space
+      typename InputImageNNInterpolationType::Pointer inputImageInterp =
+        InputImageNNInterpolationType::New();
+      inputImageInterp->SetInputImage( normalizedInputImage );
+      inputImageNNInterpolatorsVector.push_back( inputImageInterp );
       }
     }
 
@@ -551,15 +559,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
        ByteImageType::PointType currPoint;
        labelsImage->TransformIndexToPhysicalPoint( *vit, currPoint );
 
-       for( typename InputImageVector::const_iterator inIt = inputImagesVector.begin();
-            inIt != inputImagesVector.end();
-            ++inIt )
+       for( typename InputImageInterpolatorVector::const_iterator interpIt = inputImageNNInterpolatorsVector.begin();
+            interpIt != inputImageNNInterpolatorsVector.end();
+            ++interpIt )
          {
          // evluate the value of the input image at the current physical location
          // via a nearest neighbor interpolator
-         typename InputImageNNInterpolationType::Pointer inImgInterp = InputImageNNInterpolationType::New();
-         inImgInterp->SetInputImage( inIt->GetPointer() );
-         mv[mvIndx] = inImgInterp->Evaluate( currPoint );
+         mv[mvIndx] = interpIt->GetPointer()->Evaluate( currPoint );
          ++mvIndx;
          }
        // Other features are from input priors.
@@ -635,17 +641,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   unsigned int numOfVoxels = GetMapVectorFirstElement(intensityImages)->GetLargestPossibleRegion().GetNumberOfPixels();
   muLogMacro(<< "\n* Computing test matrix ( " << numOfVoxels << " x " << numOfInputImages + labelClasses.size() << " )" << std::endl);
   vnl_matrix<FloatingPrecision> testMatrix( numOfVoxels, numOfInputImages+labelClasses.size() );
-
-  // create a vector of input image interpolators
-  InputImageInterpolatorVector  inputImageNNInterpolatorsVector;
-  for( typename InputImageVector::const_iterator inIt = inputImagesVector.begin();
-      inIt != inputImagesVector.end();
-      ++inIt )
-     {
-     typename InputImageNNInterpolationType::Pointer inputImageInterp = InputImageNNInterpolationType::New();
-     inputImageInterp->SetInputImage( inIt->GetPointer() );
-     inputImageNNInterpolatorsVector.push_back( inputImageInterp );
-     }
 
   const typename InputImageType::SizeType size = GetMapVectorFirstElement(intensityImages)->GetLargestPossibleRegion().GetSize();
   unsigned int rowIndex = 0;
