@@ -371,6 +371,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   const typename TProbabilityImage::SizeType size = post->GetLargestPossibleRegion().GetSize();
 
   unsigned int vindex = 0;
+#if defined(LOCAL_USE_OPEN_MP)
+#pragma omp parallel for
+#endif
   for( LOOPITERTYPE kk = 0; kk < (LOOPITERTYPE)size[2]; kk++ )
     {
     for( LOOPITERTYPE jj = 0; jj < (LOOPITERTYPE)size[1]; jj++ )
@@ -629,13 +632,27 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   //////
 
   // set kNN input test matrix of size : #OfVoxels x #OfInputImages
-  const typename InputImageType::SizeType size = GetMapVectorFirstElement(intensityImages)->GetLargestPossibleRegion().GetSize();
-  unsigned int numOfVoxels = inputImagesVector[0]->GetLargestPossibleRegion().GetNumberOfPixels();
-
+  unsigned int numOfVoxels = GetMapVectorFirstElement(intensityImages)->GetLargestPossibleRegion().GetNumberOfPixels();
   muLogMacro(<< "\n* Computing test matrix ( " << numOfVoxels << " x " << numOfInputImages + labelClasses.size() << " )" << std::endl);
   vnl_matrix<FloatingPrecision> testMatrix( numOfVoxels, numOfInputImages+labelClasses.size() );
 
+  // create a vector of input image interpolators
+  InputImageInterpolatorVector  inputImageNNInterpolatorsVector;
+  for( typename InputImageVector::const_iterator inIt = inputImagesVector.begin();
+      inIt != inputImagesVector.end();
+      ++inIt )
+     {
+     typename InputImageNNInterpolationType::Pointer inputImageInterp = InputImageNNInterpolationType::New();
+     inputImageInterp->SetInputImage( inIt->GetPointer() );
+     inputImageNNInterpolatorsVector.push_back( inputImageInterp );
+     }
+
+  const typename InputImageType::SizeType size = GetMapVectorFirstElement(intensityImages)->GetLargestPossibleRegion().GetSize();
   unsigned int rowIndex = 0;
+
+#if defined(LOCAL_USE_OPEN_MP)
+#pragma omp parallel for
+#endif
   for( LOOPITERTYPE kk = 0; kk < (LOOPITERTYPE)size[2]; kk++ )
     {
     for( LOOPITERTYPE jj = 0; jj < (LOOPITERTYPE)size[1]; jj++ )
@@ -647,16 +664,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
         GetMapVectorFirstElement(intensityImages)->TransformIndexToPhysicalPoint( currTestIndex, currTestPoint );
 
         unsigned int colIndex = 0;
-        typename ProbabilityImageVectorType::const_iterator inIt = inputImagesVector.begin();
-        while( ( inIt != inputImagesVector.end() ) && ( colIndex < numOfInputImages ) )
+        typename InputImageInterpolatorVector::const_iterator interpIt = inputImageNNInterpolatorsVector.begin();
+        while( ( interpIt != inputImageNNInterpolatorsVector.end() ) && ( colIndex < numOfInputImages ) )
           {
           // input images are aligned in physical space but not necessarily in voxel space
-          typename InputImageNNInterpolationType::Pointer testImgInterp = InputImageNNInterpolationType::New();
-          testImgInterp->SetInputImage( inIt->GetPointer() );
-
-          testMatrix(rowIndex,colIndex) = testImgInterp->Evaluate( currTestPoint ); // set first few colmuns from input images
+          testMatrix(rowIndex,colIndex) = interpIt->GetPointer()->Evaluate( currTestPoint ); // set first few colmuns from input images
           ++colIndex;
-          ++inIt;
+          ++interpIt;
           }
         while( colIndex-numOfInputImages < labelClasses.size() ) // Add 15 more features from posteriors
           {
@@ -1313,6 +1327,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   post->SetRegions(prior->GetLargestPossibleRegion() );
   post->Allocate();
 
+  // create a map of input image interpolators
   MapOfInputImageInterpolatorVectors inputImageNNInterpolatorsList;
   for(typename MapOfInputImageVectors::const_iterator mapIt = intensityImages.begin();
       mapIt != intensityImages.end();
