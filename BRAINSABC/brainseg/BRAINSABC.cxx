@@ -642,7 +642,7 @@ int main(int argc, char * *argv)
       std::cerr << "STATUS:  Atlas image of type: " << typeIt->first
                 << " added with filename: " << temp << std::endl;
       }
-    else if( typeIt->first == "IDWI" ) // do not throw when IDWI is an input type
+    else if( typeIt->first.compare("IDWI") == 0 ) // do not throw when IDWI is an input type
       {
       std::cerr << "WARNING: No atlas image of type IDWI." << std::endl;
       }
@@ -792,7 +792,7 @@ int main(int argc, char * *argv)
     }
 
   typedef itk::ImageFileReader<FloatImageType> LocalReaderType;
-  typedef LocalReaderType::Pointer                  LocalReaderPointer;
+  typedef LocalReaderType::Pointer             LocalReaderPointer;
 
 
   for(AtlasRegType::MapOfStringVectors::iterator mapIt = templateVolumes.begin();
@@ -872,7 +872,7 @@ int main(int argc, char * *argv)
     {
     muLogMacro("ERROR:  Invalid subjectIntermodeTransformType specified"
                << subjectIntermodeTransformType << std::endl
-               << "Only identity or rigid transforms are allowed." << std::endl);
+               << "Only Identity or Rigid transforms are allowed." << std::endl);
     return EXIT_FAILURE;
     }
 
@@ -1123,7 +1123,11 @@ int main(int argc, char * *argv)
   intraSubjectRegisteredImageMap = RescaleFunctionLocal(intraSubjectRegisteredImageMap);
   intraSubjectRegisteredRawImageMap = RescaleFunctionLocal(intraSubjectRegisteredRawImageMap);
   }
+
+  ////////////////////////////////////
   // Start the segmentation process.
+  ///////////////////////////////////
+
   for( unsigned int segmentationLevel = 0; segmentationLevel < 1; segmentationLevel++ )
     {
     SegFilterType::Pointer segfilter = SegFilterType::New();
