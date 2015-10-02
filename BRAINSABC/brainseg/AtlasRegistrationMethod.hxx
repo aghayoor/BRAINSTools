@@ -746,10 +746,12 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
   */
   this->RegisterIntraSubjectImages();
 
-  // This function warps all of intra subject images (m_IntraSubjectOrigImageList) to the
-  // key subject image using the intra subject registration transforms (m_IntraSubjectTransforms).
-  // Then, it averages all T1s together and T2s together to provide (this->m_ModalityAveragedOfIntraSubjectImages[0])
-  //  and (this->m_ModalityAveragedOfIntraSubjectImages[1])
+  // This function warps all of intra subject images of one modality to the first image of that modality channel
+  // using the intra subject registration transforms (m_IntraSubjectTransforms).
+  // Then, it averages all images within one modality together (e.g. all T1s together and T2s together),
+  // and put them in "this->m_ModalityAveragedOfIntraSubjectImages".
+  // Note that this->m_ModalityAveragedOfIntraSubjectImages[0] and this->m_ModalityAveragedOfIntraSubjectImages[1]
+  // (related to T1 and T2 modalities) will be used in a multi modal registration framework for atlas to subject registration.
   this->AverageIntraSubjectRegisteredImages();
 
   // Atlas to subject registration is done as a multi-modal registration using
