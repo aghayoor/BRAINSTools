@@ -1123,6 +1123,32 @@ int main(int argc, char * *argv)
   intraSubjectRegisteredImageMap = RescaleFunctionLocal(intraSubjectRegisteredImageMap);
   intraSubjectRegisteredRawImageMap = RescaleFunctionLocal(intraSubjectRegisteredRawImageMap);
   }
+  /*
+   ------------------------------------
+   *** BRAINSABC Input Images Flow: ***
+   ------------------------------------
+
+    {imageVolumeFileNames} -> [reader] -> {typewiseEqualizedToFirstImage} -> [StandardizedMaskIntensity]
+              -> {currImage} --->   [DenoiseFiltering]  --->   {denoisedImage}
+                      |                                               |
+                      ~                                               ~
+ push_back to:{intraSubjectRawImageMap}     push_back to:{intraSubjectNoiseRemovedImageMap} => <atlasreg>:{IntraSubjOriginalImageList}
+                        |                                                       |
+                        ~                                                       ~
+                [ResampleImageList] <--  <atlasreg>:{intraSubjTxfs} --> [ResampleImageList]
+                        |                                                       |
+                        ~                                                       ~
+  {intraSubjectRegisteredRawImageMap}  <->  [RescaleFunctionLocal]  <->  {intraSubjectRegisteredImageMap}
+                        |                                                       |
+                        ~                                                       ~
+            set to <segfilter>:{RawInputImages}                     set to <segfilter>:{InputImages}
+
+   - Notations:
+   * class: <>
+   * functional unit: []
+   * file: {}
+   ------------------------------------
+   */
 
   ////////////////////////////////////
   // Start the segmentation process.
