@@ -308,6 +308,17 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
 {
   muLogMacro(<< "Warp intra subject images within one modality to the first image of that modality channel..." << std::endl);
 
+  // Sanity Checks
+  if(  m_IntraSubjectTransforms.size() != m_IntraSubjectOriginalImageList.size() )
+    {
+    muLogMacro( << "ERROR:  size of input image list does not match to size of intra subject transform list." << std::endl );
+    muLogMacro( << "m_IntraSubjectTransforms.size(): " << m_IntraSubjectTransforms.size() << std::endl );
+    muLogMacro( << "m_IntraSubjectOriginalImageList.size(): " << m_IntraSubjectOriginalImageList.size() << std::endl );
+    itkExceptionMacro(<< "ERROR:  size of input image list does not match to size of intra subject transform list. "
+                      << "m_IntraSubjectTransforms.size() = " << m_IntraSubjectTransforms.size() <<   std::endl
+                      << "m_IntraSubjectOriginalImageList.size() = " << m_IntraSubjectOriginalImageList.size() );
+    }
+
   for(MapOfFloatImageVectors::iterator mapOfModalImageListsIt = this->m_IntraSubjectOriginalImageList.begin();
       mapOfModalImageListsIt != this->m_IntraSubjectOriginalImageList.end();
       ++mapOfModalImageListsIt)
@@ -401,18 +412,16 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
 ::RegisterAtlasToSubjectImages()
 {
   // Sanity Checks
-  if(  (  m_AtlasOriginalImageList.size() != m_IntraSubjectTransforms.size() ) ||
-       ( m_AtlasOriginalImageList.size() != m_IntraSubjectOriginalImageList.size() ) )
+  // currently we have atlases only for T1 and T2 modalities. However, we should still be able to
+  // use other available input modality images (e.g. FLAIR, IDWI, PD, etc) for the segmentation process,
+  // even if they will not be used in atlas to subject registration.
+  if(  m_AtlasOriginalImageList.size() != m_IntraSubjectOriginalImageList.size() )
     {
-    muLogMacro( << "ERROR:  atlas and template image list sizes do not match. " <<   std::endl );
-    muLogMacro( << "m_AtlasOriginalImageList.size() = " << m_AtlasOriginalImageList.size() <<   std::endl );
-    muLogMacro( << "m_IntraSubjectTransforms.size() = " << m_IntraSubjectTransforms.size() <<   std::endl );
-    muLogMacro(<< "m_IntraSubjectOriginalImageList.size() = "
-               << m_IntraSubjectOriginalImageList.size() <<   std::endl );
-    itkExceptionMacro(<< "ERROR:  atlas and template image list sizes do not match. "
-                      << "m_AtlasOriginalImageList.size() = " << m_AtlasOriginalImageList.size() <<   std::endl
-                      << "m_IntraSubjectTransforms.size() = " << m_IntraSubjectTransforms.size() <<   std::endl
-                      << "m_IntraSubjectOriginalImageList.size() = " << m_IntraSubjectOriginalImageList.size() );
+    muLogMacro( << "* WARNING *:  atlas and template image list sizes do not match. " <<   std::endl );
+    muLogMacro( << "There are atlas images for " << m_AtlasOriginalImageList.size() << " modalities;" <<   std::endl );
+    muLogMacro( << "However, input images belong to " << m_IntraSubjectOriginalImageList.size() << " modality channels." <<   std::endl );
+    muLogMacro( << "Only the first " << m_AtlasOriginalImageList.size()
+                << " modality channels will be used in atlas to subject registration." <<   std::endl );
     }
 
   // TODO:  Need to make this register all the atlas filenames to all the
