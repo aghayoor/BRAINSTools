@@ -158,117 +158,164 @@ PrintMapOfImageVectors(const TMap &map)
 AtlasRegType::MapOfFloatImageVectors
 ResampleImageList(const std::string & resamplerInterpolatorType,
                   AtlasRegType::MapOfFloatImageVectors inputImageMap,
-                  AtlasRegType::MapOfTransformLists & intraSubjectTransforms,
-                  FloatImageType::ConstPointer KeyImageFirstRead)
+                  AtlasRegType::MapOfTransformLists & intraSubjectTransforms)//,
+                  //FloatImageType::ConstPointer KeyImageFirstRead)
 {
-  // Clear image list
+  muLogMacro(<< "ResampleImageList..." << std::endl);
+  /*
+   * This function, first, transforms all inputImageMap to the space of the first image of the map
+   * using rigid transforms (intraSubjectTransforms) and Resampling InPlace interoplation.
+   * Then, it resamples all images within one modality to the voxel lattice of the fist image of that modality channel
+   * using resamplerInterpolatorType and Identity transform.
+   */
+
+  AtlasRegType::MapOfFloatImageVectors resampleInPlaceImageMap;
   AtlasRegType::MapOfFloatImageVectors outputImageMap;
 
-  const FloatImageType::PixelType outsideFOVCode = vnl_huge_val( static_cast<FloatImageType::PixelType>( 1.0f ) );
   PrintMapOfImageVectors(inputImageMap);
-  // Resample the other images
+
+  // ResampleInPlace all images to the physical space of the first image
+  //
   for(AtlasRegType::MapOfFloatImageVectors::iterator inputImageMapIter = inputImageMap.begin();
       inputImageMapIter != inputImageMap.end(); ++inputImageMapIter)
     {
-    AtlasRegType::FloatImageVector::iterator currImageIter = inputImageMapIter->second.begin();
+    AtlasRegType::FloatImageVector::iterator currModalIter = inputImageMapIter->second.begin();
     unsigned int i(0);
     AtlasRegType::TransformList::iterator xfrmIt = intraSubjectTransforms[inputImageMapIter->first].begin();
-    while( currImageIter != inputImageMapIter->second.end() )
+    while( currModalIter != inputImageMapIter->second.end() )
       {
-      muLogMacro(<< "Resampling input image " << inputImageMapIter->first << " #" << i << "." << std::endl);
-      typedef itk::ResampleImageFilter<FloatImageType, FloatImageType> ResampleType;
-      typedef ResampleType::Pointer                                    ResamplePointer;
-      ResamplePointer resampler = ResampleType::New();
-      resampler->SetInput((*currImageIter));
-      resampler->SetTransform((*xfrmIt));
-
-      if( resamplerInterpolatorType == "BSpline" )
-        {
-        typedef itk::BSplineInterpolateImageFunction<FloatImageType, double, double>
-          SplineInterpolatorType;
-
-        // Spline interpolation, only available for input images, not
-        // atlas
-        SplineInterpolatorType::Pointer splineInt
-          = SplineInterpolatorType::New();
-        splineInt->SetSplineOrder(5);
-        resampler->SetInterpolator(splineInt);
-        }
-      else if( resamplerInterpolatorType == "WindowedSinc" )
-        {
-        typedef itk::ConstantBoundaryCondition<FloatImageType>
-          BoundaryConditionType;
-        static const unsigned int WindowedSincHammingWindowRadius = 5;
-        typedef itk::Function::HammingWindowFunction<
-          WindowedSincHammingWindowRadius, double, double> WindowFunctionType;
-        typedef itk::WindowedSincInterpolateImageFunction
-          <FloatImageType,
-          WindowedSincHammingWindowRadius,
-          WindowFunctionType,
-          BoundaryConditionType,
-          double>    WindowedSincInterpolatorType;
-        WindowedSincInterpolatorType::Pointer windowInt
-          = WindowedSincInterpolatorType::New();
-        resampler->SetInterpolator(windowInt);
-        }
-      else // Default to m_UseNonLinearInterpolation == "Linear"
-        {
-        typedef itk::LinearInterpolateImageFunction<FloatImageType, double>
-          LinearInterpolatorType;
-        LinearInterpolatorType::Pointer linearInt
-          = LinearInterpolatorType::New();
-        resampler->SetInterpolator(linearInt);
-        }
-
-      resampler->SetDefaultPixelValue(outsideFOVCode);
-      resampler->SetOutputParametersFromImage(KeyImageFirstRead);
-      resampler->Update();
-
-      // Zero the mask region outside FOV and also the intensities with
-      // outside
-      // FOV code
-      typedef itk::ImageRegionIterator<FloatImageType> InternalIteratorType;
-
-      FloatImageType::Pointer tmp = resampler->GetOutput();
-      InternalIteratorType    tmpIt( tmp, tmp->GetLargestPossibleRegion() );
-
-      //TODO:  This code below with masking does not make sense.
-      //        intraSubjectFOVIntersectionMask does not seem to do anything.
-      // HACK:  We can probably remove the mask generation from here.
-      // The FOV mask, regions where intensities in all channels do not
-      // match FOV code
-      ByteImageType::Pointer intraSubjectFOVIntersectionMask = ByteImageType::New();
-      intraSubjectFOVIntersectionMask->CopyInformation(KeyImageFirstRead);
-      intraSubjectFOVIntersectionMask->SetRegions( KeyImageFirstRead->GetLargestPossibleRegion() );
-      intraSubjectFOVIntersectionMask->Allocate();
-      intraSubjectFOVIntersectionMask->FillBuffer(1);
-      typedef itk::ImageRegionIterator<ByteImageType> MaskIteratorType;
-      MaskIteratorType maskIt( intraSubjectFOVIntersectionMask,
-        intraSubjectFOVIntersectionMask->GetLargestPossibleRegion() );
-      maskIt.GoToBegin();
-      tmpIt.GoToBegin();
-      while( !maskIt.IsAtEnd() )
-        {
-        if( tmpIt.Get() == outsideFOVCode )  // Voxel came from outside
-          // the original FOV during
-          // registration, so
-          // invalidate it.
-          {
-          maskIt.Set(0); // Set it as an invalid voxel in
-          // intraSubjectFOVIntersectionMask
-          tmpIt.Set(0);  // Set image intensity value to zero.
-          }
-        ++maskIt;
-        ++tmpIt;
-        }
+      muLogMacro(<< "ResamplingInPlace input image " << inputImageMapIter->first << " #" << i
+                 << " to the physical space of the first image." << std::endl);
+      typedef ResampleInPlaceImageFilter<FloatImageType, FloatImageType>  ResampleIPFilterType;
+      typedef ResampleIPFilterType::Pointer                               ResampleIPFilterPointer;
+      ResampleIPFilterPointer resampleIPFilter = ResampleIPFilterType::New();
+      resampleIPFilter->SetInputImage( (*currModalIter) );
+      resampleIPFilter->SetRigidTransform( (*xfrmIt) );
+      resampleIPFilter->Update();
+      FloatImageType::Pointer tmp = resampleIPFilter->GetOutput();
 
       // Add the image
-      outputImageMap[inputImageMapIter->first].push_back(tmp);
-      ++currImageIter;
+      resampleInPlaceImageMap[inputImageMapIter->first].push_back(tmp);
+      ++currModalIter;
       ++xfrmIt;
       ++i;
       }
     }
+
+  // Resample each intra subject image to the first image of its modality
+  //
+  muLogMacro(<< "Resampling each intra subject image to the first image of its modality using "
+             << resamplerInterpolatorType << " interpolation." << std::endl);
+  const FloatImageType::PixelType outsideFOVCode = vnl_huge_val( static_cast<FloatImageType::PixelType>( 1.0f ) );
+
+  for(AtlasRegType::MapOfFloatImageVectors::iterator inputRIPImageMapIter = resampleInPlaceImageMap.begin();
+      inputRIPImageMapIter != resampleInPlaceImageMap.end(); ++inputRIPImageMapIter)
+    {
+    AtlasRegType::FloatImageVector::iterator currModalIter = inputRIPImageMapIter->second.begin();
+    FloatImageType::Pointer currModalityKeySubjectImage = (*currModalIter).GetPointer(); // the first image of current modality
+
+    while( currModalIter != inputRIPImageMapIter->second.end() )
+      {
+      if( (*currModalIter).GetPointer() == currModalityKeySubjectImage.GetPointer() ) // if the current intra subject image
+                                                                                      // is the first image in current modality list
+        {
+        outputImageMap[inputRIPImageMapIter->first].push_back( (*currModalIter).GetPointer() );
+        }
+      else // resample the current intra subject image to the first image of the current modality
+        {
+        typedef itk::ResampleImageFilter<FloatImageType, FloatImageType> ResampleType;
+        typedef ResampleType::Pointer                                    ResamplePointer;
+        ResamplePointer resampler = ResampleType::New();
+        resampler->SetInput( (*currModalIter) );
+        //resampler->SetTransform() // use default identity transform since images are already aligned in physical space
+
+        if( resamplerInterpolatorType == "BSpline" )
+          {
+          typedef itk::BSplineInterpolateImageFunction<FloatImageType, double, double>
+            SplineInterpolatorType;
+
+          // Spline interpolation, only available for input images, not atlas
+          SplineInterpolatorType::Pointer splineInt
+            = SplineInterpolatorType::New();
+          splineInt->SetSplineOrder(5);
+          resampler->SetInterpolator(splineInt);
+          }
+        else if( resamplerInterpolatorType == "WindowedSinc" )
+          {
+          typedef itk::ConstantBoundaryCondition<FloatImageType>
+            BoundaryConditionType;
+          static const unsigned int WindowedSincHammingWindowRadius = 5;
+          typedef itk::Function::HammingWindowFunction<
+            WindowedSincHammingWindowRadius, double, double> WindowFunctionType;
+          typedef itk::WindowedSincInterpolateImageFunction
+            <FloatImageType,
+            WindowedSincHammingWindowRadius,
+            WindowFunctionType,
+            BoundaryConditionType,
+            double>    WindowedSincInterpolatorType;
+          WindowedSincInterpolatorType::Pointer windowInt
+            = WindowedSincInterpolatorType::New();
+          resampler->SetInterpolator(windowInt);
+          }
+        else // Default to m_UseNonLinearInterpolation == "Linear"
+          {
+          typedef itk::LinearInterpolateImageFunction<FloatImageType, double>
+            LinearInterpolatorType;
+          LinearInterpolatorType::Pointer linearInt
+            = LinearInterpolatorType::New();
+          resampler->SetInterpolator(linearInt);
+          }
+
+        resampler->SetDefaultPixelValue(outsideFOVCode);
+        resampler->SetOutputParametersFromImage( currModalityKeySubjectImage.GetPointer() );
+        resampler->Update();
+
+        // Zero the mask region outside FOV and also the intensities with
+        // outside
+        // FOV code
+        typedef itk::ImageRegionIterator<FloatImageType> InternalIteratorType;
+
+        FloatImageType::Pointer tmp = resampler->GetOutput();
+        InternalIteratorType    tmpIt( tmp, tmp->GetLargestPossibleRegion() );
+
+        //TODO:  This code below with masking does not make sense.
+        //        intraSubjectFOVIntersectionMask does not seem to do anything.
+        // HACK:  We can probably remove the mask generation from here.
+        // The FOV mask, regions where intensities in all channels do not
+        // match FOV code
+        ByteImageType::Pointer intraSubjectFOVIntersectionMask = ByteImageType::New();
+        intraSubjectFOVIntersectionMask->CopyInformation( currModalityKeySubjectImage.GetPointer() );
+        intraSubjectFOVIntersectionMask->SetRegions( currModalityKeySubjectImage.GetPointer()->GetLargestPossibleRegion() );
+        intraSubjectFOVIntersectionMask->Allocate();
+        intraSubjectFOVIntersectionMask->FillBuffer(1);
+
+        typedef itk::ImageRegionIterator<ByteImageType> MaskIteratorType;
+        MaskIteratorType maskIt( intraSubjectFOVIntersectionMask,
+                                 intraSubjectFOVIntersectionMask->GetLargestPossibleRegion() );
+        maskIt.GoToBegin();
+        tmpIt.GoToBegin();
+        while( !maskIt.IsAtEnd() )
+          {
+          if( tmpIt.Get() == outsideFOVCode )  // Voxel came from outside
+            // the original FOV during
+            // registration, so
+            // invalidate it.
+            {
+            maskIt.Set(0); // Set it as an invalid voxel in
+              // intraSubjectFOVIntersectionMask
+            tmpIt.Set(0);  // Set image intensity value to zero.
+            }
+          ++maskIt;
+          ++tmpIt;
+          }
+
+        // Add the image
+        outputImageMap[inputRIPImageMapIter->first].push_back(tmp);
+        }
+      ++currModalIter;
+      }
+    }
+
   return outputImageMap;
 }
 
@@ -1023,11 +1070,11 @@ int main(int argc, char * *argv)
   // muLogMacro(<< "ResampleImages");
   intraSubjectRegisteredImageMap =
     ResampleImageList(resamplerInterpolatorType, intraSubjectNoiseRemovedImageMap,
-                      intraSubjectTransforms,atlasreg->GetKeySubjectImage());
+                      intraSubjectTransforms);//,atlasreg->GetKeySubjectImage());
 
   intraSubjectRegisteredRawImageMap =
     ResampleImageList(resamplerInterpolatorType, intraSubjectRawImageMap,
-                      intraSubjectTransforms,atlasreg->GetKeySubjectImage());
+                      intraSubjectTransforms);//,atlasreg->GetKeySubjectImage());
   //TODO: The maps size needs to be the same, but so do the lists within the maps.
   assert( intraSubjectRegisteredImageMap.size() == intraSubjectNoiseRemovedImageMap.size() );
   assert( intraSubjectRegisteredImageMap.size() == intraSubjectRawImageMap.size() );
