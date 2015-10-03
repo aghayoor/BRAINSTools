@@ -186,11 +186,22 @@ ResampleImageList(const std::string & resamplerInterpolatorType,
       {
       muLogMacro(<< "ResamplingInPlace input image " << inputImageMapIter->first << " #" << i
                  << " to the physical space of the first image." << std::endl);
-      typedef ResampleInPlaceImageFilter<FloatImageType, FloatImageType>  ResampleIPFilterType;
-      typedef ResampleIPFilterType::Pointer                               ResampleIPFilterPointer;
+      typedef itk::ResampleInPlaceImageFilter<FloatImageType, FloatImageType>  ResampleIPFilterType;
+      typedef ResampleIPFilterType::Pointer                                    ResampleIPFilterPointer;
+
+      typedef itk::VersorRigid3DTransform<double>   VersorRigid3DTransformType;
+      const VersorRigid3DTransformType::ConstPointer tempRigidTransform =
+        dynamic_cast<VersorRigid3DTransformType const *>( (*xfrmIt).GetPointer() );
+      if( tempRigidTransform.IsNull() )
+        {
+        std::cerr << "Error in type conversion. " << __FILE__ << __LINE__ << std::endl;
+        std::cerr << "ResampleInPlace is only allowed with rigid transform type." << std::endl;
+        throw;
+        }
+
       ResampleIPFilterPointer resampleIPFilter = ResampleIPFilterType::New();
       resampleIPFilter->SetInputImage( (*currModalIter) );
-      resampleIPFilter->SetRigidTransform( (*xfrmIt) );
+      resampleIPFilter->SetRigidTransform( tempRigidTransform );
       resampleIPFilter->Update();
       FloatImageType::Pointer tmp = resampleIPFilter->GetOutput();
 
