@@ -158,8 +158,7 @@ PrintMapOfImageVectors(const TMap &map)
 AtlasRegType::MapOfFloatImageVectors
 ResampleImageList(const std::string & resamplerInterpolatorType,
                   AtlasRegType::MapOfFloatImageVectors inputImageMap,
-                  AtlasRegType::MapOfTransformLists & intraSubjectTransforms)//,
-                  //FloatImageType::ConstPointer KeyImageFirstRead)
+                  AtlasRegType::MapOfTransformLists & intraSubjectTransforms)
 {
   muLogMacro(<< "ResampleImageList..." << std::endl);
   /*
@@ -1081,11 +1080,11 @@ int main(int argc, char * *argv)
   // muLogMacro(<< "ResampleImages");
   intraSubjectRegisteredImageMap =
     ResampleImageList(resamplerInterpolatorType, intraSubjectNoiseRemovedImageMap,
-                      intraSubjectTransforms);//,atlasreg->GetKeySubjectImage());
+                      intraSubjectTransforms);
 
   intraSubjectRegisteredRawImageMap =
     ResampleImageList(resamplerInterpolatorType, intraSubjectRawImageMap,
-                      intraSubjectTransforms);//,atlasreg->GetKeySubjectImage());
+                      intraSubjectTransforms);
   //TODO: The maps size needs to be the same, but so do the lists within the maps.
   assert( intraSubjectRegisteredImageMap.size() == intraSubjectNoiseRemovedImageMap.size() );
   assert( intraSubjectRegisteredImageMap.size() == intraSubjectRawImageMap.size() );
