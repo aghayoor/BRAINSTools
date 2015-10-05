@@ -75,6 +75,13 @@ typedef itk::Image<float, 3> CorrectIntensityImageType;
 
 typedef std::map<std::string,std::string> ImageByTypeMap;
 
+typedef std::vector<FloatImagePointerType>      FloatImageVector;
+typedef std::map<std::string, FloatImageVector> MapOfFloatImageVectors;
+
+typedef itk::Transform<double, 3, 3>               GenericTransformType;
+typedef std::vector<GenericTransformType::Pointer> TransformList;
+typedef std::map<std::string,TransformList>        MapOfTransformLists;
+
 /** A utiliy class for holding statistical information
  * for all image channels for a given tissue class type
  */
@@ -103,6 +110,12 @@ public:
 #include "BRAINSABCUtilities.hxx"
 
 // External Templates to improve compilation times.
+extern MapOfFloatImageVectors
+ResampleInPlaceImageList(const std::string & resamplerInterpolatorType,
+                         MapOfFloatImageVectors inputImageMap,
+                         MapOfTransformLists & intraSubjectTransforms);
+
+
 extern std::vector<CorrectIntensityImageType::Pointer>
 CorrectBias(const unsigned int degree,
             const unsigned int CurrentEMIteration,
