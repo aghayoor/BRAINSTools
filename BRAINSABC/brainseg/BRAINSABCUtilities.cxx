@@ -151,59 +151,16 @@ ResampleInPlaceImageList(const std::string & resamplerInterpolatorType,
         }
       else // resample the current intra subject image to the first image of the current modality
         {
-        typedef itk::ResampleImageFilter<FloatImageType, FloatImageType> ResampleType;
-        typedef ResampleType::Pointer                                    ResamplePointer;
-        ResamplePointer resampler = ResampleType::New();
-        resampler->SetInput( (*currModalIter) );
-          //resampler->SetTransform() // use default identity transform since images are already aligned in physical space
-
-        if( resamplerInterpolatorType == "BSpline" )
-          {
-          typedef itk::BSplineInterpolateImageFunction<FloatImageType, double, double>
-          SplineInterpolatorType;
-
-          // Spline interpolation, only available for input images, not atlas
-          SplineInterpolatorType::Pointer splineInt
-            = SplineInterpolatorType::New();
-          splineInt->SetSplineOrder(5);
-          resampler->SetInterpolator(splineInt);
-          }
-        else if( resamplerInterpolatorType == "WindowedSinc" )
-          {
-          typedef itk::ConstantBoundaryCondition<FloatImageType>
-          BoundaryConditionType;
-          static const unsigned int WindowedSincHammingWindowRadius = 5;
-          typedef itk::Function::HammingWindowFunction<
-            WindowedSincHammingWindowRadius, double, double> WindowFunctionType;
-          typedef itk::WindowedSincInterpolateImageFunction
-            <FloatImageType,
-            WindowedSincHammingWindowRadius,
-            WindowFunctionType,
-            BoundaryConditionType,
-          double>    WindowedSincInterpolatorType;
-          WindowedSincInterpolatorType::Pointer windowInt
-            = WindowedSincInterpolatorType::New();
-          resampler->SetInterpolator(windowInt);
-          }
-        else // Default to m_UseNonLinearInterpolation == "Linear"
-          {
-          typedef itk::LinearInterpolateImageFunction<FloatImageType, double>
-            LinearInterpolatorType;
-          LinearInterpolatorType::Pointer linearInt
-            = LinearInterpolatorType::New();
-          resampler->SetInterpolator(linearInt);
-          }
-
-        resampler->SetDefaultPixelValue(outsideFOVCode);
-        resampler->SetOutputParametersFromImage( currModalityKeySubjectImage.GetPointer() );
-        resampler->Update();
+        FloatImageType::Pointer tmp =
+          ResampleImageWithIdentityTransform<FloatImageType>( resamplerInterpolatorType,
+                                                             outsideFOVCode,
+                                                             (*currModalIter).GetPointer(),
+                                                             currModalityKeySubjectImage.GetPointer() );
 
         // Zero the mask region outside FOV and also the intensities with
         // outside
         // FOV code
         typedef itk::ImageRegionIterator<FloatImageType> InternalIteratorType;
-
-        FloatImageType::Pointer tmp = resampler->GetOutput();
         InternalIteratorType    tmpIt( tmp, tmp->GetLargestPossibleRegion() );
 
         //TODO:  This code below with masking does not make sense.
