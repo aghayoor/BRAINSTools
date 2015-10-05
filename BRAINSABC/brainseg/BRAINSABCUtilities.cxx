@@ -75,7 +75,7 @@ ResampleImageListToFirstKeyImage(const std::string & resamplerInterpolatorType,
 
 MapOfFloatImageVectors
 ResampleInPlaceImageList(const std::string & resamplerInterpolatorType,
-                         MapOfFloatImageVectors inputImageMap,
+                         const MapOfFloatImageVectors & inputImageMap,
                          MapOfTransformLists & intraSubjectTransforms)
 {
   muLogMacro(<< "ResampleInPlaceImageList..." << std::endl);
@@ -93,10 +93,10 @@ ResampleInPlaceImageList(const std::string & resamplerInterpolatorType,
 
   // ResampleInPlace all images to the physical space of the first image
   //
-  for(MapOfFloatImageVectors::iterator inputImageMapIter = inputImageMap.begin();
+  for(MapOfFloatImageVectors::const_iterator inputImageMapIter = inputImageMap.begin();
       inputImageMapIter != inputImageMap.end(); ++inputImageMapIter)
     {
-    FloatImageVector::iterator currModalIter = inputImageMapIter->second.begin();
+    FloatImageVector::const_iterator currModalIter = inputImageMapIter->second.begin();
     unsigned int i(0);
     TransformList::iterator xfrmIt = intraSubjectTransforms[inputImageMapIter->first].begin();
     while( currModalIter != inputImageMapIter->second.end() )

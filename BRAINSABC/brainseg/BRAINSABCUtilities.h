@@ -131,7 +131,7 @@ ResampleImageListToFirstKeyImage(const std::string & resamplerInterpolatorType,
  */
 extern MapOfFloatImageVectors
 ResampleInPlaceImageList(const std::string & resamplerInterpolatorType,
-                         MapOfFloatImageVectors inputImageMap,
+                         const MapOfFloatImageVectors & inputImageMap,
                          MapOfTransformLists & intraSubjectTransforms);
 
 extern template std::vector<FloatImagePointerType> DuplicateImageList<FloatImageType>(
