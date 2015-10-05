@@ -1894,8 +1894,15 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       writer->Update();
       }
 
+    // All input images to the MultiModeHistogramThresholdBinaryImageFilter
+    // need to be at the same voxel space, so all input image map are resampled
+    // to the lattice of the first key image using identity transform, since
+    // they are already aligned in physical space.
+    const MapOfInputImageVectors intensityImagesList =
+      ResampleImageListToFirstKeyImage("Linear",intensityList,this->GetFirstInputImage().GetPointer());
 
-    const unsigned int numberOfModes = TotalMapSize(intensityList);
+    const unsigned int numberOfModes = TotalMapSize(intensityImagesList);
+
     typedef typename itk::MultiModeHistogramThresholdBinaryImageFilter<InputImageType,
       ByteImageType> ThresholdRegionFinderType;
     typename ThresholdRegionFinderType::ThresholdArrayType QuantileLowerThreshold(numberOfModes);
@@ -1904,8 +1911,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     // TODO:  Need to define PortionMaskImage from deformed probspace
     thresholdRegionFinder->SetBinaryPortionImage(ForegroundBrainRegion);
     unsigned int modeIndex = 0;
-    for(typename MapOfInputImageVectors::const_iterator mapIt = intensityList.begin();
-        mapIt != intensityList.end(); ++mapIt)
+    for(typename MapOfInputImageVectors::const_iterator mapIt = intensityImagesList.begin();
+        mapIt != intensityImagesList.end(); ++mapIt)
       {
       for(typename InputImageVector::const_iterator imIt = mapIt->second.begin();
           imIt != mapIt->second.end(); ++imIt, ++modeIndex)
