@@ -131,28 +131,6 @@ GetStrippedImageFileNameExtension(const std::string & ImageFileName)
 }
 
 
-//
-// debug output for map of vector structure
-template <typename TMap>
-void
-PrintMapOfImageVectors(const TMap &map)
-{
-  muLogMacro(<< "Map size: " << map.size() << std::endl);
-  for(typename TMap::const_iterator mapIt = map.begin();
-      mapIt != map.end(); ++mapIt)
-    {
-    muLogMacro(<< "  " << mapIt->first << "(" << mapIt->second.size() <<"):" << std::endl);
-    for(unsigned i = 0; i < mapIt->second.size(); ++i)
-      {
-      muLogMacro( << "    " << mapIt->second[i].GetPointer()
-                  << mapIt->second[i]->GetLargestPossibleRegion()
-                  << " " << mapIt->second[i]->GetBufferedRegion()
-                  << std::endl );
-      }
-    }
-}
-
-
 static AtlasRegType::MapOfFloatImageVectors
 RescaleFunctionLocal( AtlasRegType::MapOfFloatImageVectors& localList)
 {
