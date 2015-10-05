@@ -115,19 +115,6 @@ ResampleInPlaceImageList(const std::string & resamplerInterpolatorType,
                          MapOfFloatImageVectors inputImageMap,
                          MapOfTransformLists & intraSubjectTransforms);
 
-
-extern std::vector<CorrectIntensityImageType::Pointer>
-CorrectBias(const unsigned int degree,
-            const unsigned int CurrentEMIteration,
-            const std::vector<ByteImageType::Pointer> & CandidateRegions,
-            const std::vector<CorrectIntensityImageType::Pointer> & inputImages,
-            const ByteImageType::Pointer currentBrainMask,
-            const ByteImageType::Pointer currentForegroundMask,
-            const std::vector<FloatImageType::Pointer> & probImages,
-            const std::vector<bool> & probUseForBias,
-            const FloatingPrecision sampleSpacing, const int DebugLevel,
-            const std::string& OutputDebugDir);
-
 extern template std::vector<FloatImagePointerType> DuplicateImageList<FloatImageType>(
   const std::vector<FloatImagePointerType> & );
 
