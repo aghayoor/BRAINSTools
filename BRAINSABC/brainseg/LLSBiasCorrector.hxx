@@ -874,7 +874,7 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
           }
         }
 
-      std::cout << "Standardizing Bias Corrected Intensities: ...";
+      std::cout << "Standardizing Bias Corrected Intensities: ..." << std::endl;
       curOutput
         = StandardizeMaskIntensity<InputImageType, ByteImageType>(curOutput,
                                                                   this->m_ForegroundBrainMask,
