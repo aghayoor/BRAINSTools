@@ -110,6 +110,25 @@ public:
 #include "BRAINSABCUtilities.hxx"
 
 // External Templates to improve compilation times.
+
+/*
+ * This function gets a map of input images, finds its first key image,
+ * and resamples all images to the first key image lattice using identity
+ * transform and passed interpolation type.
+ * Note that it is assumed that all input intensity images are already aligned
+ * in physical space.
+ */
+extern MapOfFloatImageVectors
+ResampleImageListToFirstKeyImage(const std::string & resamplerInterpolatorType,
+                                 MapOfFloatImageVectors inputImageMap,
+                                 FloatImageType::ConstPointer KeyImageFirstRead);
+
+/*
+ * This function, first, transforms all inputImageMap to the space of the first image of the map
+ * using rigid transforms (intraSubjectTransforms) and Resampling InPlace interoplation.
+ * Then, it resamples all images within one modality to the voxel lattice of the fist image of that modality channel
+ * using resamplerInterpolatorType and Identity transform.
+ */
 extern MapOfFloatImageVectors
 ResampleInPlaceImageList(const std::string & resamplerInterpolatorType,
                          MapOfFloatImageVectors inputImageMap,

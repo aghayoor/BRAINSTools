@@ -42,6 +42,81 @@ template void NormalizeProbListInPlace<FloatImageType>(std::vector<FloatImageTyp
 template void ZeroNegativeValuesInPlace<FloatImageType>(  std::vector<FloatImageType::Pointer> & );
 
 MapOfFloatImageVectors
+ResampleImageListToFirstKeyImage(const std::string & resamplerInterpolatorType,
+                                 MapOfFloatImageVectors inputImageMap,
+                                 FloatImageType::ConstPointer KeyImageFirstRead)
+{
+  muLogMacro(<< "Resampling input image map to the first key image." << std::endl);
+
+  // Clear image list
+  MapOfFloatImageVectors outputImageMap;
+
+  // Resample the other images
+  for(MapOfFloatImageVectors::iterator inputImageMapIter = inputImageMap.begin();
+      inputImageMapIter != inputImageMap.end(); ++inputImageMapIter)
+    {
+    FloatImageVector::iterator currImageIter = inputImageMapIter->second.begin();
+    unsigned int i(0);
+    while( currImageIter != inputImageMapIter->second.end() )
+      {
+      typedef itk::ResampleImageFilter<FloatImageType, FloatImageType> ResampleType;
+      typedef ResampleType::Pointer                                    ResamplePointer;
+      ResamplePointer resampler = ResampleType::New();
+      resampler->SetInput((*currImageIter));
+      //resampler->SetTransform(); // default transform is identity
+
+      if( resamplerInterpolatorType == "BSpline" )
+        {
+        typedef itk::BSplineInterpolateImageFunction<FloatImageType, double, double>
+        SplineInterpolatorType;
+
+        // Spline interpolation, only available for input images, not
+        // atlas
+        SplineInterpolatorType::Pointer splineInt
+          = SplineInterpolatorType::New();
+        splineInt->SetSplineOrder(5);
+        resampler->SetInterpolator(splineInt);
+        }
+      else if( resamplerInterpolatorType == "WindowedSinc" )
+        {
+        typedef itk::ConstantBoundaryCondition<FloatImageType>
+          BoundaryConditionType;
+        static const unsigned int WindowedSincHammingWindowRadius = 5;
+        typedef itk::Function::HammingWindowFunction<
+          WindowedSincHammingWindowRadius, double, double> WindowFunctionType;
+        typedef itk::WindowedSincInterpolateImageFunction
+          <FloatImageType,
+          WindowedSincHammingWindowRadius,
+          WindowFunctionType,
+          BoundaryConditionType,
+          double>    WindowedSincInterpolatorType;
+        WindowedSincInterpolatorType::Pointer windowInt
+          = WindowedSincInterpolatorType::New();
+        resampler->SetInterpolator(windowInt);
+        }
+      else // Default to m_UseNonLinearInterpolation == "Linear"
+        {
+        typedef itk::LinearInterpolateImageFunction<FloatImageType, double>
+          LinearInterpolatorType;
+        LinearInterpolatorType::Pointer linearInt
+          = LinearInterpolatorType::New();
+        resampler->SetInterpolator(linearInt);
+        }
+
+      resampler->SetDefaultPixelValue(0);
+      resampler->SetOutputParametersFromImage(KeyImageFirstRead);
+      resampler->Update();
+
+      // Add the image
+      outputImageMap[inputImageMapIter->first].push_back(resampler->GetOutput());
+      ++currImageIter;
+      ++i;
+      }
+    }
+  return outputImageMap;
+}
+
+MapOfFloatImageVectors
 ResampleInPlaceImageList(const std::string & resamplerInterpolatorType,
                          MapOfFloatImageVectors inputImageMap,
                          MapOfTransformLists & intraSubjectTransforms)
