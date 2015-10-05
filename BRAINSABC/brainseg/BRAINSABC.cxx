@@ -156,11 +156,11 @@ PrintMapOfImageVectors(const TMap &map)
 //
 //
 AtlasRegType::MapOfFloatImageVectors
-ResampleImageList(const std::string & resamplerInterpolatorType,
-                  AtlasRegType::MapOfFloatImageVectors inputImageMap,
-                  AtlasRegType::MapOfTransformLists & intraSubjectTransforms)
+ResampleInPlaceImageList(const std::string & resamplerInterpolatorType,
+                         AtlasRegType::MapOfFloatImageVectors inputImageMap,
+                         AtlasRegType::MapOfTransformLists & intraSubjectTransforms)
 {
-  muLogMacro(<< "ResampleImageList..." << std::endl);
+  muLogMacro(<< "ResampleInPlaceImageList..." << std::endl);
   /*
    * This function, first, transforms all inputImageMap to the space of the first image of the map
    * using rigid transforms (intraSubjectTransforms) and Resampling InPlace interoplation.
@@ -1079,12 +1079,12 @@ int main(int argc, char * *argv)
   {
   // muLogMacro(<< "ResampleImages");
   intraSubjectRegisteredImageMap =
-    ResampleImageList(resamplerInterpolatorType, intraSubjectNoiseRemovedImageMap,
-                      intraSubjectTransforms);
+    ResampleInPlaceImageList(resamplerInterpolatorType, intraSubjectNoiseRemovedImageMap,
+                             intraSubjectTransforms);
 
   intraSubjectRegisteredRawImageMap =
-    ResampleImageList(resamplerInterpolatorType, intraSubjectRawImageMap,
-                      intraSubjectTransforms);
+    ResampleInPlaceImageList(resamplerInterpolatorType, intraSubjectRawImageMap,
+                             intraSubjectTransforms);
   //TODO: The maps size needs to be the same, but so do the lists within the maps.
   assert( intraSubjectRegisteredImageMap.size() == intraSubjectNoiseRemovedImageMap.size() );
   assert( intraSubjectRegisteredImageMap.size() == intraSubjectRawImageMap.size() );
@@ -1192,7 +1192,7 @@ int main(int argc, char * *argv)
  push_back to:{intraSubjectRawImageMap}     push_back to:{intraSubjectNoiseRemovedImageMap} => <atlasreg>:{IntraSubjOriginalImageList}
                         |                                                       |
                         ~                                                       ~
-                [ResampleImageList] <--  <atlasreg>:{intraSubjTxfs} --> [ResampleImageList]
+     [ResampleInPlaceImageList] <--  <atlasreg>:{intraSubjTransforms} --> [ResampleInPlaceImageList]
                         |                                                       |
                         ~                                                       ~
   {intraSubjectRegisteredRawImageMap}  <->  [RescaleFunctionLocal]  <->  {intraSubjectRegisteredImageMap}
