@@ -59,56 +59,13 @@ ResampleImageListToFirstKeyImage(const std::string & resamplerInterpolatorType,
     unsigned int i(0);
     while( currImageIter != inputImageMapIter->second.end() )
       {
-      typedef itk::ResampleImageFilter<FloatImageType, FloatImageType> ResampleType;
-      typedef ResampleType::Pointer                                    ResamplePointer;
-      ResamplePointer resampler = ResampleType::New();
-      resampler->SetInput((*currImageIter));
-      //resampler->SetTransform(); // default transform is identity
-
-      if( resamplerInterpolatorType == "BSpline" )
-        {
-        typedef itk::BSplineInterpolateImageFunction<FloatImageType, double, double>
-        SplineInterpolatorType;
-
-        // Spline interpolation, only available for input images, not
-        // atlas
-        SplineInterpolatorType::Pointer splineInt
-          = SplineInterpolatorType::New();
-        splineInt->SetSplineOrder(5);
-        resampler->SetInterpolator(splineInt);
-        }
-      else if( resamplerInterpolatorType == "WindowedSinc" )
-        {
-        typedef itk::ConstantBoundaryCondition<FloatImageType>
-          BoundaryConditionType;
-        static const unsigned int WindowedSincHammingWindowRadius = 5;
-        typedef itk::Function::HammingWindowFunction<
-          WindowedSincHammingWindowRadius, double, double> WindowFunctionType;
-        typedef itk::WindowedSincInterpolateImageFunction
-          <FloatImageType,
-          WindowedSincHammingWindowRadius,
-          WindowFunctionType,
-          BoundaryConditionType,
-          double>    WindowedSincInterpolatorType;
-        WindowedSincInterpolatorType::Pointer windowInt
-          = WindowedSincInterpolatorType::New();
-        resampler->SetInterpolator(windowInt);
-        }
-      else // Default to m_UseNonLinearInterpolation == "Linear"
-        {
-        typedef itk::LinearInterpolateImageFunction<FloatImageType, double>
-          LinearInterpolatorType;
-        LinearInterpolatorType::Pointer linearInt
-          = LinearInterpolatorType::New();
-        resampler->SetInterpolator(linearInt);
-        }
-
-      resampler->SetDefaultPixelValue(0);
-      resampler->SetOutputParametersFromImage(KeyImageFirstRead);
-      resampler->Update();
-
+      FloatImageType::Pointer tmp =
+        ResampleImageWithIdentityTransform<FloatImageType>( resamplerInterpolatorType,
+                                                            0,
+                                                            (*currImageIter).GetPointer(),
+                                                            KeyImageFirstRead.GetPointer() );
       // Add the image
-      outputImageMap[inputImageMapIter->first].push_back(resampler->GetOutput());
+      outputImageMap[inputImageMapIter->first].push_back( tmp );
       ++currImageIter;
       ++i;
       }
