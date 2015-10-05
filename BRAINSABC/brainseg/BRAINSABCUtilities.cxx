@@ -43,8 +43,8 @@ template void ZeroNegativeValuesInPlace<FloatImageType>(  std::vector<FloatImage
 
 MapOfFloatImageVectors
 ResampleImageListToFirstKeyImage(const std::string & resamplerInterpolatorType,
-                                 MapOfFloatImageVectors inputImageMap,
-                                 FloatImageType::ConstPointer KeyImageFirstRead)
+                                 const MapOfFloatImageVectors & inputImageMap,
+                                 const FloatImageType::ConstPointer & KeyImageFirstRead)
 {
   muLogMacro(<< "Resampling input image map to the first key image." << std::endl);
 
@@ -52,10 +52,10 @@ ResampleImageListToFirstKeyImage(const std::string & resamplerInterpolatorType,
   MapOfFloatImageVectors outputImageMap;
 
   // Resample the other images
-  for(MapOfFloatImageVectors::iterator inputImageMapIter = inputImageMap.begin();
+  for(MapOfFloatImageVectors::const_iterator inputImageMapIter = inputImageMap.begin();
       inputImageMapIter != inputImageMap.end(); ++inputImageMapIter)
     {
-    FloatImageVector::iterator currImageIter = inputImageMapIter->second.begin();
+    FloatImageVector::const_iterator currImageIter = inputImageMapIter->second.begin();
     unsigned int i(0);
     while( currImageIter != inputImageMapIter->second.end() )
       {
