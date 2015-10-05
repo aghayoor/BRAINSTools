@@ -222,7 +222,7 @@ ResampleImageWithIdentityTransform(const std::string & resamplerInterpolatorType
 
 
 // debug output for map of vector structure
-template <typename TMap>
+template <class TMap>
 void
 PrintMapOfImageVectors(const TMap &map)
 {
