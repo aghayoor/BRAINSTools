@@ -158,7 +158,7 @@ typename ImageType::Pointer
 ResampleImageWithIdentityTransform(const std::string & resamplerInterpolatorType,
                                    const typename ImageType::PixelType defaultPixelValue,
                                    const typename ImageType::ConstPointer & inputImage,
-                                   const typename ImageType::ConstPointer & referenceImage)
+                                   const typename itk::ImageBase<3>::ConstPointer & referenceImage)
 {
   typedef itk::ResampleImageFilter<ImageType, ImageType> ResampleType;
   typedef typename ResampleType::Pointer                 ResamplePointer;
