@@ -33,8 +33,7 @@
 #ifndef __EMSegmentationFilter_h
 #define __EMSegmentationFilter_h
 
-#include "itkIntegrityMetricMembershipFunction.h"
-#include "BRAINSABCUtilities.h"
+#include "GeneratePurePlugMask.h"
 #include <map>
 #include <list>
 class AtlasDefinition;
