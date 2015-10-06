@@ -45,13 +45,14 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
 
   muLogMacro(<< "Generating pure plug mask..." << std::endl);
   muLogMacro(<< "Threshold value is set to: " << threshold << std::endl);
-  muLogMacro(<< "Number of subsamples per each direction in voxel space: " << numberOfContinuousIndexSubSamples << std::endl);
+  muLogMacro(<< "Number of subsamples per each direction in voxel space: "
+             << numberOfContinuousIndexSubSamples << std::endl);
 
   const unsigned int numberOfImageModalities =
     inputImages.size(); // number of modality images
 
-  InputImageVector                         normalizedInputModalImagesList( numberOfImageModalities );
-  InputImageInterpolatorVector             inputImageNNInterpolatorsVector( numberOfImageModalities );
+  InputImageVector                 normalizedInputModalImagesList( numberOfImageModalities );
+  InputImageInterpolatorVector     inputImageNNInterpolatorsVector( numberOfImageModalities );
 
   typename ByteImageType::SpacingType maskSpacing;
   maskSpacing.Fill(0);

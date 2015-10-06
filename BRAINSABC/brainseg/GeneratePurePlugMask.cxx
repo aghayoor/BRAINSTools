@@ -22,11 +22,6 @@
  * The University of Iowa 2015
  */
 
-#include "itkImage.h"
-#include "itkImageFileReader.h"
-#include "itkImageFileWriter.h"
-#include "itkRescaleIntensityImageFilter.h"
-
 #include "GeneratePurePlugMask.h"
 #include "GeneratePurePlugMaskCLP.h"
 
@@ -74,15 +69,7 @@ int main( int argc, char * argv[] )
        return EXIT_FAILURE;
        }
 
-     // Rescale intensity range of input images between 0 and 1
-     RescaleFilterType::Pointer rescaleFilter = RescaleFilterType::New();
-     rescaleFilter->SetInput( imgreader->GetOutput() );
-     rescaleFilter->SetOutputMinimum(0);
-     rescaleFilter->SetOutputMaximum(1);
-     rescaleFilter->Update();
-
-     FloatImagePointer currImage = rescaleFilter->GetOutput();
-     inputImageModalitiesList.push_back( currImage );
+     inputImageModalitiesList.push_back( imgreader->GetOutput() );
      }
 
   // define step size based on the number of sub-samples at each direction
@@ -95,8 +82,7 @@ int main( int argc, char * argv[] )
     GeneratePurePlugMask<FloatImageType, MaskImageType>( inputImageModalitiesList,
                                                         threshold,
                                                         numberOfContinuousIndexSubSamples,
-                                                        true, verbose );
-
+                                                        false, verbose );
 
   typedef itk::ImageFileWriter<MaskImageType> MaskWriterType;
   MaskWriterType::Pointer writer = MaskWriterType::New();
