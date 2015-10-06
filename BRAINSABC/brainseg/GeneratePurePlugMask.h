@@ -32,7 +32,8 @@ typename ByteImageType::Pointer
 GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & inputImages,
                      const float threshold,
                      const typename ByteImageType::SizeType & numberOfContinuousIndexSubSamples,
-                     bool areInputsNormalized)
+                     bool areInputsNormalized,
+                     bool verbose = false) // verbose was only used for debugging purposes, should always be false.
 {
   typedef typename itk::NearestNeighborInterpolateImageFunction<
     InputImageType, double >                                               InputImageNNInterpolationType;
@@ -127,6 +128,11 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
     {
     typename ByteImageType::IndexType idx = maskIt.GetIndex();
 
+    if( verbose )
+      {
+      muLogMacro(<< "current index: " << idx << std::endl);
+      }
+
     // A sample list is created for every index that is inside all input images buffers
     SampleType::Pointer sample = SampleType::New();
     sample->SetMeasurementVectorSize( numberOfImageModalities );
@@ -154,6 +160,12 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
           typename ByteImageType::PointType currPoint;
           mask->TransformContinuousIndexToPhysicalPoint(cidx, currPoint);
 
+          if( verbose )
+            {
+            muLogMacro(<< "current continous index: " << cidx << std::endl);
+            muLogMacro(<< "current physical point: " << currPoint << std::endl);
+            }
+
           MeasurementVectorType mv( numberOfImageModalities );
 
           for( unsigned int i = 0; i < numberOfImageModalities; i++ )
@@ -171,10 +183,18 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
 
           if( isInside )
             {
+            if( verbose )
+              {
+              muLogMacro(<< "Is inside, measurement vector: " << mv << std::endl);
+              }
             sample->PushBack( mv );
             }
           else
             {
+            if( verbose )
+              {
+              muLogMacro(<< "Is not inside! so not pure!" << std::endl);
+              }
             break;
             }
           } // end of nested loop 3
@@ -191,10 +211,30 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
 
     if( isInside )
       {
+      if( verbose )
+        {
+        muLogMacro(<< "Integrity filter: " << std::endl);
+        integrityMetric->Print(std::cout);
+        }
       if( integrityMetric->Evaluate( sample ) )
         {
         maskIt.Set(1);
+        if( verbose )
+          {
+          muLogMacro(<< "Is pure: True" << std::endl);
+          }
         }
+      else
+        {
+        if( verbose )
+          {
+          muLogMacro(<< "Is pure: False" << std::endl);
+          }
+        }
+      }
+    if( verbose )
+      {
+      muLogMacro(<< "-----------" << std::endl);
       }
 
     ++maskIt;
