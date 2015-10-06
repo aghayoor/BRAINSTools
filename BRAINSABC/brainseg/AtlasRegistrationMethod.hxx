@@ -319,63 +319,13 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
                       << "m_IntraSubjectOriginalImageList.size() = " << m_IntraSubjectOriginalImageList.size() );
     }
 
-  for(MapOfFloatImageVectors::iterator mapOfModalImageListsIt = this->m_IntraSubjectOriginalImageList.begin();
-      mapOfModalImageListsIt != this->m_IntraSubjectOriginalImageList.end();
-      ++mapOfModalImageListsIt)
-    {
-    FloatImageVector::iterator currModeImageListIt = mapOfModalImageListsIt->second.begin();
-    InternalImagePointer currModalityKeySubjectImage = (*currModeImageListIt).GetPointer(); // the first image of current modality
-
-    FloatImageVector::iterator intraImIt = this->m_IntraSubjectOriginalImageList[mapOfModalImageListsIt->first].begin(); // each intra subject image
-    TransformList::iterator intraTxIt = this->m_IntraSubjectTransforms[mapOfModalImageListsIt->first].begin(); // each intra registration transform
-
-    this->m_RegisteredIntraSubjectImagesList[mapOfModalImageListsIt->first].clear(); //Ensure that pushing onto clean list
-    int i = 0;
-    while(currModeImageListIt != mapOfModalImageListsIt->second.end() )
-      {
-      if( (*intraImIt).GetPointer() == currModalityKeySubjectImage.GetPointer() ) // if the current intra subject image is the first image
-        {
-        this->m_RegisteredIntraSubjectImagesList[mapOfModalImageListsIt->first].push_back( (*intraImIt).GetPointer() );
-        }
-      else // resample the current intra subject image to the first image of the current modality
-        {
-        typedef float                               VectorComponentType;
-        typedef itk::Vector<VectorComponentType, 3> VectorPixelType;
-        typedef itk::Image<VectorPixelType,  3>     DisplacementFieldType;
-        InternalImagePointer resampledImage
-                                = GenericTransformImage<InternalImageType,
-                                                        InternalImageType,
-                                                        DisplacementFieldType>( (*intraImIt).GetPointer(),
-                                                                               currModalityKeySubjectImage.GetPointer(),
-                                                                               (*intraTxIt).GetPointer(),
-                                                                               0,
-                                                                               "Linear",
-                                                                               false);
-        if( this->m_DebugLevel > 7 )
-          {
-          typedef itk::ImageFileWriter<InternalImageType> WriterType;
-          WriterType::Pointer writer = WriterType::New();
-          writer->UseCompressionOn();
-
-          std::ostringstream oss;
-          oss << this->m_OutputDebugDir << "Warped_" << mapOfModalImageListsIt->first
-                                        << "_IntraSubject_to_KeySubjectImage_" << i <<  ".nii.gz" << std::ends;
-          std::string fn = oss.str();
-
-          writer->SetInput( resampledImage );
-          writer->SetFileName(fn.c_str() );
-          writer->Update();
-          muLogMacro( << __FILE__ << " " << __LINE__ << " "  <<  std::endl );
-          }
-
-        this->m_RegisteredIntraSubjectImagesList[mapOfModalImageListsIt->first].push_back( resampledImage );
-        }
-      i++;
-      ++currModeImageListIt;
-      ++intraImIt;
-      ++intraTxIt;
-      }
-    }
+  this->m_RegisteredIntraSubjectImagesList.clear(); //Ensure that pushing onto clean list
+  // Use resampleInPlace to transform all images to the physical space of the first key image.
+  // Then, use linear interpolation to resample all within modality images to a same voxel space.
+  this->m_RegisteredIntraSubjectImagesList =
+    ResampleInPlaceImageList("Linear",
+                             this->m_IntraSubjectOriginalImageList,
+                             this->m_IntraSubjectTransforms);
 
   muLogMacro(<< "Average co-registered Intra subject images" << std::endl);
   this->m_ModalityAveragedOfIntraSubjectImages.clear(); //Ensure that pushing onto clean list
