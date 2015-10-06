@@ -304,11 +304,6 @@ private:
   typename TInputImage::Pointer
   NormalizeInputIntensityImage(const typename TInputImage::Pointer inputImage);
 
-  ByteImagePointer
-  GeneratePurePlugMask(const InputImageVector & inputImageList,
-                       const float threshold,
-                       const ByteImageType::SizeType & numberOfContinuousIndexSubSamples);
-
   void
   kNNCore( SampleType * trainMatrix,
            const vnl_vector<FloatingPrecision> & labelVector,
