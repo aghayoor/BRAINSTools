@@ -254,6 +254,14 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                                                            true );
     if( purePlugMask.IsNotNull() )
       {
+      if( this->m_DebugLevel > 6 )
+        {
+        typedef typename itk::ImageFileWriter<ByteImageType> MaskWriterType;
+        typename MaskWriterType::Pointer maskwriter = MaskWriterType::New();
+        maskwriter->SetInput( purePlugMask );
+        maskwriter->SetFileName("DEBUG_PURE_PLUG_MASK.nii.gz");
+        maskwriter->Update();
+        }
       purePlugMaskInterp->SetInputImage( purePlugMask.GetPointer() );
       }
     else

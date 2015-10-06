@@ -43,6 +43,8 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
   typedef itk::Statistics::IntegrityMetricMembershipFunction< SampleType > IntegrityMetricType;
 
   muLogMacro(<< "Generating pure plug mask..." << std::endl);
+  muLogMacro(<< "Threshold value is set to: " << threshold << std::endl);
+  muLogMacro(<< "Number of subsamples per each direction in voxel space: " << numberOfContinuousIndexSubSamples << std::endl);
 
   const unsigned int numberOfImageModalities =
     inputImages.size(); // number of modality images
@@ -197,12 +199,6 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
 
     ++maskIt;
     } // end of while loop
-
-  typedef typename itk::ImageFileWriter<ByteImageType> MaskWriterType;
-  typename MaskWriterType::Pointer maskwriter = MaskWriterType::New();
-  maskwriter->SetInput( mask );
-  maskwriter->SetFileName("DEBUG_PURE_PLUG_MASK.nii.gz");
-  maskwriter->Update();
 
   return mask;
 }

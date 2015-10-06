@@ -26,11 +26,8 @@
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 #include "itkRescaleIntensityImageFilter.h"
-#include "itkImageRegionIteratorWithIndex.h"
-#include "itkNearestNeighborInterpolateImageFunction.h"
 
-#include "itkIntegrityMetricMembershipFunction.h"
-
+#include "GeneratePurePlugMask.h"
 #include "GeneratePurePlugMaskCLP.h"
 
 int main( int argc, char * argv[] )
@@ -44,12 +41,6 @@ int main( int argc, char * argv[] )
   typedef itk::RescaleIntensityImageFilter< FloatImageType, FloatImageType >  RescaleFilterType;
   typedef itk::Image<unsigned char, 3>                                        MaskImageType;
 
-  typedef itk::NearestNeighborInterpolateImageFunction< FloatImageType, double > NNInterpolationType;
-
-  typedef itk::VariableLengthVector< float >                               MeasurementVectorType;
-  typedef itk::Statistics::ListSample< MeasurementVectorType >             SampleType;
-  typedef itk::Statistics::IntegrityMetricMembershipFunction< SampleType > IntegrityMetricType;
-
   std::vector<std::string> inputFileNames;
   if( inputImageModalities.size() > 1 )
     {
@@ -61,13 +52,9 @@ int main( int argc, char * argv[] )
     return EXIT_FAILURE;
     }
   const unsigned int numberOfImageModalities = inputFileNames.size(); // number of modality images
-  //const float threshold( Threshold ); // threshold value
 
   // Read the input modalities and set them in a vector of images
   typedef LocalReaderType::Pointer             LocalReaderPointer;
-
-  MaskImageType::SpacingType maskSpacing;
-  maskSpacing.Fill(0);
 
   InputImageList inputImageModalitiesList;
   for( unsigned int i = 0; i < numberOfImageModalities; i++ )
@@ -96,45 +83,7 @@ int main( int argc, char * argv[] )
 
      FloatImagePointer currImage = rescaleFilter->GetOutput();
      inputImageModalitiesList.push_back( currImage );
-
-     // Pure plug mask should have the highest spacing (lowest resolution) at each direction
-     FloatImageType::SpacingType currImageSpacing = currImage->GetSpacing();
-     for( unsigned int s = 0; s < 3; s++ )
-        {
-        if( currImageSpacing[s] > maskSpacing[s] )
-          {
-          maskSpacing[s] = currImageSpacing[s];
-          }
-        }
      }
-
-  // Create an empty image for mask
-  //
-  MaskImageType::Pointer mask = MaskImageType::New();
-  // Spacing is set as the largest spacing at each direction
-  mask->SetSpacing( maskSpacing );
-  // Origin and direction are set from the first modality image
-  mask->SetOrigin( inputImageModalitiesList[0]->GetOrigin() );
-  mask->SetDirection( inputImageModalitiesList[0]->GetDirection() );
-  // The FOV of mask is set as the FOV of the first modality image
-  MaskImageType::SizeType maskSize;
-  FloatImageType::SizeType inputSize = inputImageModalitiesList[0]->GetLargestPossibleRegion().GetSize();
-  FloatImageType::SpacingType inputSpacing = inputImageModalitiesList[0]->GetSpacing();
-  maskSize[0] = itk::Math::Ceil<itk::SizeValueType>( inputSize[0]*inputSpacing[0]/maskSpacing[0] );
-  maskSize[1] = itk::Math::Ceil<itk::SizeValueType>( inputSize[1]*inputSpacing[1]/maskSpacing[1] );
-  maskSize[2] = itk::Math::Ceil<itk::SizeValueType>( inputSize[2]*inputSpacing[2]/maskSpacing[2] );
-  // mask start index
-  MaskImageType::IndexType maskStart;
-  maskStart.Fill(0);
-  // Set mask region
-  MaskImageType::RegionType maskRegion(maskStart, maskSize);
-  mask->SetRegions( maskRegion );
-  mask->Allocate();
-  mask->FillBuffer(0);
-  //------------------------------------------
-
-  IntegrityMetricType::Pointer integrityMetric = IntegrityMetricType::New();
-  integrityMetric->SetThreshold( threshold );
 
   // define step size based on the number of sub-samples at each direction
   MaskImageType::SizeType numberOfContinuousIndexSubSamples;
@@ -142,16 +91,13 @@ int main( int argc, char * argv[] )
   numberOfContinuousIndexSubSamples[1] = numberOfSubSamples[1];
   numberOfContinuousIndexSubSamples[2] = numberOfSubSamples[2];
 
-  MaskImageType::SpacingType stepSize;
-  stepSize[0] = maskSpacing[0]/numberOfContinuousIndexSubSamples[0];
-  stepSize[1] = maskSpacing[1]/numberOfContinuousIndexSubSamples[1];
-  stepSize[2] = maskSpacing[2]/numberOfContinuousIndexSubSamples[2];
+  MaskImageType::Pointer mask =
+    GeneratePurePlugMask<FloatImageType, MaskImageType>( inputImageModalitiesList,
+                                                        threshold,
+                                                        numberOfContinuousIndexSubSamples,
+                                                        true );
 
-  // Now iterate through the mask image
-  typedef itk::ImageRegionIteratorWithIndex< MaskImageType > MaskItType;
-  MaskItType maskIt( mask, mask->GetLargestPossibleRegion() );
-  maskIt.GoToBegin();
-
+/*
   while( ! maskIt.IsAtEnd() )
    {
    MaskImageType::IndexType idx = maskIt.GetIndex();
@@ -271,6 +217,7 @@ int main( int argc, char * argv[] )
 
    ++maskIt;
    } // end of mask iterator
+*/
 
   typedef itk::ImageFileWriter<MaskImageType> MaskWriterType;
   MaskWriterType::Pointer writer = MaskWriterType::New();
