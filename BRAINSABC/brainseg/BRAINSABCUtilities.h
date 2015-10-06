@@ -120,8 +120,7 @@ public:
  */
 extern MapOfFloatImageVectors
 ResampleImageListToFirstKeyImage(const std::string & resamplerInterpolatorType,
-                                 const MapOfFloatImageVectors & inputImageMap,
-                                 const FloatImageType::ConstPointer & KeyImageFirstRead);
+                                 const MapOfFloatImageVectors & inputImageMap);
 
 /*
  * This function, first, transforms all inputImageMap to the space of the first image of the map

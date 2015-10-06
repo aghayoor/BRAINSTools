@@ -43,10 +43,12 @@ template void ZeroNegativeValuesInPlace<FloatImageType>(  std::vector<FloatImage
 
 MapOfFloatImageVectors
 ResampleImageListToFirstKeyImage(const std::string & resamplerInterpolatorType,
-                                 const MapOfFloatImageVectors & inputImageMap,
-                                 const FloatImageType::ConstPointer & KeyImageFirstRead)
+                                 const MapOfFloatImageVectors & inputImageMap)
 {
   muLogMacro(<< "Resampling input image map to the first key image." << std::endl);
+
+  FloatImageType::ConstPointer KeyImageFirstRead =
+    GetMapVectorFirstElement(inputImageMap).GetPointer();
 
   // Clear image list
   MapOfFloatImageVectors outputImageMap;

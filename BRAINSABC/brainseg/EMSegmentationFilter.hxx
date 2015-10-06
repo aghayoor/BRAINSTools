@@ -1899,7 +1899,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     // to the lattice of the first key image using identity transform, since
     // they are already aligned in physical space.
     const MapOfInputImageVectors intensityImagesList =
-      ResampleImageListToFirstKeyImage("Linear",intensityList,this->GetFirstInputImage().GetPointer());
+      ResampleImageListToFirstKeyImage("Linear",intensityList);
 
     const unsigned int numberOfModes = TotalMapSize(intensityImagesList);
 
