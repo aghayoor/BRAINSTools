@@ -29,42 +29,49 @@
 
 template <class InputImageType, class ByteImageType>
 typename ByteImageType::Pointer
-GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & inputImageModalitiesList,
+GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & inputImages,
                      const float threshold,
-                     const typename ByteImageType::SizeType & numberOfContinuousIndexSubSamples)
+                     const typename ByteImageType::SizeType & numberOfContinuousIndexSubSamples,
+                     bool areInputsNormalized)
 {
   typedef typename itk::NearestNeighborInterpolateImageFunction<
-    InputImageType, double >                                           InputImageNNInterpolationType;
-  typedef std::vector<typename InputImageNNInterpolationType::Pointer> InputImageInterpolatorVector;
-
+    InputImageType, double >                                               InputImageNNInterpolationType;
+  typedef std::vector<typename InputImageNNInterpolationType::Pointer>     InputImageInterpolatorVector;
+  typedef std::vector<typename InputImageType::Pointer>                    InputImageVector;
   typedef itk::Array< double >                                             MeasurementVectorType;
   typedef itk::Statistics::ListSample< MeasurementVectorType >             SampleType;
   typedef itk::Statistics::IntegrityMetricMembershipFunction< SampleType > IntegrityMetricType;
 
   muLogMacro(<< "Generating pure plug mask..." << std::endl);
 
-  // Note that creation of the pure plug mask needs the input images being normalized between 0 and 1.
-  // Fortunately, this is already performed in ComputeKNNPosteriors function when input image modalities
-  // are adding to the inputImageVector by calling the "NormalizeInputIntensityImage" function.
-
   const unsigned int numberOfImageModalities =
-    inputImageModalitiesList.size(); // number of modality images
+    inputImages.size(); // number of modality images
 
-  InputImageInterpolatorVector             inputImageNNInterpolatorsVector;
+  InputImageVector                         normalizedInputModalImagesList( numberOfImageModalities );
+  InputImageInterpolatorVector             inputImageNNInterpolatorsVector( numberOfImageModalities );
 
   typename ByteImageType::SpacingType maskSpacing;
   maskSpacing.Fill(0);
 
   for( size_t i = 0; i < numberOfImageModalities; i++ )
     {
+    // Generation of the pure plug mask needs the input images being normalized between 0 and 1.
+    if( !areInputsNormalized )
+      {
+      normalizedInputModalImagesList[i] = NormalizeInputIntensityImage<InputImageType>( inputImages[i] );
+      }
+    else
+      {
+      normalizedInputModalImagesList[i] = inputImages[i];
+      }
     // create a vector of input image interpolators for evaluation of image values in physical space
     typename InputImageNNInterpolationType::Pointer inputImageInterp =
       InputImageNNInterpolationType::New();
-    inputImageInterp->SetInputImage( inputImageModalitiesList[i] );
-    inputImageNNInterpolatorsVector.push_back( inputImageInterp );
+    inputImageInterp->SetInputImage( normalizedInputModalImagesList[i] );
+    inputImageNNInterpolatorsVector[i] = inputImageInterp;
 
     // Pure plug mask should have the highest spacing (lowest resolution) at each direction
-    typename InputImageType::SpacingType currImageSpacing = inputImageModalitiesList[i]->GetSpacing();
+    typename InputImageType::SpacingType currImageSpacing = normalizedInputModalImagesList[i]->GetSpacing();
     for( size_t s = 0; s < 3; s++ )
       {
       if( currImageSpacing[s] > maskSpacing[s] )
@@ -81,12 +88,12 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
   // Spacing is set as the largest spacing at each direction
   mask->SetSpacing( maskSpacing );
   // Origin and direction are set from the first modality image
-  mask->SetOrigin( inputImageModalitiesList[0]->GetOrigin() );
-  mask->SetDirection( inputImageModalitiesList[0]->GetDirection() );
+  mask->SetOrigin( normalizedInputModalImagesList[0]->GetOrigin() );
+  mask->SetDirection( normalizedInputModalImagesList[0]->GetDirection() );
   // The FOV of mask is set as the FOV of the first modality image
   typename ByteImageType::SizeType maskSize;
-  typename InputImageType::SizeType inputSize = inputImageModalitiesList[0]->GetLargestPossibleRegion().GetSize();
-  typename InputImageType::SpacingType inputSpacing = inputImageModalitiesList[0]->GetSpacing();
+  typename InputImageType::SizeType inputSize = normalizedInputModalImagesList[0]->GetLargestPossibleRegion().GetSize();
+  typename InputImageType::SpacingType inputSpacing = normalizedInputModalImagesList[0]->GetSpacing();
   maskSize[0] = itk::Math::Ceil<itk::SizeValueType>( inputSize[0]*inputSpacing[0]/maskSpacing[0] );
   maskSize[1] = itk::Math::Ceil<itk::SizeValueType>( inputSize[1]*inputSpacing[1]/maskSpacing[1] );
   maskSize[2] = itk::Math::Ceil<itk::SizeValueType>( inputSize[2]*inputSpacing[2]/maskSpacing[2] );

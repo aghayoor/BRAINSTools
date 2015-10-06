@@ -245,10 +245,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   typename MaskNNInterpolationType::Pointer purePlugMaskInterp = MaskNNInterpolationType::New();
   if( usePurePlugs )
     {
+    // Input images are already normalized between 0 and 1, by calling "NormalizeInputIntensityImage"
+    // in ComputeKNNPosteriors function.
     purePlugMask =
       GeneratePurePlugMask<InputImageType, ByteImageType>( inputImagesVector,
                                                            threshold,
-                                                           numberOfContinuousIndexSubSamples );
+                                                           numberOfContinuousIndexSubSamples,
+                                                           true );
     if( purePlugMask.IsNotNull() )
       {
       purePlugMaskInterp->SetInputImage( purePlugMask.GetPointer() );
