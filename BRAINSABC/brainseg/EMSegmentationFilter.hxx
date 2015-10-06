@@ -284,13 +284,15 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   numberOfContinuousIndexSubSamples[1] = 2;
   numberOfContinuousIndexSubSamples[2] = 2;
   ////////////////////
+
   ByteImagePointer purePlugMask = ITK_NULLPTR;
   typename MaskNNInterpolationType::Pointer purePlugMaskInterp = MaskNNInterpolationType::New();
   if( usePurePlugs )
     {
-    purePlugMask = GeneratePurePlugMask(inputImagesVector,
-                                        threshold,
-                                        numberOfContinuousIndexSubSamples);
+    purePlugMask =
+      GeneratePurePlugMask<InputImageType, ByteImageType>( inputImagesVector,
+                                                           threshold,
+                                                           numberOfContinuousIndexSubSamples );
     if( purePlugMask.IsNotNull() )
       {
       purePlugMaskInterp->SetInputImage( purePlugMask.GetPointer() );
