@@ -72,17 +72,9 @@ typename ImageType::Pointer StandardizeMaskIntensity(
     numBins = MAX_IMAGE_OUTPUT_VALUE;
     }
 
-  // resample input mask to the voxel lattice of the input image
-  // mask and input image are already at the same physical space
-  typename LabelImageType::Pointer resampledMask =
-    ResampleImageWithIdentityTransform<LabelImageType>( "NearestNeighbor",
-                                                       0,
-                                                       mask.GetPointer(),
-                                                       image.GetPointer() );
-
   const typename LabelImageType::PixelType maskInteriorLabel = 1;
   typename LabelImageType::Pointer internalMask;
-  if( resampledMask.IsNull() )
+  if( mask.IsNull() )
     {
     internalMask = LabelImageType::New();
     internalMask->CopyInformation(image);
@@ -92,6 +84,14 @@ typename ImageType::Pointer StandardizeMaskIntensity(
     }
   else
     {
+    // resample input mask to the voxel lattice of the input image
+    // mask and input image are already at the same physical space
+    typename LabelImageType::Pointer resampledMask =
+      ResampleImageWithIdentityTransform<LabelImageType>( "NearestNeighbor",
+                                                         0,
+                                                         mask.GetPointer(),
+                                                         image.GetPointer() );
+
     typename itk::ThresholdImageFilter<LabelImageType>::Pointer thresholdFilter
       = itk::ThresholdImageFilter<LabelImageType>::New();
 

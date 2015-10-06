@@ -216,8 +216,8 @@ ResampleImageWithIdentityTransform(const std::string & resamplerInterpolatorType
   resampler->SetOutputParametersFromImage( referenceImage );
   resampler->Update();
 
-  typename ImageType::Pointer rimg = resampler->GetOutput();
-  return rimg;
+  typename ImageType::Pointer resimg = resampler->GetOutput();
+  return resimg;
 }
 
 
