@@ -298,9 +298,6 @@ private:
 
   void InitializePosteriors(void);
 
-  typename TInputImage::Pointer
-  NormalizeInputIntensityImage(const typename TInputImage::Pointer inputImage);
-
   void
   kNNCore( SampleType * trainMatrix,
            const vnl_vector<FloatingPrecision> & labelVector,

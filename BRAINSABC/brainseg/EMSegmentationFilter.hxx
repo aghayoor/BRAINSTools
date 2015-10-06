@@ -79,50 +79,6 @@ static const FloatingPrecision KNN_InclusionThreshold = 0.85F;
 
 ///////////////////////////////////////////////// Posterior computation by kNN //////////////////////////////////////////////
 template <class TInputImage, class TProbabilityImage>
-typename TInputImage::Pointer
-EMSegmentationFilter<TInputImage, TProbabilityImage>
-::NormalizeInputIntensityImage(typename TInputImage::Pointer inputImage)
-{
-  muLogMacro(<< "\nNormalize input intensity images..." << std::endl);
-
-  typedef typename itk::Statistics::ImageToHistogramFilter<TInputImage>   HistogramFilterType;
-  typedef typename HistogramFilterType::InputBooleanObjectType            InputBooleanObjectType;
-  typedef typename HistogramFilterType::HistogramSizeType                 HistogramSizeType;
-
-  HistogramSizeType histogramSize( 1 );
-  histogramSize[0] = 256;
-
-  typename InputBooleanObjectType::Pointer autoMinMaxInputObject = InputBooleanObjectType::New();
-  autoMinMaxInputObject->Set( true );
-
-  typename HistogramFilterType::Pointer histogramFilter = HistogramFilterType::New();
-  histogramFilter->SetInput( inputImage );
-  histogramFilter->SetAutoMinimumMaximumInput( autoMinMaxInputObject );
-  histogramFilter->SetHistogramSize( histogramSize );
-  histogramFilter->SetMarginalScale( 10.0 );
-  histogramFilter->Update();
-
-  float lowerValue = histogramFilter->GetOutput()->Quantile( 0, 0 );
-  float upperValue = histogramFilter->GetOutput()->Quantile( 0, 1 );
-
-  typedef typename itk::IntensityWindowingImageFilter<TInputImage, TInputImage> IntensityWindowingImageFilterType;
-  typename IntensityWindowingImageFilterType::Pointer windowingFilter = IntensityWindowingImageFilterType::New();
-  windowingFilter->SetInput( inputImage );
-  windowingFilter->SetWindowMinimum( lowerValue );
-  windowingFilter->SetWindowMaximum( upperValue );
-  windowingFilter->SetOutputMinimum( 0 );
-  windowingFilter->SetOutputMaximum( 1 );
-  windowingFilter->Update();
-
-  typename TInputImage::Pointer outputImage = ITK_NULLPTR;
-  outputImage = windowingFilter->GetOutput();
-  outputImage->Update();
-  outputImage->DisconnectPipeline();
-
-  return outputImage;
-}
-
-template <class TInputImage, class TProbabilityImage>
 void
 EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::kNNCore( SampleType * trainSampleSet,
@@ -262,7 +218,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     for(unsigned m = 0; m < numCurModality; ++m)
       {
       // Normalize the input images since the priors are normalized already
-      InputImagePointer normalizedInputImage = NormalizeInputIntensityImage( mapIt->second[m] );
+      InputImagePointer normalizedInputImage = NormalizeInputIntensityImage<InputImageType>( mapIt->second[m] );
       // Set the normalized input image into the input images vector
       inputImagesVector.push_back( normalizedInputImage );
       // create a vector of input image interpolators for evaluation of image values in physical space

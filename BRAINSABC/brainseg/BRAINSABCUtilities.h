@@ -219,6 +219,48 @@ ResampleImageWithIdentityTransform(const std::string & resamplerInterpolatorType
   return resimg;
 }
 
+template <class ImageType>
+typename ImageType::Pointer
+NormalizeInputIntensityImage(const typename ImageType::Pointer inputImage)
+{
+  muLogMacro(<< "\nNormalize input intensity images..." << std::endl);
+
+  typedef typename itk::Statistics::ImageToHistogramFilter<ImageType>     HistogramFilterType;
+  typedef typename HistogramFilterType::InputBooleanObjectType            InputBooleanObjectType;
+  typedef typename HistogramFilterType::HistogramSizeType                 HistogramSizeType;
+
+  HistogramSizeType histogramSize( 1 );
+  histogramSize[0] = 256;
+
+  typename InputBooleanObjectType::Pointer autoMinMaxInputObject = InputBooleanObjectType::New();
+  autoMinMaxInputObject->Set( true );
+
+  typename HistogramFilterType::Pointer histogramFilter = HistogramFilterType::New();
+  histogramFilter->SetInput( inputImage );
+  histogramFilter->SetAutoMinimumMaximumInput( autoMinMaxInputObject );
+  histogramFilter->SetHistogramSize( histogramSize );
+  histogramFilter->SetMarginalScale( 10.0 );
+  histogramFilter->Update();
+
+  float lowerValue = histogramFilter->GetOutput()->Quantile( 0, 0 );
+  float upperValue = histogramFilter->GetOutput()->Quantile( 0, 1 );
+
+  typedef typename itk::IntensityWindowingImageFilter<ImageType, ImageType> IntensityWindowingImageFilterType;
+  typename IntensityWindowingImageFilterType::Pointer windowingFilter = IntensityWindowingImageFilterType::New();
+  windowingFilter->SetInput( inputImage );
+  windowingFilter->SetWindowMinimum( lowerValue );
+  windowingFilter->SetWindowMaximum( upperValue );
+  windowingFilter->SetOutputMinimum( 0 );
+  windowingFilter->SetOutputMaximum( 1 );
+  windowingFilter->Update();
+
+  typename ImageType::Pointer outputImage = ITK_NULLPTR;
+  outputImage = windowingFilter->GetOutput();
+  outputImage->Update();
+  outputImage->DisconnectPipeline();
+
+  return outputImage;
+}
 
 // debug output for map of vector structure
 template <class TMap>
