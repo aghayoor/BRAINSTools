@@ -29,13 +29,17 @@
 
 template <class InputImageType, class ByteImageType>
 typename ByteImageType::Pointer
-::GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & inputImageModalitiesList,
-                       const float threshold,
-                       const typename ByteImageType::SizeType & numberOfContinuousIndexSubSamples)
+GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & inputImageModalitiesList,
+                     const float threshold,
+                     const typename ByteImageType::SizeType & numberOfContinuousIndexSubSamples)
 {
   typedef typename itk::NearestNeighborInterpolateImageFunction<
     InputImageType, double >                                           InputImageNNInterpolationType;
   typedef std::vector<typename InputImageNNInterpolationType::Pointer> InputImageInterpolatorVector;
+
+  typedef itk::Array< double >                                             MeasurementVectorType;
+  typedef itk::Statistics::ListSample< MeasurementVectorType >             SampleType;
+  typedef itk::Statistics::IntegrityMetricMembershipFunction< SampleType > IntegrityMetricType;
 
   muLogMacro(<< "Generating pure plug mask..." << std::endl);
 
@@ -73,24 +77,24 @@ typename ByteImageType::Pointer
   /*
    * Create an all zero mask image
    */
-  ByteImageType::Pointer mask = ByteImageType::New();
+  typename ByteImageType::Pointer mask = ByteImageType::New();
   // Spacing is set as the largest spacing at each direction
   mask->SetSpacing( maskSpacing );
   // Origin and direction are set from the first modality image
   mask->SetOrigin( inputImageModalitiesList[0]->GetOrigin() );
   mask->SetDirection( inputImageModalitiesList[0]->GetDirection() );
   // The FOV of mask is set as the FOV of the first modality image
-  ByteImageType::SizeType maskSize;
+  typename ByteImageType::SizeType maskSize;
   typename InputImageType::SizeType inputSize = inputImageModalitiesList[0]->GetLargestPossibleRegion().GetSize();
   typename InputImageType::SpacingType inputSpacing = inputImageModalitiesList[0]->GetSpacing();
   maskSize[0] = itk::Math::Ceil<itk::SizeValueType>( inputSize[0]*inputSpacing[0]/maskSpacing[0] );
   maskSize[1] = itk::Math::Ceil<itk::SizeValueType>( inputSize[1]*inputSpacing[1]/maskSpacing[1] );
   maskSize[2] = itk::Math::Ceil<itk::SizeValueType>( inputSize[2]*inputSpacing[2]/maskSpacing[2] );
   // mask start index
-  ByteImageType::IndexType maskStart;
+  typename ByteImageType::IndexType maskStart;
   maskStart.Fill(0);
   // Set mask region
-  ByteImageType::RegionType maskRegion(maskStart, maskSize);
+  typename ByteImageType::RegionType maskRegion(maskStart, maskSize);
   mask->SetRegions( maskRegion );
   mask->Allocate();
   mask->FillBuffer(0);
@@ -100,13 +104,13 @@ typename ByteImageType::Pointer
   integrityMetric->SetThreshold( threshold );
 
   // define step size based on the number of sub-samples at each direction
-  ByteImageType::SpacingType stepSize;
+  typename ByteImageType::SpacingType stepSize;
   stepSize[0] = maskSpacing[0]/numberOfContinuousIndexSubSamples[0];
   stepSize[1] = maskSpacing[1]/numberOfContinuousIndexSubSamples[1];
   stepSize[2] = maskSpacing[2]/numberOfContinuousIndexSubSamples[2];
 
   // Now iterate through the mask image
-  typedef itk::ImageRegionIteratorWithIndex< ByteImageType > MaskItType;
+  typedef typename itk::ImageRegionIteratorWithIndex< ByteImageType > MaskItType;
   MaskItType maskIt( mask, mask->GetLargestPossibleRegion() );
   maskIt.GoToBegin();
 
@@ -115,7 +119,7 @@ typename ByteImageType::Pointer
     typename ByteImageType::IndexType idx = maskIt.GetIndex();
 
     // A sample list is created for every index that is inside all input images buffers
-    typename SampleType::Pointer sample = SampleType::New();
+    SampleType::Pointer sample = SampleType::New();
     sample->SetMeasurementVectorSize( numberOfImageModalities );
 
     // flag that helps to break from loops if the current continous index is
@@ -187,7 +191,7 @@ typename ByteImageType::Pointer
     ++maskIt;
     } // end of while loop
 
-  typedef itk::ImageFileWriter<ByteImageType> MaskWriterType;
+  typedef typename itk::ImageFileWriter<ByteImageType> MaskWriterType;
   typename MaskWriterType::Pointer maskwriter = MaskWriterType::New();
   maskwriter->SetInput( mask );
   maskwriter->SetFileName("DEBUG_PURE_PLUG_MASK.nii.gz");

@@ -116,8 +116,6 @@ public:
   typedef itk::Array< FloatingPrecision >                       MeasurementVectorType;
   typedef itk::Statistics::ListSample< MeasurementVectorType >  SampleType;
 
-  typedef itk::Statistics::IntegrityMetricMembershipFunction< SampleType > IntegrityMetricType;
-
   typedef itk::NearestNeighborInterpolateImageFunction< InputImageType, double > InputImageNNInterpolationType;
   typedef itk::NearestNeighborInterpolateImageFunction< ByteImageType, double >  MaskNNInterpolationType;
 
