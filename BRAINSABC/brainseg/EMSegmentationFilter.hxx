@@ -1074,10 +1074,23 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   std::vector<RegionStats> outputStats;
 
-  // IPEK CombinedComputeDistributions is also used by
-  // LLSBiasCorrector which unfortunately does NOT keep track of the
-  // types of input images.  So there may need to be a custom version
-  // of this method that groups by image type
+  /*
+   // HACK(ALI):
+   if( usePurePlugs && purePlugMask.IsNotNull() )
+     {
+     ResampleImageWithIdentityTransform<MaskImageType>("NearestNeighbor",0,purePlugMask,SubjectCandidateRegions[0]);
+     // Note: run above resampling only one time outside of the loop
+     // Inside "LLSBiasCorrector", biasCandidateRegions are
+     // passed to CombinedComputeDistributions where only
+     // pure samples should be used for distributions computations.
+     biasCandidateRegions.push_back( purePlugMask * CandidateRegions[iclass] );
+     }
+   else
+     {
+     biasCandidateRegions.push_back(CandidateRegions[iclass]);
+     }
+   */
+
   CombinedComputeDistributions<TInputImage, TProbabilityImage, MatrixType>(SubjectCandidateRegions,
                                                                            this->m_CorrectedImages,
                                                                            probabilityMaps,
@@ -2603,6 +2616,24 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       // Focus only on FG classes, more accurate if bg classification is bad
       // but sacrifices accuracy in border regions (tend to overcorrect)
       biasPosteriors.push_back(probImages[iclass]);
+
+      /*
+      // HACK(ALI):
+      if( usePurePlugs && purePlugMask.IsNotNull() )
+        {
+        ResampleImageWithIdentityTransform<MaskImageType>("NearestNeighbor",0,purePlugMask,CandidateRegions[0]);
+        // Note: run above resampling only one time outside of the loop
+        // Inside "LLSBiasCorrector", biasCandidateRegions are
+        // passed to CombinedComputeDistributions where only
+        // pure samples should be used for distributions computations.
+        biasCandidateRegions.push_back( purePlugMask * CandidateRegions[iclass] );
+        }
+      else
+        {
+        biasCandidateRegions.push_back(CandidateRegions[iclass]);
+        }
+      */
+
       biasCandidateRegions.push_back(CandidateRegions[iclass]);
       }
     }
