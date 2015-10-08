@@ -233,7 +233,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   muLogMacro(<< "Number of total input images: " << numOfInputImages << std::endl);
 
   ///// TODO: These should be set by command line
-  bool usePurePlugs = false;
   float threshold = 0.2;
   ByteImageType::SizeType numberOfContinuousIndexSubSamples;
   numberOfContinuousIndexSubSamples[0] = 2;
@@ -241,28 +240,27 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   numberOfContinuousIndexSubSamples[2] = 2;
   ////////////////////
 
-  ByteImagePointer purePlugMask = ITK_NULLPTR;
   typename MaskNNInterpolationType::Pointer purePlugMaskInterp = MaskNNInterpolationType::New();
-  if( usePurePlugs )
+  if( m_UsePurePlugs )
     {
     // Input images are already normalized between 0 and 1, by calling "NormalizeInputIntensityImage"
     // in ComputeKNNPosteriors function.
-    purePlugMask =
+    this->m_PurePlugsMask =
       GeneratePurePlugMask<InputImageType, ByteImageType>( inputImagesVector,
                                                            threshold,
                                                            numberOfContinuousIndexSubSamples,
                                                            true );
-    if( purePlugMask.IsNotNull() )
+    if( this->m_PurePlugsMask.IsNotNull() )
       {
       if( this->m_DebugLevel > 6 )
         {
         typedef typename itk::ImageFileWriter<ByteImageType> MaskWriterType;
         typename MaskWriterType::Pointer maskwriter = MaskWriterType::New();
-        maskwriter->SetInput( purePlugMask );
+        maskwriter->SetInput( this->m_PurePlugsMask );
         maskwriter->SetFileName("DEBUG_PURE_PLUG_MASK.nii.gz");
         maskwriter->Update();
         }
-      purePlugMaskInterp->SetInputImage( purePlugMask.GetPointer() );
+      purePlugMaskInterp->SetInputImage( this->m_PurePlugsMask.GetPointer() );
       }
     else
       {
@@ -308,14 +306,14 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
       // Now check whether the currentIndex belongs to a pure plug or not.
       bool isPure = true;
-      if( usePurePlugs && purePlugMask.IsNotNull() )
+      if( m_UsePurePlugs && m_PurePlugsMask.IsNotNull() )
         {
         ByteImageType::PointType samplePoint;
         labelsImage->TransformIndexToPhysicalPoint( currentIndex, samplePoint );
         isPure = bool( purePlugMaskInterp->Evaluate( samplePoint ) );
         }
 
-      if( isPure ) // To keep legacy behaviour, this flag is always true if "usePurePlugs" is not used.
+      if( isPure ) // To keep legacy behaviour, this flag is always true if "m_UsePurePlugs" is false.
         {
         SampledLabelsMap[ currLabelCode ].push_back( currentIndex );
         ++sampleCount;
@@ -1079,14 +1077,14 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   /*
    // HACK(ALI):
-   if( usePurePlugs && purePlugMask.IsNotNull() )
+   if( m_UsePurePlugs && m_PurePlugsMask.IsNotNull() )
      {
-     ResampleImageWithIdentityTransform<MaskImageType>("NearestNeighbor",0,purePlugMask,SubjectCandidateRegions[0]);
+     ResampleImageWithIdentityTransform<MaskImageType>("NearestNeighbor",0,m_PurePlugsMask,SubjectCandidateRegions[0]);
      // Note: run above resampling only one time outside of the loop
      // Inside "LLSBiasCorrector", biasCandidateRegions are
      // passed to CombinedComputeDistributions where only
      // pure samples should be used for distributions computations.
-     biasCandidateRegions.push_back( purePlugMask * CandidateRegions[iclass] );
+     biasCandidateRegions.push_back( m_PurePlugsMask * CandidateRegions[iclass] );
      }
    else
      {
@@ -2622,14 +2620,14 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
       /*
       // HACK(ALI):
-      if( usePurePlugs && purePlugMask.IsNotNull() )
+      if( m_UsePurePlugs && m_PurePlugsMask.IsNotNull() )
         {
-        ResampleImageWithIdentityTransform<MaskImageType>("NearestNeighbor",0,purePlugMask,CandidateRegions[0]);
+        ResampleImageWithIdentityTransform<MaskImageType>("NearestNeighbor",0,m_PurePlugsMask,CandidateRegions[0]);
         // Note: run above resampling only one time outside of the loop
         // Inside "LLSBiasCorrector", biasCandidateRegions are
         // passed to CombinedComputeDistributions where only
         // pure samples should be used for distributions computations.
-        biasCandidateRegions.push_back( purePlugMask * CandidateRegions[iclass] );
+        biasCandidateRegions.push_back( m_PurePlugsMask * CandidateRegions[iclass] );
         }
       else
         {
