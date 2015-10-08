@@ -600,6 +600,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   m_UseKNN = false;
 
+  m_UsePurePlugs = false
+  m_PurePlugsMask = ITK_NULLPTR;
+
   m_UpdateTransformation = false;
 
   m_DebugLevel = 0;

@@ -243,6 +243,14 @@
     </boolean>
 
     <boolean>
+      <name>usePurePlugs</name>
+      <description>Use pure plugs to take training samples for KNN classification, and also in compute distributions in EM classification and bias field correction.</description>
+      <label>Use Pure Plugs for classification and bias correction stages</label>
+      <longflag>usePurePlugs</longflag>
+      <default>false</default>
+    </boolean>
+
+    <boolean>
       <name>atlasWarpingOff</name>
       <default>false</default>
       <label>Turn off warping from atlas to subject space.</label>
