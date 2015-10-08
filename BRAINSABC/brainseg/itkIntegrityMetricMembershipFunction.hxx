@@ -79,7 +79,7 @@ IntegrityMetricMembershipFunction< TSample >
   // Sanity check
   if( cov.GetVnlMatrix().rows() != cov.GetVnlMatrix().cols() )
     {
-    itkExceptionMacro(<< "Covariance matrix must be square");
+    itkExceptionMacro(<< "Covariance matrix must be square.");
     }
 
   if( this->GetMeasurementVectorSize() )
@@ -109,6 +109,17 @@ bool
 IntegrityMetricMembershipFunction< TSample >
 ::Evaluate(const SampleType * measurementSample)
 {
+  if( measurementSample->Size() == 0 )
+    {
+    itkExceptionMacro(<< "There is no entry in input measurement sample.");
+    }
+
+  // If there is only one measurement sample per each plug area, that plug is pure!
+  if( measurementSample->Size() == 1 )
+    {
+    return true;
+    }
+
   // compute mean and covariance
   typedef itk::Statistics::CovarianceSampleFilter< SampleType > CovarianceAlgorithmType;
   typename CovarianceAlgorithmType::Pointer covarianceAlgorithm = CovarianceAlgorithmType::New();
