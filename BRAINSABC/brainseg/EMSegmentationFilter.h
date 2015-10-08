@@ -131,6 +131,14 @@ public:
   itkSetMacro(PurePlugsThreshold, float);
   itkGetMacro(PurePlugsThreshold, float);
 
+  void SetNumberOfSubSamplesInEachPlugArea(unsigned int nx, unsigned int ny, unsigned int nz)
+    {
+    m_NumberOfSubSamplesInEachPlugArea[0] = nx;
+    m_NumberOfSubSamplesInEachPlugArea[1] = ny;
+    m_NumberOfSubSamplesInEachPlugArea[2] = nz;
+    this->Modified();
+    }
+
   // Set/Get the maximum polynomial degree of the bias field estimate
   itkSetMacro(MaxBiasDegree, unsigned int);
   itkGetMacro(MaxBiasDegree, unsigned int);
@@ -453,6 +461,7 @@ private:
 
   bool              m_UsePurePlugs;
   float             m_PurePlugsThreshold;
+  unsigned int      m_NumberOfSubSamplesInEachPlugArea[3];
   ByteImagePointer  m_PurePlugsMask;
 
   bool         m_UpdateTransformation;

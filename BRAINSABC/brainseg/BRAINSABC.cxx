@@ -1020,6 +1020,10 @@ int main(int argc, char * *argv)
 
     segfilter->SetUsePurePlugs(usePurePlugs);
     segfilter->SetPurePlugsThreshold(purePlugsThreshold);
+    segfilter->SetNumberOfSubSamplesInEachPlugArea(
+      numberOfSubSamplesInEachPlugArea[0],
+      numberOfSubSamplesInEachPlugArea[1],
+      numberOfSubSamplesInEachPlugArea[2]);
 
     std::vector<FloatImagePointer> atlasOriginalPriors( PriorNames.size() );
     unsigned int                   AirIndex = 10000;

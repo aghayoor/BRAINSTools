@@ -571,6 +571,11 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   m_UsePurePlugs = false;
   m_PurePlugsThreshold = 0.2;
+
+  m_NumberOfSubSamplesInEachPlugArea[0] = 0;
+  m_NumberOfSubSamplesInEachPlugArea[1] = 0;
+  m_NumberOfSubSamplesInEachPlugArea[2] = 0;
+
   m_PurePlugsMask = ITK_NULLPTR;
 
   m_UpdateTransformation = false;
@@ -2324,12 +2329,10 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   if( m_UsePurePlugs )
     {
-    ///// TODO: These should be set by command line
     ByteImageType::SizeType numberOfContinuousIndexSubSamples;
-    numberOfContinuousIndexSubSamples[0] = 2;
-    numberOfContinuousIndexSubSamples[1] = 2;
-    numberOfContinuousIndexSubSamples[2] = 2;
-    ////////////////////
+    numberOfContinuousIndexSubSamples[0] = m_NumberOfSubSamplesInEachPlugArea[0];
+    numberOfContinuousIndexSubSamples[1] = m_NumberOfSubSamplesInEachPlugArea[1];
+    numberOfContinuousIndexSubSamples[2] = m_NumberOfSubSamplesInEachPlugArea[2];
 
     // set all multi modal input images to an image vector type
     InputImageVector                         inputImagesVector;
