@@ -569,7 +569,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
   m_UseKNN = false;
 
-  m_UsePurePlugs = false
+  m_UsePurePlugs = false;
   m_PurePlugsMask = ITK_NULLPTR;
 
   m_UpdateTransformation = false;
@@ -2305,18 +2305,31 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     itkExceptionMacro( << "ERROR:  Must suppply an intial transformation!" );
     }
 
-  ///// TODO: These should be set by command line
-  float threshold = 0.2;
-  ByteImageType::SizeType numberOfContinuousIndexSubSamples;
-  numberOfContinuousIndexSubSamples[0] = 2;
-  numberOfContinuousIndexSubSamples[1] = 2;
-  numberOfContinuousIndexSubSamples[2] = 2;
-  ////////////////////
-
   if( m_UsePurePlugs )
     {
+    ///// TODO: These should be set by command line
+    float threshold = 0.2;
+    ByteImageType::SizeType numberOfContinuousIndexSubSamples;
+    numberOfContinuousIndexSubSamples[0] = 2;
+    numberOfContinuousIndexSubSamples[1] = 2;
+    numberOfContinuousIndexSubSamples[2] = 2;
+    ////////////////////
+
+    // set all multi modal input images to an image vector type
+    InputImageVector                         inputImagesVector;
+    for(typename MapOfInputImageVectors::const_iterator mapIt = this->m_InputImages.begin();
+        mapIt != this->m_InputImages.end();
+        ++mapIt)
+      {
+      const size_t numCurModality = mapIt->second.size();
+      for(unsigned m = 0; m < numCurModality; ++m)
+        {
+        inputImagesVector.push_back( mapIt->second[m] );
+        }
+      }
+
     this->m_PurePlugsMask =
-      GeneratePurePlugMask<InputImageType, ByteImageType>( inputImagesVector, // TODO: create input images vector
+      GeneratePurePlugMask<InputImageType, ByteImageType>( inputImagesVector,
                                                           threshold,
                                                           numberOfContinuousIndexSubSamples,
                                                           false );
@@ -2334,7 +2347,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     else
       {
       itkGenericExceptionMacro( << "Error: Output pure plugs mask is null."
-                               << std::endl );
+                                << std::endl );
       }
     }
 
