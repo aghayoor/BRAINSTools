@@ -1039,31 +1039,47 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::ComputeDistributions(const ByteImageVectorType & SubjectCandidateRegions,
                        const ProbabilityImageVectorType & probAllDistributions)
 {
-  // IPEK This may be the only place where the images grouped by type are
-  // needed for computation.
   muLogMacro(<< "Computing Distributions" << std::endl );
   const ProbabilityImageVectorType & probabilityMaps = probAllDistributions;
 
-  std::vector<RegionStats> outputStats;
+  std::vector<RegionStats>             outputStats;
+  std::vector<ByteImageType::Pointer>  distributionsCandidateRegions;
 
-  /*
-   // HACK(ALI):
-   if( m_UsePurePlugs && m_PurePlugsMask.IsNotNull() )
-     {
-     ResampleImageWithIdentityTransform<MaskImageType>("NearestNeighbor",0,m_PurePlugsMask,SubjectCandidateRegions[0]);
-     // Note: run above resampling only one time outside of the loop
-     // Inside "LLSBiasCorrector", biasCandidateRegions are
-     // passed to CombinedComputeDistributions where only
-     // pure samples should be used for distributions computations.
-     biasCandidateRegions.push_back( m_PurePlugsMask * CandidateRegions[iclass] );
-     }
-   else
-     {
-     biasCandidateRegions.push_back(CandidateRegions[iclass]);
-     }
-   */
+  // resample the PurePlugsMask to the voxel lattice of the CandidateRegions
+  ByteImagePointer resampledPurePlugsMask = ITK_NULLPTR;
+  if( this->m_UsePurePlugs && this->m_PurePlugsMask.IsNotNull() )
+    {
+    resampledPurePlugsMask =
+      ResampleImageWithIdentityTransform<ByteImageType>( "NearestNeighbor",
+                                                        0,
+                                                        this->m_PurePlugsMask.GetPointer(),
+                                                        SubjectCandidateRegions[0].GetPointer() );
+    }
 
-  CombinedComputeDistributions<TInputImage, TProbabilityImage, MatrixType>(SubjectCandidateRegions,
+  const unsigned int  numClasses = SubjectCandidateRegions.size();
+  for( size_t iclass = 0; iclass < numClasses; iclass++ )
+    {
+    if( this->m_UsePurePlugs && resampledPurePlugsMask.IsNotNull() )
+      {
+      // Multiply each SubjectCandidateRegion to the resampledPurePlugsMask,
+      // since only pure samples should be used for distributions computations.
+      typedef itk::MultiplyImageFilter<ByteImageType, ByteImageType>
+        MultiplyImageFilterType;
+      typename MultiplyImageFilterType::Pointer multiplyFilter
+        = MultiplyImageFilterType::New();
+      multiplyFilter->SetInput1( resampledPurePlugsMask );
+      multiplyFilter->SetInput2( SubjectCandidateRegions[iclass] );
+      multiplyFilter->Update();
+
+      distributionsCandidateRegions.push_back( multiplyFilter->GetOutput() );
+      }
+    else
+      {
+      distributionsCandidateRegions.push_back( SubjectCandidateRegions[iclass] );
+      }
+    }
+
+  CombinedComputeDistributions<TInputImage, TProbabilityImage, MatrixType>(distributionsCandidateRegions,
                                                                            this->m_CorrectedImages,
                                                                            probabilityMaps,
                                                                            outputStats,
