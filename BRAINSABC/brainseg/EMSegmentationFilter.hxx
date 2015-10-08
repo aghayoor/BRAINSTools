@@ -2626,6 +2626,17 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   std::vector<FloatImageType::Pointer> biasPosteriors;
   std::vector<ByteImageType::Pointer>  biasCandidateRegions;
 
+  // resample the PurePlugsMask to the voxel lattice of the CandidateRegions
+  ByteImagePointer resampledPurePlugsMask = ITK_NULLPTR;
+  if( this->m_UsePurePlugs && this->m_PurePlugsMask.IsNotNull() )
+    {
+    resampledPurePlugsMask =
+      ResampleImageWithIdentityTransform<ByteImageType>( "NearestNeighbor",
+                                                          0,
+                                                          this->m_PurePlugsMask.GetPointer(),
+                                                          CandidateRegions[0].GetPointer() );
+    }
+
   for( unsigned int iclass = 0; iclass < numClasses; iclass++ )
     {
     const unsigned iprior = iclass;
@@ -2635,24 +2646,25 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       // but sacrifices accuracy in border regions (tend to overcorrect)
       biasPosteriors.push_back(probImages[iclass]);
 
-      /*
-      // HACK(ALI):
-      if( m_UsePurePlugs && m_PurePlugsMask.IsNotNull() )
+      if( this->m_UsePurePlugs && resampledPurePlugsMask.IsNotNull() )
         {
-        ResampleImageWithIdentityTransform<MaskImageType>("NearestNeighbor",0,m_PurePlugsMask,CandidateRegions[0]);
-        // Note: run above resampling only one time outside of the loop
         // Inside "LLSBiasCorrector", biasCandidateRegions are
         // passed to CombinedComputeDistributions where only
         // pure samples should be used for distributions computations.
-        biasCandidateRegions.push_back( m_PurePlugsMask * CandidateRegions[iclass] );
+        typedef itk::MultiplyImageFilter<ByteImageType, ByteImageType>
+          MultiplyImageFilterType;
+        typename MultiplyImageFilterType::Pointer multiplyFilter
+          = MultiplyImageFilterType::New();
+        multiplyFilter->SetInput1( resampledPurePlugsMask );
+        multiplyFilter->SetInput2( CandidateRegions[iclass] );
+        multiplyFilter->Update();
+
+        biasCandidateRegions.push_back( multiplyFilter->GetOutput() );
         }
       else
         {
-        biasCandidateRegions.push_back(CandidateRegions[iclass]);
+        biasCandidateRegions.push_back( CandidateRegions[iclass] );
         }
-      */
-
-      biasCandidateRegions.push_back(CandidateRegions[iclass]);
       }
     }
 
