@@ -232,43 +232,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   const size_t numOfInputImages = inputImagesVector.size();
   muLogMacro(<< "Number of total input images: " << numOfInputImages << std::endl);
 
-  ///// TODO: These should be set by command line
-  float threshold = 0.2;
-  ByteImageType::SizeType numberOfContinuousIndexSubSamples;
-  numberOfContinuousIndexSubSamples[0] = 2;
-  numberOfContinuousIndexSubSamples[1] = 2;
-  numberOfContinuousIndexSubSamples[2] = 2;
-  ////////////////////
-
-  typename MaskNNInterpolationType::Pointer purePlugMaskInterp = MaskNNInterpolationType::New();
-  if( m_UsePurePlugs )
-    {
-    // Input images are already normalized between 0 and 1, by calling "NormalizeInputIntensityImage"
-    // in ComputeKNNPosteriors function.
-    this->m_PurePlugsMask =
-      GeneratePurePlugMask<InputImageType, ByteImageType>( inputImagesVector,
-                                                           threshold,
-                                                           numberOfContinuousIndexSubSamples,
-                                                           true );
-    if( this->m_PurePlugsMask.IsNotNull() )
-      {
-      if( this->m_DebugLevel > 6 )
-        {
-        typedef typename itk::ImageFileWriter<ByteImageType> MaskWriterType;
-        typename MaskWriterType::Pointer maskwriter = MaskWriterType::New();
-        maskwriter->SetInput( this->m_PurePlugsMask );
-        maskwriter->SetFileName("DEBUG_PURE_PLUG_MASK.nii.gz");
-        maskwriter->Update();
-        }
-      purePlugMaskInterp->SetInputImage( this->m_PurePlugsMask.GetPointer() );
-      }
-    else
-      {
-      itkGenericExceptionMacro( << "Error: Output pure plug mask is null."
-                                << std::endl );
-      }
-    }
-
   const size_t KNN_SamplesPerLabel = 75;//std::min<size_t>(minLabelCount,75);
 
   // Set train sample set and the label vector by picking samples from label image.
@@ -285,6 +248,13 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     {
     SampledLabelsMap[ labelClasses[i] ].reserve(KNN_SamplesPerLabel);
     reverseLabelToIndex[ labelClasses[i] ] = i;
+    }
+
+  typename MaskNNInterpolationType::Pointer purePlugsMaskInterp = ITK_NULLPTR;
+  if( m_UsePurePlugs && m_PurePlugsMask.IsNotNull() )
+    {
+    purePlugsMaskInterp = MaskNNInterpolationType::New();
+    purePlugsMaskInterp->SetInputImage( this->m_PurePlugsMask.GetPointer() );
     }
 
   // randomly iterate through the label image
@@ -306,14 +276,15 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
       // Now check whether the currentIndex belongs to a pure plug or not.
       bool isPure = true;
-      if( m_UsePurePlugs && m_PurePlugsMask.IsNotNull() )
+      if( m_UsePurePlugs && purePlugsMaskInterp.IsNotNull() )
         {
-        ByteImageType::PointType samplePoint;
-        labelsImage->TransformIndexToPhysicalPoint( currentIndex, samplePoint );
-        isPure = bool( purePlugMaskInterp->Evaluate( samplePoint ) );
+        ByteImageType::PointType physicalSamplePoint;
+        labelsImage->TransformIndexToPhysicalPoint( currentIndex, physicalSamplePoint );
+        isPure = bool( purePlugsMaskInterp->Evaluate( physicalSamplePoint ) );
         }
 
       if( isPure ) // To keep legacy behaviour, this flag is always true if "m_UsePurePlugs" is false.
+                   // However, when m_UsePurePlugs is true, only pure samples will be used for training.
         {
         SampledLabelsMap[ currLabelCode ].push_back( currentIndex );
         ++sampleCount;
@@ -2332,6 +2303,39 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   if( this->m_TemplateGenericTransform.IsNull() )
     {
     itkExceptionMacro( << "ERROR:  Must suppply an intial transformation!" );
+    }
+
+  ///// TODO: These should be set by command line
+  float threshold = 0.2;
+  ByteImageType::SizeType numberOfContinuousIndexSubSamples;
+  numberOfContinuousIndexSubSamples[0] = 2;
+  numberOfContinuousIndexSubSamples[1] = 2;
+  numberOfContinuousIndexSubSamples[2] = 2;
+  ////////////////////
+
+  if( m_UsePurePlugs )
+    {
+    this->m_PurePlugsMask =
+      GeneratePurePlugMask<InputImageType, ByteImageType>( inputImagesVector, // TODO: create input images vector
+                                                          threshold,
+                                                          numberOfContinuousIndexSubSamples,
+                                                          false );
+    if( this->m_PurePlugsMask.IsNotNull() )
+      {
+      if( this->m_DebugLevel > 6 )
+        {
+        typedef typename itk::ImageFileWriter<ByteImageType> MaskWriterType;
+        typename MaskWriterType::Pointer maskwriter = MaskWriterType::New();
+        maskwriter->SetInput( this->m_PurePlugsMask );
+        maskwriter->SetFileName("DEBUG_PURE_PLUG_MASK.nii.gz");
+        maskwriter->Update();
+        }
+      }
+    else
+      {
+      itkGenericExceptionMacro( << "Error: Output pure plugs mask is null."
+                               << std::endl );
+      }
     }
 
   this->m_NonAirRegion = ComputeTissueRegion<TInputImage, ByteImageType>(this->GetFirstInputImage(), 3);
