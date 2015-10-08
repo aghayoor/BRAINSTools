@@ -1017,7 +1017,9 @@ int main(int argc, char * *argv)
     {
     SegFilterType::Pointer segfilter = SegFilterType::New();
     segfilter->SetUseKNN(useKNN);
+
     segfilter->SetUsePurePlugs(usePurePlugs);
+    segfilter->SetPurePlugsThreshold(purePlugsThreshold);
 
     std::vector<FloatImagePointer> atlasOriginalPriors( PriorNames.size() );
     unsigned int                   AirIndex = 10000;

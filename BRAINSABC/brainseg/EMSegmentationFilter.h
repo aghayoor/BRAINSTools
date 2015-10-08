@@ -128,6 +128,9 @@ public:
   itkSetMacro(UsePurePlugs, bool);
   itkGetMacro(UsePurePlugs, bool);
 
+  itkSetMacro(PurePlugsThreshold, float);
+  itkGetMacro(PurePlugsThreshold, float);
+
   // Set/Get the maximum polynomial degree of the bias field estimate
   itkSetMacro(MaxBiasDegree, unsigned int);
   itkGetMacro(MaxBiasDegree, unsigned int);
@@ -449,6 +452,7 @@ private:
   bool              m_UseKNN;
 
   bool              m_UsePurePlugs;
+  float             m_PurePlugsThreshold;
   ByteImagePointer  m_PurePlugsMask;
 
   bool         m_UpdateTransformation;

@@ -570,6 +570,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   m_UseKNN = false;
 
   m_UsePurePlugs = false;
+  m_PurePlugsThreshold = 0.2;
   m_PurePlugsMask = ITK_NULLPTR;
 
   m_UpdateTransformation = false;
@@ -2324,7 +2325,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   if( m_UsePurePlugs )
     {
     ///// TODO: These should be set by command line
-    float threshold = 0.2;
     ByteImageType::SizeType numberOfContinuousIndexSubSamples;
     numberOfContinuousIndexSubSamples[0] = 2;
     numberOfContinuousIndexSubSamples[1] = 2;
@@ -2346,7 +2346,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 
     this->m_PurePlugsMask =
       GeneratePurePlugMask<InputImageType, ByteImageType>( inputImagesVector,
-                                                          threshold,
+                                                          this->m_PurePlugsThreshold,
                                                           numberOfContinuousIndexSubSamples,
                                                           false );
     if( this->m_PurePlugsMask.IsNotNull() )
