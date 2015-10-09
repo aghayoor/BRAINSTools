@@ -45,7 +45,7 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
 
   muLogMacro(<< "Generating pure plug mask..." << std::endl);
   muLogMacro(<< "Threshold value is set to: " << threshold << std::endl);
-  muLogMacro(<< "Number of subsamples per each direction in voxel space: "
+  muLogMacro(<< "Input number of subsamples per each direction in voxel space: "
              << numberOfContinuousIndexSubSamples << std::endl);
 
   const unsigned int numberOfImageModalities =
@@ -56,6 +56,9 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
 
   typename ByteImageType::SpacingType maskSpacing;
   maskSpacing.Fill(0);
+
+  typename ByteImageType::SpacingType minimumSpacing;
+  minimumSpacing.Fill(vcl_numeric_limits<double>::max());
 
   for( size_t i = 0; i < numberOfImageModalities; i++ )
     {
@@ -82,7 +85,38 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
         {
         maskSpacing[s] = currImageSpacing[s];
         }
+      if( currImageSpacing[s] < minimumSpacing[s] )
+        {
+        minimumSpacing[s] = currImageSpacing[s];
+        }
       }
+    }
+
+  // if invalid values are passed as numberOfContinuousIndexSubSamples,
+  // we recompute that as the ratio between lowest resolution to highest resolution
+  bool recomputeNumberOfSubSamples = false;
+  for( size_t i = 0; i < 3; i++ )
+    {
+    if( numberOfContinuousIndexSubSamples[i] <= 0 )
+      {
+      recomputeNumberOfSubSamples = true;
+      }
+    }
+  typename ByteImageType::SizeType numberOfSubSamples;
+  if( recomputeNumberOfSubSamples )
+    {
+    numberOfSubSamples[0] = maskSpacing[0]/minimumSpacing[0];
+    numberOfSubSamples[1] = maskSpacing[1]/minimumSpacing[1];
+    numberOfSubSamples[2] = maskSpacing[2]/minimumSpacing[2];
+    muLogMacro(<< "WARNING: Input number of index space subsamples was invalid." << std::endl
+               << "Number of subsamples per each direction in voxel space are recomputed as: "
+               << numberOfSubSamples << std::endl);
+    }
+  else
+    {
+    numberOfSubSamples[0] = numberOfContinuousIndexSubSamples[0];
+    numberOfSubSamples[1] = numberOfContinuousIndexSubSamples[1];
+    numberOfSubSamples[2] = numberOfContinuousIndexSubSamples[2];
     }
 
   /*
@@ -116,9 +150,9 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
 
   // define step size based on the number of sub-samples at each direction
   typename ByteImageType::SpacingType stepSize;
-  stepSize[0] = maskSpacing[0]/numberOfContinuousIndexSubSamples[0];
-  stepSize[1] = maskSpacing[1]/numberOfContinuousIndexSubSamples[1];
-  stepSize[2] = maskSpacing[2]/numberOfContinuousIndexSubSamples[2];
+  stepSize[0] = maskSpacing[0]/numberOfSubSamples[0];
+  stepSize[1] = maskSpacing[1]/numberOfSubSamples[1];
+  stepSize[2] = maskSpacing[2]/numberOfSubSamples[2];
 
   // Now iterate through the mask image
   typedef typename itk::ImageRegionIteratorWithIndex< ByteImageType > MaskItType;
