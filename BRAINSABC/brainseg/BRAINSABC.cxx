@@ -451,8 +451,7 @@ int main(int argc, char * *argv)
              << gridSize[1] << " X "
              << gridSize[2] << std::endl );
   muLogMacro(<< std::endl );
-  muLogMacro(<< "=== Start ===\n");
-  muLogMacro(<< "Registering images using affine transform...\n");
+  muLogMacro(<< "=== Start Registration ===\n");
 
   typedef itk::Transform<double, 3, 3> GenericTransformType;
   GenericTransformType::Pointer atlasToSubjectPreSegmentationTransform = ITK_NULLPTR;
