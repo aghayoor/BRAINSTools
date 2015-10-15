@@ -280,7 +280,14 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
         {
         ByteImageType::PointType physicalSamplePoint;
         labelsImage->TransformIndexToPhysicalPoint( currentIndex, physicalSamplePoint );
-        isPure = bool( purePlugsMaskInterp->Evaluate( physicalSamplePoint ) );
+        if( purePlugsMaskInterp->IsInsideBuffer( physicalSamplePoint ) )
+          {
+          isPure = bool( purePlugsMaskInterp->Evaluate( physicalSamplePoint ) );
+          }
+        else
+          {
+          isPure = false;
+          }
         }
 
       if( isPure ) // To keep legacy behaviour, this flag is always true if "m_UsePurePlugs" is false.
@@ -346,7 +353,14 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
          {
          // evluate the value of the input image at the current physical location
          // via a nearest neighbor interpolator
-         mv[mvIndx] = interpIt->GetPointer()->Evaluate( currPoint );
+         if( interpIt->GetPointer()->IsInsideBuffer( currPoint ) )
+           {
+           mv[mvIndx] = interpIt->GetPointer()->Evaluate( currPoint );
+           }
+         else
+           {
+           mv[mvIndx] = 0;
+           }
          ++mvIndx;
          }
        // Other features are from input priors.
@@ -444,7 +458,15 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
         while( ( interpIt != inputImageNNInterpolatorsVector.end() ) && ( colIndex < numOfInputImages ) )
           {
           // input images are aligned in physical space but not necessarily in voxel space
-          testMatrix(rowIndex,colIndex) = interpIt->GetPointer()->Evaluate( currTestPoint ); // set first few colmuns from input images
+          // set first few colmuns from input images
+          if( interpIt->GetPointer()->IsInsideBuffer( currTestPoint ) )
+            {
+            testMatrix(rowIndex,colIndex) = interpIt->GetPointer()->Evaluate( currTestPoint );
+            }
+          else
+            {
+            testMatrix(rowIndex,colIndex) = 0;
+            }
           ++colIndex;
           ++interpIt;
           }
@@ -1208,7 +1230,12 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
           for(unsigned xx = 0; xx < numCurModality; ++xx)
             {
             // Input images should be evaluated in physical space
-            curAvg += ( inputImageNNInterpolatorsList[mapIt->first][xx]->Evaluate(currPoint) - curMean );
+            typename InputImageNNInterpolationType::OutputType inputImageValue = 0;
+            if( inputImageNNInterpolatorsList[mapIt->first][xx]->IsInsideBuffer(currPoint) )
+              {
+              inputImageValue = inputImageNNInterpolatorsList[mapIt->first][xx]->Evaluate(currPoint);
+              }
+            curAvg += ( inputImageValue - curMean );
             }
           X(zz,0) = curAvg / numCurModality;
           }
