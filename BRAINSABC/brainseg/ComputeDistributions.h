@@ -146,7 +146,11 @@ CombinedComputeDistributions( const std::vector<typename ByteImageType::Pointer>
                 {
                 const double currentProbValue = currentProbImage->GetPixel(currIndex);
                 // input volumes may have a different voxel lattice than the probability image
-                const double currentInputValue = im1Interp->Evaluate(currPoint);
+                double currentInputValue = 0.0;
+                if( im1Interp->IsInsideBuffer(currPoint) )
+                  {
+                  currentInputValue = im1Interp->Evaluate(currPoint);
+                  }
                 if( logConvertValues )
                   {
                   muSum += currentProbValue * LOGP( currentInputValue );
@@ -270,8 +274,17 @@ CombinedComputeDistributions( const std::vector<typename ByteImageType::Pointer>
                     {
                     const double currentProbValue = currentProbImage->GetPixel(currIndex);
                     // input image values should be evaluated in physical space.
-                    const double inputValue1 = im1Interp->Evaluate(currPoint);
-                    const double inputValue2 = im2Interp->Evaluate(currPoint);
+                    double inputValue1 = 0.0;
+                    double inputValue2 = 0.0;
+                    if( im1Interp->IsInsideBuffer(currPoint) )
+                      {
+                      inputValue1 = im1Interp->Evaluate(currPoint);
+                      }
+                    if( im2Interp->IsInsideBuffer(currPoint) )
+                      {
+                      inputValue2 = im2Interp->Evaluate(currPoint);
+                      }
+
                     if( logConvertValues )
                       {
                       const double diff1 = LOGP( inputValue1 ) - mu1;
