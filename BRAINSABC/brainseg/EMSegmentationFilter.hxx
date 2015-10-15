@@ -695,14 +695,6 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                           << mapIt->first << " " << std::distance(mapIt->second.begin(),imIt)
                           << "] has invalid dimension: only supports 3D images" << std::endl );
         }
-      const InputImageSizeType isize = (*imIt)->GetLargestPossibleRegion().GetSize();
-      if( size != isize )
-        {
-        itkExceptionMacro(<< "Image data ["
-                          << mapIt->first << " " << std::distance(mapIt->second.begin(),imIt)
-                          << "] 3D size mismatch "
-                          << size << " != " << isize << "." << std::endl );
-        }
       }
     }
   for( unsigned i = 0; i < m_WarpedPriors.size(); i++ )
