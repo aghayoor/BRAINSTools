@@ -596,7 +596,13 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
           typename ProbabilityImageType::PointType currProbPoint;
           m_BiasPosteriors[0]->TransformIndexToPhysicalPoint(currProbIndex, currProbPoint);
 
-          const double bias = LOGP( inputImageInterp->Evaluate(currProbPoint) ) - recon;
+          typename InputImageNNInterpolationType::OutputType inputImageValue = 0;
+          if( inputImageInterp->IsInsideBuffer(currProbPoint) )
+            {
+            inputImageValue = inputImageInterp->Evaluate(currProbPoint);
+            }
+
+          const double bias = LOGP( inputImageValue ) - recon;
           // divide by # of images of current modality -- in essence
           // you're averaging them.
           R_i(eq, 0) += (sumW * bias)/numCurModalityImages;
@@ -797,7 +803,11 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
                 }
               }
 
-            const ByteImagePixelType maskValue = foregroundBrainMaskInterp->Evaluate( currOutPoint );
+            ByteImagePixelType maskValue = 0;
+            if( foregroundBrainMaskInterp->IsInsideBuffer(currOutPoint) )
+              {
+              maskValue = foregroundBrainMaskInterp->Evaluate(currOutPoint);
+              }
             /* NOTE:  For regions listed as background, clamp the outputs[ichan
               */
             if( vnl_math_isnan(logFitValue) || vnl_math_isinf(logFitValue) )
@@ -857,7 +867,13 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
                                                  (InternalImagePixelType) multiplicitiveBiasCorrectionFactor );
               }
 
-            if( allTissueMaskInterp->Evaluate(currOutPoint) == 0 )
+            typename MaskNNInterpolationType::OutputType allTissueMaskValue = 0;
+            if( allTissueMaskInterp->IsInsideBuffer(currOutPoint) )
+              {
+              allTissueMaskValue = allTissueMaskInterp->Evaluate(currOutPoint);
+              }
+
+            if( allTissueMaskValue == 0 )
               {
               // Now clamp intensities outside the probability mask region to
               // the min and
