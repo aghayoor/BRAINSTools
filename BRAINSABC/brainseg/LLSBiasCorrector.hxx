@@ -404,7 +404,7 @@ typename LLSBiasCorrector<TInputImage, TProbabilityImage>::MapOfInputImageVector
 LLSBiasCorrector<TInputImage, TProbabilityImage>
 ::CorrectImages(const unsigned int CurrentIterationID)
 {
-  muLogMacro(<< "Correct Images" << std::endl );
+  muLogMacro(<< "\n*** Correct Images ***" << std::endl );
   itk::TimeProbe CorrectImagesTimer;
   CorrectImagesTimer.Start();
   // Verify input
@@ -476,12 +476,12 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
 
   const unsigned int numClasses = m_BiasPosteriors.size();
 
-  /* if m_MaxDegree = 4/3/2, then this is 35/20/10 */
+  /* if m_MaxDegree = 4/3/2/1, then this is 35/20/10/4 */
   const unsigned int numCoefficients
     = ( m_MaxDegree + 1 ) * ( m_MaxDegree + 2 ) / 2 * ( m_MaxDegree + 3 ) / 3;
 
-  muLogMacro(<< numClasses << " classes\n" << std::endl );
-  muLogMacro(<< numCoefficients << " coefficients\n" << std::endl );
+  muLogMacro(<< numClasses << " classes" << std::endl );
+  muLogMacro(<< numCoefficients << " coefficients" << std::endl );
 
   /* compute inverse matrix for each tissue type */
   muLogMacro(<< "Computing inverse covars...\n" << std::endl );
@@ -552,7 +552,6 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
 
   // Compute ratio between original and flat image, weighted using posterior
   // probability and inverse covariance
-  // GARY CHECK
   {
   unsigned int modality1 = 0;
   for(typename MapOfInputImageVectors::const_iterator mapIt =
@@ -596,7 +595,7 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
           typename ProbabilityImageType::PointType currProbPoint;
           m_BiasPosteriors[0]->TransformIndexToPhysicalPoint(currProbIndex, currProbPoint);
 
-          typename InputImageNNInterpolationType::OutputType inputImageValue = 0;
+          typename InputImageNNInterpolationType::OutputType inputImageValue = 1; // default value must be 1
           if( inputImageInterp->IsInsideBuffer(currProbPoint) )
             {
             inputImageValue = inputImageInterp->Evaluate(currProbPoint);
