@@ -47,8 +47,8 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
 
   typedef itk::Image< double, 3 >                                             RealImageType;
   typedef itk::CastImageFilter< InputImageType, RealImageType >               CastToRealFilterType;
+  typedef itk::CastImageFilter< RealImageType, ByteImageType >                CastToByteFilterType;
   typedef itk::CannyEdgeDetectionImageFilter< RealImageType, RealImageType >  CannyFilterType;
-  typedef itk::RescaleIntensityImageFilter< RealImageType, ByteImageType >    RescaleFilterType;
   typedef typename itk::NearestNeighborInterpolateImageFunction<
     ByteImageType, double >                                                   MaskNNInterpolationType;
 
@@ -147,11 +147,11 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
   cannyFilter->SetUpperThreshold( 0.03 );
   cannyFilter->SetLowerThreshold( 0.01 );
 
-  typename RescaleFilterType::Pointer rescale = RescaleFilterType::New();
-  rescale->SetInput( cannyFilter->GetOutput() );
-  rescale->Update();
+  typename CastToByteFilterType::Pointer toByte = CastToByteFilterType::New();
+  toByte->SetInput( cannyFilter->GetOutput() );
+  toByte->Update();
 
-  typename ByteImageType::Pointer edgeMask = rescale->GetOutput();
+  typename ByteImageType::Pointer edgeMask = toByte->GetOutput();
   typename MaskNNInterpolationType::Pointer edgeMaskInterp = MaskNNInterpolationType::New();
   edgeMaskInterp->SetInputImage( edgeMask );
 
