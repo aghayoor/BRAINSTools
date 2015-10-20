@@ -48,6 +48,9 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
   muLogMacro(<< "Input number of subsamples per each direction in voxel space: "
              << numberOfContinuousIndexSubSamples << std::endl);
 
+  itk::TimeProbe PurePlugsMaskTimer;
+  PurePlugsMaskTimer.Start();
+
   const unsigned int numberOfImageModalities =
     inputImages.size(); // number of modality images
 
@@ -274,6 +277,11 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
 
     ++maskIt;
     } // end of while loop
+
+  PurePlugsMaskTimer.Stop();
+  itk::RealTimeClock::TimeStampType elapsedTime = PurePlugsMaskTimer.GetTotal();
+  muLogMacro(<< "Generating pure plugs mask took " << elapsedTime
+             << " " << PurePlugsMaskTimer.GetUnit() << "." << std::endl);
 
   return mask;
 }
