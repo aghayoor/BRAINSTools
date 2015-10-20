@@ -43,7 +43,7 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
   typedef itk::Statistics::ListSample< MeasurementVectorType >             SampleType;
   typedef itk::Statistics::IntegrityMetricMembershipFunction< SampleType > IntegrityMetricType;
 
-  muLogMacro(<< "Generating pure plug mask..." << std::endl);
+  muLogMacro(<< "\nGenerating pure plug mask..." << std::endl);
   muLogMacro(<< "Threshold value is set to: " << threshold << std::endl);
   muLogMacro(<< "Input number of subsamples per each direction in voxel space: "
              << numberOfContinuousIndexSubSamples << std::endl);
@@ -108,7 +108,7 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
     numberOfSubSamples[0] = maskSpacing[0]/minimumSpacing[0];
     numberOfSubSamples[1] = maskSpacing[1]/minimumSpacing[1];
     numberOfSubSamples[2] = maskSpacing[2]/minimumSpacing[2];
-    muLogMacro(<< "WARNING: Input number of index space subsamples was invalid." << std::endl
+    muLogMacro(<< "\nWARNING: Input number of subsamples in voxel space are invalid." << std::endl
                << "Number of subsamples per each direction in voxel space are recomputed as: "
                << numberOfSubSamples << std::endl);
     }
