@@ -144,8 +144,8 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
   typename CannyFilterType::Pointer cannyFilter = CannyFilterType::New();
   cannyFilter->SetInput( toReal->GetOutput() );
   cannyFilter->SetVariance( 2.0 );
-  cannyFilter->SetUpperThreshold( 0.03 );
-  cannyFilter->SetLowerThreshold( 0.01 );
+  cannyFilter->SetUpperThreshold( 0.05 );
+  cannyFilter->SetLowerThreshold( 0.02 );
 
   typename CastToByteFilterType::Pointer toByte = CastToByteFilterType::New();
   toByte->SetInput( cannyFilter->GetOutput() );
