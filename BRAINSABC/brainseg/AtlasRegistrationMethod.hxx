@@ -258,11 +258,19 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
         intraSubjectRegistrationHelper->SetFixedBinaryVolume(m_InputSpatialObjectTissueRegion);
 
         muLogMacro(<< "Registering (Rigid) image " << i << " to first image." << std::endl);
-        std::vector<double> minimumStepSize(1);
+        // For better registration, several linear registration methods are run,
+        // but at the end, rigid component is extracted from output linear transform.
+        std::vector<double> minimumStepSize(4);
         minimumStepSize[0] = 0.00005;
+        minimumStepSize[1] = 0.005;
+        minimumStepSize[2] = 0.005;
+        minimumStepSize[3] = 0.005;
         intraSubjectRegistrationHelper->SetMinimumStepLength(minimumStepSize);
-        std::vector<std::string> transformType(1);
+        std::vector<std::string> transformType(4);
         transformType[0] = "Rigid";
+        transformType[1] = "ScaleVersor3D";
+        transformType[2] = "ScaleSkewVersor3D";
+        transformType[3] = "Affine";
         intraSubjectRegistrationHelper->SetTransformType(transformType);
         //
         // intraSubjectRegistrationHelper->SetBackgroundFillValue(backgroundFillValue);
@@ -286,8 +294,9 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
         intraSubjectRegistrationHelper->Update();
         const unsigned int actualIterations = intraSubjectRegistrationHelper->GetActualNumberOfIterations();
         muLogMacro( << "Registration tool " << actualIterations << " iterations." << std::endl );
-        GenericTransformType::Pointer p =
-          intraSubjectRegistrationHelper->GetCurrentGenericTransform()->GetNthTransform(0);
+        itk::VersorRigid3DTransform<double>::Pointer versorRigid = itk::ComputeRigidTransformFromGeneric(
+          intraSubjectRegistrationHelper->GetCurrentGenericTransform()->GetNthTransform(0).GetPointer() );
+        GenericTransformType::Pointer p = versorRigid.GetPointer();
         this->m_IntraSubjectTransforms[mapOfModalImageListsIt->first].push_back(p);
         // Write out intermodal matricies
         muLogMacro(<< "Writing " << (*isNamesIt) << "." << std::endl);
