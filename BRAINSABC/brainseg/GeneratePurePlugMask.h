@@ -49,6 +49,8 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
   typedef itk::CastImageFilter< InputImageType, RealImageType >               CastToRealFilterType;
   typedef itk::CannyEdgeDetectionImageFilter< RealImageType, RealImageType >  CannyFilterType;
   typedef itk::RescaleIntensityImageFilter< RealImageType, ByteImageType >    RescaleFilterType;
+  typedef typename itk::NearestNeighborInterpolateImageFunction<
+    ByteImageType, double >                                                   MaskNNInterpolationType;
 
 
   muLogMacro(<< "\nGenerating pure plug mask..." << std::endl);
@@ -150,6 +152,8 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
   rescale->Update();
 
   typename ByteImageType::Pointer edgeMask = rescale->GetOutput();
+  typename MaskNNInterpolationType::Pointer edgeMaskInterp = MaskNNInterpolationType::New();
+  edgeMaskInterp->SetInputImage( edgeMask );
 
   // Write to disk for debug
   typedef itk::ImageFileWriter<ByteImageType> EdgeMaskWriterType;
