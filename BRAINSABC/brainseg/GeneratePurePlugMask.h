@@ -24,6 +24,8 @@
 #ifndef __GeneratePurePlugMask_h
 #define __GeneratePurePlugMask_h
 
+#include "itkCastImageFilter.h"
+#include "itkCannyEdgeDetectionImageFilter.h"
 #include "BRAINSABCUtilities.h"
 #include "itkIntegrityMetricMembershipFunction.h"
 
@@ -42,6 +44,10 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
   typedef itk::Array< double >                                             MeasurementVectorType;
   typedef itk::Statistics::ListSample< MeasurementVectorType >             SampleType;
   typedef itk::Statistics::IntegrityMetricMembershipFunction< SampleType > IntegrityMetricType;
+
+  typedef itk::Image< double, 3 >                                             RealImageType;
+  typedef itk::CastImageFilter< InputImageType, RealImageType >               CastToRealFilterType;
+  typedef itk::CannyEdgeDetectionImageFilter< RealImageType, RealImageType >  CannyFilterType;
 
   muLogMacro(<< "\nGenerating pure plug mask..." << std::endl);
   muLogMacro(<< "Threshold value is set to: " << threshold << std::endl);
@@ -123,6 +129,23 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
     numberOfSubSamples[1] = numberOfContinuousIndexSubSamples[1];
     numberOfSubSamples[2] = numberOfContinuousIndexSubSamples[2];
     }
+
+  // create an edge mask from the finest resolution image
+  //
+  typename CastToRealFilterType::Pointer toReal = CastToRealFilterType::New();
+  toReal->SetInput( normalizedInputModalImagesList[0] );
+
+  typename CannyFilterType::Pointer cannyFilter = CannyFilterType::New();
+  cannyFilter->SetInput( toReal->GetOutput() );
+  cannyFilter->SetVariance( 2.0 );
+  cannyFilter->SetUpperThreshold( 0.03 );
+  cannyFilter->SetLowerThreshold( 0.01 );
+
+  typedef itk::ImageFileWriter<RealImageType> EdgeMaskWriterType;
+  typename EdgeMaskWriterType::Pointer edgewriter = EdgeMaskWriterType::New();
+  edgewriter->SetInput( cannyFilter->GetOutput() );
+  edgewriter->SetFileName("Canny_Edge_Mask.nii.gz");
+  edgewriter->Update();
 
   /*
    * Create an all zero mask image
