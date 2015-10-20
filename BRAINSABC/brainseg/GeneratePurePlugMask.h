@@ -63,6 +63,7 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
   typename ByteImageType::SpacingType minimumSpacing;
   minimumSpacing.Fill(vcl_numeric_limits<double>::max());
 
+  size_t index = 0;
   for( size_t i = 0; i < numberOfImageModalities; i++ )
     {
     // Generation of the pure plug mask needs the input images being normalized between 0 and 1.
@@ -87,6 +88,7 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
       if( currImageSpacing[s] > maskSpacing[s] )
         {
         maskSpacing[s] = currImageSpacing[s];
+        index = i;
         }
       if( currImageSpacing[s] < minimumSpacing[s] )
         {
@@ -129,12 +131,12 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
   // Spacing is set as the largest spacing at each direction
   mask->SetSpacing( maskSpacing );
   // Origin and direction are set from the first modality image
-  mask->SetOrigin( normalizedInputModalImagesList[0]->GetOrigin() );
-  mask->SetDirection( normalizedInputModalImagesList[0]->GetDirection() );
+  mask->SetOrigin( normalizedInputModalImagesList[index]->GetOrigin() );
+  mask->SetDirection( normalizedInputModalImagesList[index]->GetDirection() );
   // The FOV of mask is set as the FOV of the first modality image
   typename ByteImageType::SizeType maskSize;
-  typename InputImageType::SizeType inputSize = normalizedInputModalImagesList[0]->GetLargestPossibleRegion().GetSize();
-  typename InputImageType::SpacingType inputSpacing = normalizedInputModalImagesList[0]->GetSpacing();
+  typename InputImageType::SizeType inputSize = normalizedInputModalImagesList[index]->GetLargestPossibleRegion().GetSize();
+  typename InputImageType::SpacingType inputSpacing = normalizedInputModalImagesList[index]->GetSpacing();
   maskSize[0] = itk::Math::Ceil<itk::SizeValueType>( inputSize[0]*inputSpacing[0]/maskSpacing[0] );
   maskSize[1] = itk::Math::Ceil<itk::SizeValueType>( inputSize[1]*inputSpacing[1]/maskSpacing[1] );
   maskSize[2] = itk::Math::Ceil<itk::SizeValueType>( inputSize[2]*inputSpacing[2]/maskSpacing[2] );
