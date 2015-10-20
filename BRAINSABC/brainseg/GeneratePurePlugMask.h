@@ -249,9 +249,17 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
 
           for( unsigned int i = 0; i < numberOfImageModalities; i++ )
             {
-            if( inputImageNNInterpolatorsVector[i]->IsInsideBuffer( currPoint ) )
+            if( inputImageNNInterpolatorsVector[i]->IsInsideBuffer( currPoint ) && edgeMaskInterp->IsInsideBuffer( currPoint ) )
               {
-              mv[i] = inputImageNNInterpolatorsVector[i]->Evaluate( currPoint );
+              if( edgeMaskInterp->Evaluate(currPoint) ) // If the current point blongs to an edge, it cannot belong to a pure plug
+                {
+                isInside = false;
+                break;
+                }
+              else
+                {
+                mv[i] = inputImageNNInterpolatorsVector[i]->Evaluate( currPoint );
+                }
               }
             else
               {
