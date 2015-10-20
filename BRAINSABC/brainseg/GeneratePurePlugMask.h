@@ -48,6 +48,8 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
   typedef itk::Image< double, 3 >                                             RealImageType;
   typedef itk::CastImageFilter< InputImageType, RealImageType >               CastToRealFilterType;
   typedef itk::CannyEdgeDetectionImageFilter< RealImageType, RealImageType >  CannyFilterType;
+  typedef itk::RescaleIntensityImageFilter< RealImageType, ByteImageType >    RescaleFilterType;
+
 
   muLogMacro(<< "\nGenerating pure plug mask..." << std::endl);
   muLogMacro(<< "Threshold value is set to: " << threshold << std::endl);
@@ -130,8 +132,10 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
     numberOfSubSamples[2] = numberOfContinuousIndexSubSamples[2];
     }
 
-  // create an edge mask from the finest resolution image
-  //
+  /*
+   * Create an edge mask from the finest resolution image.
+   * Edges should be excluded from purePlugsMask.
+   */
   typename CastToRealFilterType::Pointer toReal = CastToRealFilterType::New();
   toReal->SetInput( normalizedInputModalImagesList[0] );
 
@@ -141,11 +145,19 @@ GeneratePurePlugMask(const std::vector<typename InputImageType::Pointer> & input
   cannyFilter->SetUpperThreshold( 0.03 );
   cannyFilter->SetLowerThreshold( 0.01 );
 
-  typedef itk::ImageFileWriter<RealImageType> EdgeMaskWriterType;
+  typename RescaleFilterType::Pointer rescale = RescaleFilterType::New();
+  rescale->SetInput( cannyFilter->GetOutput() );
+  rescale->Update();
+
+  typename ByteImageType::Pointer edgeMask = rescale->GetOutput();
+
+  // Write to disk for debug
+  typedef itk::ImageFileWriter<ByteImageType> EdgeMaskWriterType;
   typename EdgeMaskWriterType::Pointer edgewriter = EdgeMaskWriterType::New();
-  edgewriter->SetInput( cannyFilter->GetOutput() );
-  edgewriter->SetFileName("Canny_Edge_Mask.nii.gz");
+  edgewriter->SetInput( edgeMask );
+  edgewriter->SetFileName("DEBUG_Canny_Edge_Mask.nii.gz");
   edgewriter->Update();
+  //
 
   /*
    * Create an all zero mask image
