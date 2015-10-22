@@ -1222,7 +1222,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
           for(unsigned xx = 0; xx < numCurModality; ++xx)
             {
             // Input images should be evaluated in physical space
-            typename InputImageNNInterpolationType::OutputType inputImageValue = 1;
+            typename InputImageNNInterpolationType::OutputType inputImageValue = 0; // the default value here should be one
             if( inputImageNNInterpolatorsList[mapIt->first][xx]->IsInsideBuffer(currPoint) )
               {
               inputImageValue = inputImageNNInterpolatorsList[mapIt->first][xx]->Evaluate(currPoint);
