@@ -1239,7 +1239,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     ComputeLabels<TProbabilityImage, ByteImageType, double>(EMPosteriors, priorIsForegroundPriorVector,
                                                             priorLabelCodeVector, nonAirRegion,
                                                             dirtyThresholdedLabels,
-                                                            thresholdedLabels, KNN_InclusionThreshold, 100);
+                                                            thresholdedLabels, KNN_InclusionThreshold, 500);
     if( this->m_DebugLevel > 6 )  // DEBUG: Write label image to the disk.
       {
       muLogMacro(<< "\nWrite ThresholdedLabels for debugging..." << std::endl);
