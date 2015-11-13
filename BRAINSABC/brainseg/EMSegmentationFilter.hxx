@@ -1284,6 +1284,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       sqrtFilter->Update();
       AveragePosteriors[pp] = sqrtFilter->GetOutput();
       }
+    // Normalize probability list such that all posterior values will sum up to 1.
     NormalizeProbListInPlace<TProbabilityImage>( AveragePosteriors );
     this->WriteDebugPosteriors(IterationID, "AVG_KNN_EM", AveragePosteriors);
     return AveragePosteriors;
