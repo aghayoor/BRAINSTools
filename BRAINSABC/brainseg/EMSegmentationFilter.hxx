@@ -235,7 +235,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::ComputekNNPosteriors(const ProbabilityImageVectorType & Priors,
                        const MapOfInputImageVectors & intensityImages, // input corrected images
                        ByteImagePointer & labelsImage,
-                       const IntVectorType & labelClasses)
+                       const IntVectorType & labelClasses,
+                       const std::vector<bool> & priorIsForegroundPriorVector)
 
 {
   // Phase 1: create train sample set, label vector, and the test matrix
@@ -347,10 +348,27 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
          {
          mv.push_back( inIt->GetPointer()->GetPixel( *vit ) );
          }
-       for( unsigned int c_indx = 0; c_indx<labelClasses.size() ; ++c_indx) // Add 15 more features from posteriors
+
+       // Here we find out that the prior with maximum value belongs to background or foreground
+       double maxPriorClassValue = Priors[0]->GetPixel( *vit );
+       unsigned int       indexMaxPosteriorClassValue = 0;
+       for( unsigned int iclass = 1; iclass < labelClasses.size() ; ++iclass)
+         {
+         const double currentPriorClassValue = Priors[iclass]->GetPixel( *vit );
+         if( currentPriorClassValue > maxPriorClassValue )
+           {
+           maxPriorClassValue = currentPriorClassValue;
+           indexMaxPosteriorClassValue = iclass;
+           }
+         }
+       bool fgflag = priorIsForegroundPriorVector[indexMaxPosteriorClassValue];
+
+       // foreground and background classes should be added exclusively
+       for( unsigned int c_indx = 0; c_indx < labelClasses.size() ; ++c_indx) // Add 15 more features from EM posteriors
          {
          //mv.push_back( Priors[c_indx]->GetPixel( *vit ) );
-         mv.push_back( (  Priors[c_indx]->GetPixel( *vit ) > 0.01 ) ? 1 : 0 );
+         mv.push_back( (  Priors[c_indx]->GetPixel( *vit ) > 0.01 &&
+                          priorIsForegroundPriorVector[c_indx] == fgflag ) ? 1 : 0 );
          }
        trainSampleSet->PushBack( mv );
        }
@@ -1260,7 +1278,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     KNNPosteriors = this->ComputekNNPosteriors(EMPosteriors,
                                             IntensityImages,
                                             dirtyThresholdedLabels,
-                                            priorLabelCodeVector);
+                                            priorLabelCodeVector,
+                                            priorIsForegroundPriorVector);
     ComputeKNNPosteriorsTimer.Stop();
     itk::RealTimeClock::TimeStampType knnElapsedTime = ComputeKNNPosteriorsTimer.GetTotal();
     muLogMacro(<< "Computing KNN posteriors took " << knnElapsedTime << " " << ComputeKNNPosteriorsTimer.GetUnit() << std::endl);
