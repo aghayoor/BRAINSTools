@@ -436,6 +436,21 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       for( LOOPITERTYPE ii = 0; ii < (LOOPITERTYPE)size[0]; ii++ )
         {
         const typename InputImageType::IndexType currIndex = {{ii, jj, kk}};
+
+        // Here we find out that the prior, with maximum value at the current index, belongs to background or foreground
+        double maxPriorClassValue = Priors[0]->GetPixel( currIndex );
+        unsigned int       indexMaxPosteriorClassValue = 0;
+        for( unsigned int iclass = 1; iclass < labelClasses.size() ; ++iclass)
+          {
+          const double currentPriorClassValue = Priors[iclass]->GetPixel( currIndex );
+          if( currentPriorClassValue > maxPriorClassValue )
+            {
+            maxPriorClassValue = currentPriorClassValue;
+            indexMaxPosteriorClassValue = iclass;
+            }
+          }
+        bool fgflag = priorIsForegroundPriorVector[indexMaxPosteriorClassValue];
+
         unsigned int colIndex = 0;
         typename ProbabilityImageVectorType::const_iterator inIt = inputImagesVector.begin();
         while( ( inIt != inputImagesVector.end() ) && ( colIndex < numOfInputImages ) )
@@ -444,9 +459,11 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
           ++colIndex;
           ++inIt;
           }
-        while( colIndex-numOfInputImages < labelClasses.size() ) // Add 15 more features from posteriors
+        // foreground and background classes should be added exclusively
+        while( colIndex-numOfInputImages < labelClasses.size() ) // Add 15 more features from EM posteriors
           {
-          testMatrix(rowIndex,colIndex) = ( Priors[colIndex-numOfInputImages]->GetPixel( currIndex ) > 0.01 ) ? 1 : 0 ;
+          testMatrix(rowIndex,colIndex) = ( Priors[colIndex-numOfInputImages]->GetPixel( currIndex ) > 0.01 &&
+                                            priorIsForegroundPriorVector[colIndex-numOfInputImages] == fgflag ) ? 1 : 0;
           ++colIndex;
           }
         ++rowIndex;
