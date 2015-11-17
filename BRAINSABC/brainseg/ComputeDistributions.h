@@ -344,17 +344,18 @@ CombinedComputeDistributions( const std::vector<typename ByteImageType::Pointer>
   if( DebugLevel > 9 )
     {
     std::cout << "=================================================" << std::endl;
-    unsigned ichan = 0;
     for( LOOPITERTYPE iclass = 0; iclass < (LOOPITERTYPE)numClasses; iclass++ )
       {
+      unsigned ichan = 0;
       for(typename MapOfInputImageVectors::const_iterator mapIt = InputImageMap.begin();
           mapIt != InputImageMap.end(); ++mapIt)
         {
-        muLogMacro( << "DEBUG MEAN " << ichan << " : " << iclass << " : \n"
+        muLogMacro( << "DEBUG MEAN (channel " << ichan << ", class " << iclass << "): \n"
                     << ListOfClassStatistics[iclass].m_Means[mapIt->first]
                     << " \n" << std::endl );
+        ++ichan;
         }
-      muLogMacro( << "DEBUG Covariances: " << iclass << "\n" << ListOfClassStatistics[iclass].m_Covariance
+      muLogMacro( << "DEBUG Covariances (class " << iclass << "):\n" << ListOfClassStatistics[iclass].m_Covariance
                   << std::endl );
       }
     }
