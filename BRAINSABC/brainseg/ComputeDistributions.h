@@ -333,14 +333,7 @@ CombinedComputeDistributions( const std::vector<typename ByteImageType::Pointer>
       }
       ListOfClassStatistics[iclass].m_Covariance = covtmp;
     } // end covariance loop
-  if( DebugLevel > 5 )
-    {
-    for( LOOPITERTYPE iclass = 0; iclass < (LOOPITERTYPE)numClasses; iclass++ )
-      {
-      muLogMacro(<< "DEBUG USING NEW COVARIANCES: " << iclass << std::endl
-                 << ListOfClassStatistics[iclass].m_Covariance << std::endl );
-      }
-    }
+
   if( DebugLevel > 9 )
     {
     std::cout << "=================================================" << std::endl;
