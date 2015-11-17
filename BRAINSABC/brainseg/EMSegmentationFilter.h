@@ -280,10 +280,7 @@ protected:
                                        const ProbabilityImageVectorType &WarpedPriorsList,
                                        ByteImagePointer &NonAirRegion);
 
-  ByteImageVectorType ForceToOne(const unsigned int CurrentEMIteration,
-                                 // const MapOfInputImageVectors &intensityList,
-                                 ProbabilityImageVectorType &WarpedPriorsList,
-                                 typename ByteImageType::Pointer NonAirRegion);
+  ByteImageVectorType ForceToOne(ProbabilityImageVectorType &WarpedPriorsList);
 private:
 
   void WritePartitionTable(const unsigned int CurrentEMIteration) const;

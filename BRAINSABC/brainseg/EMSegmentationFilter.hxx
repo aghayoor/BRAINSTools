@@ -1940,10 +1940,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 template <class TInputImage, class TProbabilityImage>
 typename EMSegmentationFilter<TInputImage, TProbabilityImage>::ByteImageVectorType
 EMSegmentationFilter<TInputImage, TProbabilityImage>
-::ForceToOne(const unsigned int /* CurrentEMIteration */,
-             // const MapOfInputImageVectors &intensityList,
-             ProbabilityImageVectorType &WarpedPriorsList,
-             typename ByteImageType::Pointer /* NonAirRegion */)
+::ForceToOne(ProbabilityImageVectorType &WarpedPriorsList)
 {
   // #################################################################
   // #################################################################
@@ -1951,9 +1948,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   // #################################################################
   // #################################################################
   // #################################################################
-  // For each intensityList, get it's type, and then create an "anded mask of
-  // candidate regions"
-  // using the table from BRAINSMultiModeHistogramThresholder.
+  // Force all subjectCandidateRegions to be all one masks.
+  //
   ByteImageVectorType subjectCandidateRegions;
 
   subjectCandidateRegions.resize(WarpedPriorsList.size() );
@@ -2570,10 +2566,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                       this->m_TemplateGenericTransform);
       this->WriteDebugWarpedAtlasImages(CurrentEMIteration);
       }
-    SubjectCandidateRegions = this->ForceToOne(CurrentEMIteration,
-                                               // this->m_CorrectedImages,
-                                               this->m_WarpedPriors,
-                                               this->m_CleanedLabels);
+    SubjectCandidateRegions = this->ForceToOne(this->m_WarpedPriors);
     {
     this->BlendPosteriorsAndPriors(1.0 - priorWeighting, this->m_Posteriors, this->m_WarpedPriors,
                                    this->m_WarpedPriors);
