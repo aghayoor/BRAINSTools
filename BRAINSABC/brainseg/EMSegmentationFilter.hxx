@@ -1866,8 +1866,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
     {
     const typename ByteImageType::IndexType myIndex = firstCandidateIter.GetIndex();
     bool AllPixelsAreZero = true;
-//        unsigned int maxPriorRegionIndex = 0;
-    typename TProbabilityImage::PixelType maxProbValue = WarpedPriorsList[0]->GetPixel(myIndex);
+
     for( unsigned int k = 0; ( k < candiateVectorSize ) && AllPixelsAreZero; k++ )
       {
       const typename ByteImageType::PixelType value = subjectCandidateRegions[k]->GetPixel(myIndex);
@@ -1875,15 +1874,10 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
         {
         AllPixelsAreZero = false;
         }
-      typename TProbabilityImage::PixelType currValue = WarpedPriorsList[k]->GetPixel(myIndex);
-      if( currValue > maxProbValue )
-        {
-        maxProbValue = currValue;
-//            maxPriorRegionIndex = k;
-        }
       }
+
     if( AllPixelsAreZero ) // If all candidate regions are zero, then force
-      // to most likely background value.
+                           // to most likely background value.
       {
       AllZeroCounts++;
       for( unsigned int k = 0; k < candiateVectorSize; k++ )
