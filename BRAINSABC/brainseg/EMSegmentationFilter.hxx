@@ -1673,31 +1673,39 @@ void
 EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::WriteDebugWarpedAtlasImages(const unsigned int CurrentEMIteration) const
 {
-  std::stringstream CurrentEMIteration_stream("");
-
-  CurrentEMIteration_stream << CurrentEMIteration;
-  if( this->m_DebugLevel > 9 )
+  if( !m_UpdateTransformation && CurrentEMIteration>0 )
     {
-    for(typename MapOfInputImageVectors::const_iterator mapIt =
-          this->m_WarpedAtlasImages.begin();
-        mapIt != this->m_WarpedAtlasImages.end(); ++mapIt)
-      {
-      for(typename InputImageVector::const_iterator imIt = mapIt->second.begin();
-          imIt != mapIt->second.end(); ++imIt)
-        {
-        typedef itk::ImageFileWriter<InputImageType> WriterType;
-        typename WriterType::Pointer writer = WriterType::New();
-        writer->UseCompressionOn();
+    // warped atlas images have not changed
+    return;
+    }
+  else
+    {
+    std::stringstream CurrentEMIteration_stream("");
 
-        std::stringstream template_index_stream("");
-        template_index_stream << mapIt->first
-                              << std::distance(mapIt->second.begin(),imIt);
-        const std::string fn = this->m_OutputDebugDir + "/WARPED_ATLAS_INDEX_" + template_index_stream.str()
+    CurrentEMIteration_stream << CurrentEMIteration;
+    if( this->m_DebugLevel > 9 )
+      {
+      for(typename MapOfInputImageVectors::const_iterator mapIt =
+          this->m_WarpedAtlasImages.begin();
+          mapIt != this->m_WarpedAtlasImages.end(); ++mapIt)
+        {
+        for(typename InputImageVector::const_iterator imIt = mapIt->second.begin();
+            imIt != mapIt->second.end(); ++imIt)
+          {
+          typedef itk::ImageFileWriter<InputImageType> WriterType;
+          typename WriterType::Pointer writer = WriterType::New();
+          writer->UseCompressionOn();
+
+          std::stringstream template_index_stream("");
+          template_index_stream << mapIt->first
+          << std::distance(mapIt->second.begin(),imIt);
+          const std::string fn = this->m_OutputDebugDir + "/WARPED_ATLAS_INDEX_" + template_index_stream.str()
           + "_LEVEL_" + CurrentEMIteration_stream.str() + ".nii.gz";
-        writer->SetInput((*imIt));
-        writer->SetFileName(fn.c_str() );
-        writer->Update();
-        muLogMacro( << "DEBUG:  Wrote image " << fn <<  std::endl);
+          writer->SetInput((*imIt));
+          writer->SetFileName(fn.c_str() );
+          writer->Update();
+          muLogMacro( << "DEBUG:  Wrote image " << fn <<  std::endl);
+          }
         }
       }
     }
@@ -2107,6 +2115,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
   if( m_AtlasTransformType == "SyN" )
     {
     muLogMacro(<< "HACK: " << m_AtlasTransformType <<  " not instumented for transformation update."  << std::endl );
+    this->m_UpdateTransformation = false;
     return;
     }
   muLogMacro(<< "Updating Warping with transform type: " << m_AtlasTransformType  << std::endl );
