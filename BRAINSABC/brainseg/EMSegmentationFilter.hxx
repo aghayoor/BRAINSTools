@@ -2053,25 +2053,33 @@ void
 EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::WriteDebugWarpedAtlasPriors(const unsigned int CurrentEMIteration) const
 {
-  std::stringstream CurrentEMIteration_stream("");
-
-  CurrentEMIteration_stream << CurrentEMIteration;
-  if( this->m_DebugLevel > 9 )
+  if( !m_UpdateTransformation && CurrentEMIteration>0 )
     {
-    for( unsigned int vIndex = 0; vIndex < this->m_WarpedPriors.size(); vIndex++ )
-      {
-      typedef itk::ImageFileWriter<InputImageType> WriterType;
-      typename WriterType::Pointer writer = WriterType::New();
-      writer->UseCompressionOn();
+    // warped prior images have not changed
+    return;
+    }
+  else
+    {
+    std::stringstream CurrentEMIteration_stream("");
 
-      std::stringstream template_index_stream("");
-      template_index_stream << this->m_PriorNames[vIndex];
-      const std::string fn = this->m_OutputDebugDir + "/WARPED_PRIOR_" + template_index_stream.str() + "_LEVEL_"
+    CurrentEMIteration_stream << CurrentEMIteration;
+    if( this->m_DebugLevel > 9 )
+      {
+      for( unsigned int vIndex = 0; vIndex < this->m_WarpedPriors.size(); vIndex++ )
+        {
+        typedef itk::ImageFileWriter<InputImageType> WriterType;
+        typename WriterType::Pointer writer = WriterType::New();
+        writer->UseCompressionOn();
+
+        std::stringstream template_index_stream("");
+        template_index_stream << this->m_PriorNames[vIndex];
+        const std::string fn = this->m_OutputDebugDir + "/WARPED_PRIOR_" + template_index_stream.str() + "_LEVEL_"
         + CurrentEMIteration_stream.str() + ".nii.gz";
-      writer->SetInput(m_WarpedPriors[vIndex]);
-      writer->SetFileName(fn.c_str() );
-      writer->Update();
-      muLogMacro( << "DEBUG:  Wrote image " << fn <<  std::endl);
+        writer->SetInput(m_WarpedPriors[vIndex]);
+        writer->SetFileName(fn.c_str() );
+        writer->Update();
+        muLogMacro( << "DEBUG:  Wrote image " << fn <<  std::endl);
+        }
       }
     }
 }
