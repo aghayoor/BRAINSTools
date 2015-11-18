@@ -1097,7 +1097,9 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 ::ComputeDistributions(const ByteImageVectorType & SubjectCandidateRegions,
                        const ProbabilityImageVectorType & probAllDistributions)
 {
-  muLogMacro(<< "Computing Distributions" << std::endl );
+  std::cout << "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+  muLogMacro(<< "Computing Distributions..." << std::endl );
+  std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
   const ProbabilityImageVectorType & probabilityMaps = probAllDistributions;
 
   std::vector<RegionStats>             outputStats;
@@ -1354,7 +1356,10 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
                     typename ByteImageType::Pointer & nonAirRegion,
                     const unsigned int IterationID)
 {
+  std::cout << "\n^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
   muLogMacro(<< "Computing posteriors..." << std::endl);
+  std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+
   const unsigned int numClasses = Priors.size();
   ProbabilityImageVectorType EMPosteriors;
   EMPosteriors.resize(numClasses);
@@ -1761,7 +1766,8 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       oss << this->m_OutputDebugDir << "CANDIDIDATE_PROBTHRESH_" << this->m_PriorNames[i] << "_LEVEL_"
           << CurrentEMIteration_stream.str() << ".nii.gz" << std::ends;
       std::string fn = oss.str();
-      muLogMacro( << "Writing Subject Candidate Region." << fn << std::endl );
+      std::cout << "------------------------" << std::endl;
+      muLogMacro( << "Writing Subject Candidate Region: " << fn << std::endl );
       muLogMacro( << std::endl );
 
       typedef itk::ImageFileWriter<ByteImageType> ByteWriterType;
@@ -1837,7 +1843,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       oss << this->m_OutputDebugDir << "CANDIDIDATE_INTENSITY_REGION_" << this->m_PriorNames[i] << "_LEVEL_"
           << CurrentEMIteration_stream.str() << ".nii.gz" << std::ends;
       std::string fn = oss.str();
-      muLogMacro( << "Writing Subject Candidate Region." << fn << std::endl );
+      muLogMacro( << "Writing Subject Candidate Region: " << fn << std::endl );
       muLogMacro( << std::endl );
 
       typedef itk::ImageFileWriter<ByteImageType> ByteWriterType;
@@ -1921,7 +1927,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
       oss << this->m_OutputDebugDir << "CANDIDIDATE_FINAL" << this->m_PriorNames[i] << "_LEVEL_"
           << CurrentEMIteration_stream.str() << ".nii.gz" << std::ends;
       std::string fn = oss.str();
-      muLogMacro( << "Writing Subject Candidate Region." << fn << std::endl );
+      muLogMacro( << "Writing Final Subject Candidate Region: " << fn << std::endl );
       muLogMacro( << std::endl );
 
       typedef itk::ImageFileWriter<ByteImageType> ByteWriterType;

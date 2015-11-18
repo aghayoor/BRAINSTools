@@ -127,7 +127,6 @@ LLSBiasCorrector<TInputImage, TProbabilityImage>
 ::ComputeDistributions()
 {
   muLogMacro(<< "LLSBiasCorrector: Computing means and variances..." << std::endl );
-  // IPEK also calls CombineComputeDistributions
   CombinedComputeDistributions<TInputImage, TProbabilityImage, MatrixType>(this->m_CandidateRegions, m_InputImages,
                                                                            m_BiasPosteriors,
                                                                            this->m_ListOfClassStatistics, //
