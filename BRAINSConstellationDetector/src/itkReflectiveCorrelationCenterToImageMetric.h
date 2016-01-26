@@ -53,6 +53,7 @@ public:
   typedef Superclass::MeasureType         MeasureType;
 
   typedef TOptimizerType                        OptimizerType;
+  typedef typename OptimizerType::Pointer       OptimizerPointer;
   typedef itk::CompensatedSummation< double >   CompensatedSummationType;
 
   Rigid3DCenterReflectorFunctor() :
@@ -98,8 +99,8 @@ public:
     params[1] = 0;
     params[2] = 0;
     // Initialize with current guess;
-    double max_cc = this->f(params);
     this->m_params = params;
+    double max_cc = this->GetValue();
     const double HARange = 25.0;
     const double BARange = 15.0;
 
@@ -119,6 +120,7 @@ public:
           params[0] = HA;
           params[1] = BA;
           params[2] = Offset;
+
           const double current_cc = this->f(params);
           if( current_cc < max_cc )
             {
@@ -526,7 +528,7 @@ private:
   SImageType::PointType             m_CenterOfImagePoint;
   SImageType::PointType::VectorType m_Translation;
   int                               m_Iterations;
-  OptimizerType                     m_Optimizer;
+  OptimizerPointer                  m_Optimizer;
   LinearInterpolatorType::Pointer   m_imInterp;
   double                            m_cc;
   bool                              m_HasLocalSupport;
