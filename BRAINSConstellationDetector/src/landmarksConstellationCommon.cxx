@@ -79,12 +79,12 @@ void ComputeMSP(SImageType::Pointer image,
     Rigid3DCenterReflectorFunctor reflectionFunctor;
 
     reflectionFunctor.SetCenterOfHeadMass(centerOfHeadMass);
-    reflectionFunctor.Initialize(image);
+    reflectionFunctor.InitializeImage(image);
     if( qualityLevel >= 0 )
       {
       std::cout << "Level 0 Quality Estimates" << std::endl;
       reflectionFunctor.SetDownSampledReferenceImage(EigthImage);
-      reflectionFunctor.QuickSampleParameterSpace();
+      reflectionFunctor.Initialize();
       reflectionFunctor.Update();
       }
     if( qualityLevel >= 1 )
@@ -121,12 +121,12 @@ void ComputeMSP(SImageType::Pointer image, RigidTransformType::Pointer & Tmsp, c
   SImageType::Pointer           HalfImage = MyPyramid->GetOutput(2);
   Rigid3DCenterReflectorFunctor reflectionFunctor;
 
-  reflectionFunctor.Initialize(image);
+  reflectionFunctor.InitializeImage(image);
   if( qualityLevel >= 0 )
     {
     std::cout << "Level 0 Quality Estimates" << std::endl;
     reflectionFunctor.SetDownSampledReferenceImage(EigthImage);
-    reflectionFunctor.QuickSampleParameterSpace();
+    reflectionFunctor.Initialize();
     reflectionFunctor.Update();
     }
   if( qualityLevel >= 1 )

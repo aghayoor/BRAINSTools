@@ -27,9 +27,10 @@
 
 #include "itkPoint.h"
 #include "itkIdentityTransform.h"
-#include <vnl/vnl_cost_function.h>
+//#include <vnl/vnl_cost_function.h>
 
-#include "vnl/algo/vnl_powell.h"
+#include "itkPowellOptimizerv4.h"
+//#include "vnl/algo/vnl_powell.h"
 #include "landmarksConstellationCommon.h"
 #include "GenericTransformImage.h"
 #include "itkStatisticsImageFilter.h"
@@ -37,22 +38,61 @@
 #include "itkCompensatedSummation.h"
 
 // Optimize the A,B,C vector
-class Rigid3DCenterReflectorFunctor : public vnl_cost_function
+class Rigid3DCenterReflectorFunctor : public itk::ObjectToObjectMetricBase
 {
 public:
-  static const int UNKNOWNS_TO_ESTIMATE = 3;
+  typedef Rigid3DCenterReflectorFunctor   Self;
+  typedef itk::ObjectToObjectMetricBase   Superclass;
+  typedef itk::SmartPointer<Self>         Pointer;
+  typedef itk::SmartPointer<const Self>   ConstPointer;
+  itkNewMacro( Self );
+
+  enum { SpaceDimension=3 };
+
+  typedef Superclass::ParametersType      ParametersType;
+  typedef Superclass::DerivativeType      DerivativeType;
+  typedef Superclass::MeasureType         MeasureType;
 
   typedef itk::CompensatedSummation< double >   CompensatedSummationType;
 
-  void SetCenterOfHeadMass(SImageType::PointType centerOfHeadMass)
+  Rigid3DCenterReflectorFunctor() :
+  m_params(),
+  m_OriginalImage(ITK_NULLPTR),
+  m_OutputImageSpacing(),
+  m_OutputImageDirection(),
+  m_OutputImageStartIndex(),
+  m_OutputImageSize(),
+  m_OutputImageOrigin(),
+  m_CenterOfHeadMass(),
+  m_InternalResampledForReflectiveComputationImage(ITK_NULLPTR),
+  m_ResampleFilter(ITK_NULLPTR),
+  m_BackgroundValue(0),
+  m_CenterOfImagePoint(),
+  m_Translation(),
+  m_Iterations(0),
+  m_imInterp(ITK_NULLPTR),
+  m_cc(0.0),
+  m_HasLocalSupport(false)
   {
-    m_CenterOfHeadMass = centerOfHeadMass;
+    this-m_Optimizer = OptimizerType::New();
+    this-m_Optimizer->SetMetric( &( *this ) );
+    this-m_Optimizer->SetStepLength( 10 );
+    this-m_Optimizer->SetStepTolerance( 0.01 );
+    this-m_Optimizer->SetValueTolerance( 0.1 );
+    this-m_Optimizer->SetMaximumIteration( 100 );
+
+    this->m_params.set_size(SpaceDimension);
+    this->m_params.fill(0.0);
+
+    this->m_imInterp = LinearInterpolatorType::New();
   }
 
-  void QuickSampleParameterSpace(void)
+  ////////////////////////
+  // Mandatory metric functions
+  void Initialize(void)
   {
-    vnl_vector<double> params;
-    params.set_size(3);
+    ParametersType params;
+    params.set_size(SpaceDimension);
 
     params[0] = 0;
     params[1] = 0;
@@ -102,62 +142,22 @@ public:
       }
   }
 
-  Rigid3DCenterReflectorFunctor() :
-    vnl_cost_function(UNKNOWNS_TO_ESTIMATE),
-    m_params(),
-    m_OriginalImage(ITK_NULLPTR),
-    m_OutputImageSpacing(),
-    m_OutputImageDirection(),
-    m_OutputImageStartIndex(),
-    m_OutputImageSize(),
-    m_OutputImageOrigin(),
-    m_CenterOfHeadMass(),
-    m_InternalResampledForReflectiveComputationImage(ITK_NULLPTR),
-    m_ResampleFilter(ITK_NULLPTR),
-    m_BackgroundValue(0),
-    m_CenterOfImagePoint(),
-    m_Translation(),
-    m_Iterations(0),
-    m_Optimizer( &( *this ) ),
-    m_imInterp(ITK_NULLPTR),
-    m_cc(0.0)
-  {
-    this->m_params.set_size(UNKNOWNS_TO_ESTIMATE);
-    this->m_params.fill(0.0);
-
-    static const double default_tolerance = 1e-4;
-    static const double InitialStepSize = 7.0 * vnl_math::pi / 180.0;
-    this->m_Optimizer.set_initial_step(InitialStepSize);
-    this->m_Optimizer.set_f_tolerance(default_tolerance); // TODO:  This should
-                                                          // be optimized for
-                                                          // speed.
-    this->m_Optimizer.set_x_tolerance(default_tolerance); // TODO:  Need to do
-                                                          // extensive testing
-                                                          // of the speed
-                                                          // effects of changing
-                                                          // this value with
-                                                          // respect to quality
-                                                          // of result.
-
-    this->m_imInterp = LinearInterpolatorType::New();
-  }
-
-  double f(vnl_vector<double> const & params) ITK_OVERRIDE
+  virtual MeasureType GetValue() const
   {
     const double        MaxUnpenalizedAllowedDistance = 8.0;
-    const double        DistanceFromCenterOfMass = vcl_abs(params[2]);
+    const double        DistanceFromCenterOfMass = vcl_abs(m_params[2]);
     static const double FortyFiveDegreesAsRadians = 45.0 * vnl_math::pi / 180.0;
-    const double        cost_of_HeadingAngle = ( vcl_abs(params[0]) < FortyFiveDegreesAsRadians ) ? 0 :
-      ( ( vcl_abs(params[0]) - FortyFiveDegreesAsRadians ) * 2 );
-    const double cost_of_BankAngle = ( vcl_abs(params[1]) < FortyFiveDegreesAsRadians ) ? 0 :
-      ( ( vcl_abs(params[1]) - FortyFiveDegreesAsRadians ) * 2 );
+    const double        cost_of_HeadingAngle = ( vcl_abs(m_params[0]) < FortyFiveDegreesAsRadians ) ? 0 :
+      ( ( vcl_abs(m_params[0]) - FortyFiveDegreesAsRadians ) * 2 );
+    const double cost_of_BankAngle = ( vcl_abs(m_params[1]) < FortyFiveDegreesAsRadians ) ? 0 :
+      ( ( vcl_abs(m_params[1]) - FortyFiveDegreesAsRadians ) * 2 );
 
-    if( ( vcl_abs(params[0]) > FortyFiveDegreesAsRadians ) || ( vcl_abs(params[1]) > FortyFiveDegreesAsRadians ) )
+    if( ( vcl_abs(m_params[0]) > FortyFiveDegreesAsRadians ) || ( vcl_abs(m_params[1]) > FortyFiveDegreesAsRadians ) )
       {
       std::cout << "WARNING: ESTIMATED ROTATIONS ARE WAY TOO BIG SO GIVING A HIGH COST" << std::endl;
       return 1;
       }
-    const double cc = -CenterImageReflection_crossCorrelation(params);
+    const double cc = -CenterImageReflection_crossCorrelation(m_params);
     m_Iterations++;
 
     const double cost_of_motion = ( vcl_abs(DistanceFromCenterOfMass) < MaxUnpenalizedAllowedDistance ) ? 0 :
@@ -168,12 +168,63 @@ public:
     if( !vnl_math_isfinite(raw_finalcos_gamma) )
       {
       std::cout << __FILE__ << " " << __LINE__ << " "
-                << params << " : " << cc << " " << cost_of_HeadingAngle << " " << cost_of_BankAngle << " "
+                << m_params << " : " << cc << " " << cost_of_HeadingAngle << " " << cost_of_BankAngle << " "
                 << cost_of_motion << std::endl;
       return EXIT_FAILURE;
       }
 #endif
     return raw_finalcos_gamma;
+  }
+
+  virtual void GetDerivative( DerivativeType & ) const
+  {
+  }
+
+  void GetValueAndDerivative( MeasureType & value,
+                              DerivativeType & derivative ) const
+  {
+    value = GetValue();
+    GetDerivative( derivative );
+  }
+
+  virtual unsigned int GetNumberOfLocalParameters() const
+  {
+    return SpaceDimension;
+  }
+
+  virtual unsigned int GetNumberOfParameters(void) const
+  {
+    return SpaceDimension;
+  }
+
+  virtual void SetParameters( ParametersType & parameters )
+  {
+    m_Parameters = parameters;
+  }
+
+  virtual const ParametersType & GetParameters() const
+  {
+    return m_Parameters;
+  }
+
+  virtual bool HasLocalSupport() const
+  {
+    return m_HasLocalSupport;
+  }
+
+  void SetHasLocalSupport(bool hls)
+  {
+    m_HasLocalSupport = hls;
+  }
+
+  virtual void UpdateTransformParameters( const DerivativeType &, ParametersValueType )
+  {
+  }
+  ////////////////////////
+
+  void SetCenterOfHeadMass(SImageType::PointType centerOfHeadMass)
+  {
+    m_CenterOfHeadMass = centerOfHeadMass;
   }
 
   RigidTransformType::Pointer GetTransformToMSP(void) const
@@ -195,7 +246,7 @@ public:
     return tempEulerAngles3DT;
   }
 
-  void Initialize(SImageType::Pointer & RefImage)
+  void InitializeImage(SImageType::Pointer & RefImage)
   {
       {
       SImageType::PixelType dummy;
@@ -244,7 +295,7 @@ public:
   }
 
   /* -- */
-  RigidTransformType::Pointer GetTransformFromParams(vnl_vector<double> const & params) const
+  RigidTransformType::Pointer GetTransformFromParams(ParametersType const & params) const
   {
     RigidTransformType::Pointer tempEulerAngles3DT = RigidTransformType::New();
 
@@ -257,7 +308,7 @@ public:
   }
 
   /* -- */
-  double CenterImageReflection_crossCorrelation(vnl_vector<double> const & params)
+  double CenterImageReflection_crossCorrelation(ParametersType const & params)
   {
       {
       // Define the output image direction identical
@@ -402,24 +453,29 @@ public:
 
   double GetCC(void) const
   {
-    return m_cc;
+    return this->m_cc;
   }
 
-/*
-  void Update(void)
-  {
-    this->m_Optimizer.minimize(this->m_params);
-    std::cout << this->m_params[0] * 180.0 / vnl_math::pi << " " << this->m_params[1] * 180.0 / vnl_math::pi << " "
-              << this->m_params[2] << " cc= " << this->f(this->m_params) << " iters= " << this->GetIterations()
-              << std::endl;
-  }
-*/
   void Update(void)
   {
     itk::NumberToString<double> doubleToString;
 
-    this->m_Optimizer.minimize(this->m_params);
-    m_cc = this->f(this->m_params);
+    try
+      {
+      this->m_Optimizer->StartOptimization();
+      }
+    catch( itk::ExceptionObject & e )
+      {
+      std::cout << "Exception thrown ! " << std::endl;
+      std::cout << "An error occurred during Optimization" << std::endl;
+      std::cout << "Location    = " << e.GetLocation()    << std::endl;
+      std::cout << "Description = " << e.GetDescription() << std::endl;
+      return EXIT_FAILURE;
+      }
+
+    this->m_params = this->m_Optimizer->GetCurrentPosition();
+    this->m_cc = this->GetValue();
+
     std::cout << doubleToString(this->m_params[0] * 180.0 / vnl_math::pi) << " "
               << doubleToString(this->m_params[1] * 180.0 / vnl_math::pi) << " "
               << this->m_params[2] << " cc= "
@@ -428,7 +484,7 @@ public:
   }
 
 private:
-  typedef vnl_powell                                       OptimizerType;
+  typedef itk::PowellOptimizerv4<double>                   OptimizerType;
   typedef itk::ResampleImageFilter<SImageType, SImageType> ResampleFilterType;
 
   SImageType::Pointer SimpleResampleImage(SImageType::Pointer image, RigidTransformType::Pointer EulerAngles3DT)
@@ -457,7 +513,7 @@ private:
     return returnImage;
   }
 
-  vnl_vector<double>                m_params;
+  ParametersType                    m_params;
   SImageType::Pointer               m_OriginalImage;
   SImageType::SpacingType           m_OutputImageSpacing;
   SImageType::DirectionType         m_OutputImageDirection;
@@ -474,6 +530,7 @@ private:
   OptimizerType                     m_Optimizer;
   LinearInterpolatorType::Pointer   m_imInterp;
   double                            m_cc;
+  bool                              m_HasLocalSupport;
 };
 
 #ifndef ITK_MANUAL_INSTANTIATION
