@@ -147,19 +147,19 @@ public:
   double f(const ParametersType & params)
   {
     const double        MaxUnpenalizedAllowedDistance = 8.0;
-    const double        DistanceFromCenterOfMass = vcl_abs(m_params[2]);
+    const double        DistanceFromCenterOfMass = vcl_abs(params[2]);
     static const double FortyFiveDegreesAsRadians = 45.0 * vnl_math::pi / 180.0;
-    const double        cost_of_HeadingAngle = ( vcl_abs(m_params[0]) < FortyFiveDegreesAsRadians ) ? 0 :
-      ( ( vcl_abs(m_params[0]) - FortyFiveDegreesAsRadians ) * 2 );
-    const double cost_of_BankAngle = ( vcl_abs(m_params[1]) < FortyFiveDegreesAsRadians ) ? 0 :
-      ( ( vcl_abs(m_params[1]) - FortyFiveDegreesAsRadians ) * 2 );
+    const double        cost_of_HeadingAngle = ( vcl_abs(params[0]) < FortyFiveDegreesAsRadians ) ? 0 :
+      ( ( vcl_abs(params[0]) - FortyFiveDegreesAsRadians ) * 2 );
+    const double cost_of_BankAngle = ( vcl_abs(params[1]) < FortyFiveDegreesAsRadians ) ? 0 :
+      ( ( vcl_abs(params[1]) - FortyFiveDegreesAsRadians ) * 2 );
 
-    if( ( vcl_abs(m_params[0]) > FortyFiveDegreesAsRadians ) || ( vcl_abs(m_params[1]) > FortyFiveDegreesAsRadians ) )
+    if( ( vcl_abs(params[0]) > FortyFiveDegreesAsRadians ) || ( vcl_abs(params[1]) > FortyFiveDegreesAsRadians ) )
       {
       std::cout << "WARNING: ESTIMATED ROTATIONS ARE WAY TOO BIG SO GIVING A HIGH COST" << std::endl;
       return 1;
       }
-    const double cc = -CenterImageReflection_crossCorrelation(m_params);
+    const double cc = -CenterImageReflection_crossCorrelation(params);
     m_Iterations++;
 
     const double cost_of_motion = ( vcl_abs(DistanceFromCenterOfMass) < MaxUnpenalizedAllowedDistance ) ? 0 :
@@ -170,7 +170,7 @@ public:
     if( !vnl_math_isfinite(raw_finalcos_gamma) )
       {
       std::cout << __FILE__ << " " << __LINE__ << " "
-                << m_params << " : " << cc << " " << cost_of_HeadingAngle << " " << cost_of_BankAngle << " "
+                << params << " : " << cc << " " << cost_of_HeadingAngle << " " << cost_of_BankAngle << " "
                 << cost_of_motion << std::endl;
       return EXIT_FAILURE;
       }
