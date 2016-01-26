@@ -76,7 +76,8 @@ void ComputeMSP(SImageType::Pointer image,
     SImageType::Pointer           EigthImage = MyPyramid->GetOutput(0);
     SImageType::Pointer           QuarterImage = MyPyramid->GetOutput(1);
     SImageType::Pointer           HalfImage = MyPyramid->GetOutput(2);
-    Rigid3DCenterReflectorFunctor reflectionFunctor;
+    typedef Rigid3DCenterReflectorFunctor< itk::PowellOptimizerv4<double> > reflectionFunctorType;
+    reflectionFunctorType::Pointer reflectionFunctor = reflectionFunctorType::New();
 
     reflectionFunctor.SetCenterOfHeadMass(centerOfHeadMass);
     reflectionFunctor.InitializeImage(image);
@@ -119,7 +120,8 @@ void ComputeMSP(SImageType::Pointer image, RigidTransformType::Pointer & Tmsp, c
   SImageType::Pointer           EigthImage = MyPyramid->GetOutput(0);
   SImageType::Pointer           QuarterImage = MyPyramid->GetOutput(1);
   SImageType::Pointer           HalfImage = MyPyramid->GetOutput(2);
-  Rigid3DCenterReflectorFunctor reflectionFunctor;
+  typedef Rigid3DCenterReflectorFunctor< itk::PowellOptimizerv4<double> > reflectionFunctorType;
+  reflectionFunctorType::Pointer reflectionFunctor = reflectionFunctorType::New();
 
   reflectionFunctor.InitializeImage(image);
   if( qualityLevel >= 0 )

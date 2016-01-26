@@ -36,6 +36,7 @@
 #include "itkCompensatedSummation.h"
 
 // Optimize the A,B,C vector
+template<typename TOptimizerType>
 class Rigid3DCenterReflectorFunctor : public itk::ObjectToObjectMetricBase
 {
 public:
@@ -51,6 +52,7 @@ public:
   typedef Superclass::DerivativeType      DerivativeType;
   typedef Superclass::MeasureType         MeasureType;
 
+  typedef TOptimizerType                        OptimizerType;
   typedef itk::CompensatedSummation< double >   CompensatedSummationType;
 
   Rigid3DCenterReflectorFunctor() :
@@ -197,12 +199,12 @@ public:
 
   virtual void SetParameters( ParametersType & parameters )
   {
-    m_Parameters = parameters;
+    m_params = parameters;
   }
 
   virtual const ParametersType & GetParameters() const
   {
-    return m_Parameters;
+    return m_params;
   }
 
   virtual bool HasLocalSupport() const
@@ -468,7 +470,7 @@ public:
       std::cout << "An error occurred during Optimization" << std::endl;
       std::cout << "Location    = " << e.GetLocation()    << std::endl;
       std::cout << "Description = " << e.GetDescription() << std::endl;
-      return EXIT_FAILURE;
+      //return EXIT_FAILURE;
       }
 
     this->m_params = this->m_Optimizer->GetCurrentPosition();
@@ -482,7 +484,6 @@ public:
   }
 
 private:
-  typedef itk::PowellOptimizerv4<double>                   OptimizerType;
   typedef itk::ResampleImageFilter<SImageType, SImageType> ResampleFilterType;
 
   SImageType::Pointer SimpleResampleImage(SImageType::Pointer image, RigidTransformType::Pointer EulerAngles3DT)
