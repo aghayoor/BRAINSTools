@@ -59,18 +59,10 @@ public:
   Rigid3DCenterReflectorFunctor() :
   m_params(),
   m_OriginalImage(ITK_NULLPTR),
-  m_OutputImageSpacing(),
-  m_OutputImageDirection(),
-  m_OutputImageStartIndex(),
-  m_OutputImageSize(),
-  m_OutputImageOrigin(),
   m_CenterOfHeadMass(),
-  m_InternalResampledForReflectiveComputationImage(ITK_NULLPTR),
-  m_ResampleFilter(ITK_NULLPTR),
   m_BackgroundValue(0),
   m_CenterOfImagePoint(),
   m_Translation(),
-  m_Iterations(0),
   m_imInterp(ITK_NULLPTR),
   m_cc(0.0),
   m_HasLocalSupport(false)
@@ -139,12 +131,12 @@ public:
                 << " BA= " << doubleToString(this->m_params[1] * 180.0 / vnl_math::pi)
                 << " XO= " << doubleToString(this->m_params[2])
                 << " cc="  <<  doubleToString(this->GetValue())
-                << " iterations=" << this->GetIterations()
+                << " iterations=" << this->m_Optimizer->GetCurrentIteration()
                 << std::endl;
       }
   }
 
-  double f(const ParametersType & params)
+  double f(const ParametersType & params) const
   {
     const double        MaxUnpenalizedAllowedDistance = 8.0;
     const double        DistanceFromCenterOfMass = vcl_abs(params[2]);
@@ -160,7 +152,6 @@ public:
       return 1;
       }
     const double cc = -CenterImageReflection_crossCorrelation(params);
-    m_Iterations++;
 
     const double cost_of_motion = ( vcl_abs(DistanceFromCenterOfMass) < MaxUnpenalizedAllowedDistance ) ? 0 :
       ( vcl_abs(DistanceFromCenterOfMass - MaxUnpenalizedAllowedDistance) * .1 );
@@ -237,9 +228,7 @@ public:
   RigidTransformType::Pointer GetTransformToMSP(void) const
   {
     // Compute and store the new output image origin
-    m_ResampleFilter->SetTransform( this->GetTransformFromParams(this->m_params) );
-    m_ResampleFilter->Update();
-    SImageType::Pointer image = m_ResampleFilter->GetOutput();
+    SImageType::Pointer image = GetResampledImageToOutputBox(this->m_params);
 
     // it is also the msp location
     SImageType::PointType physCenter = GetImageCenterPhysicalPoint(image);
@@ -290,12 +279,6 @@ public:
   }
 
   /* -- */
-  unsigned int GetIterations(void) const
-  {
-    return m_Iterations;
-  }
-
-  /* -- */
   SImageType::PixelType GetBackgroundValue(void) const
   {
     return this->m_BackgroundValue;
@@ -315,12 +298,12 @@ public:
   }
 
   /* -- */
-  double CenterImageReflection_crossCorrelation(ParametersType const & params)
+  SImageType::Pointer GetResampledImageToOutputBox(ParametersType const & params) const
   {
+    SImageType::SpacingType           outputImageSpacing;
+    SImageType::SizeType              outputImageSize;
+    SImageType::PointType             outputImageOrigin;
       {
-      // Define the output image direction identical
-      m_OutputImageDirection.SetIdentity();
-
       // Get output spacing
       const SImageType::SpacingType &inputImageSpacing = m_OriginalImage->GetSpacing();
       SImageType::SpacingType::ValueType minSpacing=inputImageSpacing[0];
@@ -330,39 +313,49 @@ public:
         }
       for( unsigned int i = 0; i < 3; ++i )
         {
-          m_OutputImageSpacing[i]=minSpacing;
+          outputImageSpacing[i]=minSpacing;
         }
 
-      // Define start index
-      m_OutputImageStartIndex.Fill(0);
-
       // Desire a 95*2 x 130*2 x 160x2 mm voxel lattice that will fit a brain
-      m_OutputImageSize[0] = static_cast<unsigned long int>( 2.0 * vcl_ceil(95.0  / m_OutputImageSpacing[0]) );
-      m_OutputImageSize[1] = static_cast<unsigned long int>( 2.0 * vcl_ceil(130.0 / m_OutputImageSpacing[1]) );
-      m_OutputImageSize[2] = static_cast<unsigned long int>( 2.0 * vcl_ceil(160.0 / m_OutputImageSpacing[2]) );
+      outputImageSize[0] = static_cast<unsigned long int>( 2.0 * vcl_ceil(95.0  / outputImageSpacing[0]) );
+      outputImageSize[1] = static_cast<unsigned long int>( 2.0 * vcl_ceil(130.0 / outputImageSpacing[1]) );
+      outputImageSize[2] = static_cast<unsigned long int>( 2.0 * vcl_ceil(160.0 / outputImageSpacing[2]) );
 
       // The physical center of MSP plane is not determined yet. At the
       // optimizing stage we take COM as physical center
-      m_OutputImageOrigin[0] = m_CenterOfHeadMass[0] - .5 * ( m_OutputImageSize[0] - 1 ) * m_OutputImageSpacing[0];
-      m_OutputImageOrigin[1] = m_CenterOfHeadMass[1] - .5 * ( m_OutputImageSize[1] - 1 ) * m_OutputImageSpacing[1];
-      m_OutputImageOrigin[2] = m_CenterOfHeadMass[2] - .5 * ( m_OutputImageSize[2] - 1 ) * m_OutputImageSpacing[2];
+      outputImageOrigin[0] = m_CenterOfHeadMass[0] - .5 * ( outputImageSize[0] - 1 ) * outputImageSpacing[0];
+      outputImageOrigin[1] = m_CenterOfHeadMass[1] - .5 * ( outputImageSize[1] - 1 ) * outputImageSpacing[1];
+      outputImageOrigin[2] = m_CenterOfHeadMass[2] - .5 * ( outputImageSize[2] - 1 ) * outputImageSpacing[2];
       }
     /*
      * Resample the image
      */
-    m_ResampleFilter = ResampleFilterType::New();
+    SImageType::IndexType             outputImageStartIndex;
+    // Define start index
+    outputImageStartIndex.Fill(0);
+
+    // Define the output image direction identical
+    SImageType::DirectionType         outputImageDirection;
+    outputImageDirection.SetIdentity();
+
+    ResampleFilterType::Pointer       resampleFilter = ResampleFilterType::New();
     LinearInterpolatorType::Pointer interpolator = LinearInterpolatorType::New();
-    m_ResampleFilter->SetInterpolator(interpolator);
-    m_ResampleFilter->SetDefaultPixelValue(0);
-    m_ResampleFilter->SetOutputSpacing(m_OutputImageSpacing);
-    m_ResampleFilter->SetOutputOrigin(m_OutputImageOrigin);
-    m_ResampleFilter->SetSize(m_OutputImageSize);
-    m_ResampleFilter->SetOutputDirection(m_OutputImageDirection);
-    m_ResampleFilter->SetOutputStartIndex(m_OutputImageStartIndex);
-    m_ResampleFilter->SetInput(this->m_OriginalImage);
-    m_ResampleFilter->SetTransform( this->GetTransformFromParams(params) );
-    m_ResampleFilter->Update();
-    m_InternalResampledForReflectiveComputationImage = m_ResampleFilter->GetOutput();
+    resampleFilter->SetInterpolator(interpolator);
+    resampleFilter->SetDefaultPixelValue(0);
+    resampleFilter->SetOutputSpacing(outputImageSpacing);
+    resampleFilter->SetOutputOrigin(outputImageOrigin);
+    resampleFilter->SetSize(outputImageSize);
+    resampleFilter->SetOutputDirection(outputImageDirection);
+    resampleFilter->SetOutputStartIndex(outputImageStartIndex);
+    resampleFilter->SetInput(this->m_OriginalImage);
+    resampleFilter->SetTransform( this->GetTransformFromParams(params) );
+    resampleFilter->Update();
+    return resampleFilter->GetOutput();
+  }
+
+  double CenterImageReflection_crossCorrelation(ParametersType const & params) const
+  {
+    SImageType::Pointer  internalResampledForReflectiveComputationImage = GetResampledImageToOutputBox(params);
 
     /*
      * Compute the reflective correlation
@@ -373,13 +366,13 @@ public:
     double               sumVoxelValuesReflected = 0.0F;
     double               sumSquaredVoxelValuesReflected = 0.0F;
     int                  N = 0;
-    SImageType::SizeType rasterResampleSize = m_InternalResampledForReflectiveComputationImage->GetLargestPossibleRegion().GetSize();
+    SImageType::SizeType rasterResampleSize = internalResampledForReflectiveComputationImage->GetLargestPossibleRegion().GetSize();
     const SImageType::SizeType::SizeValueType xMaxIndexResampleSize = rasterResampleSize[0] - 1;
     rasterResampleSize[0] /= 2; // Only need to do 1/2 in the x direction;
     SImageType::RegionType rasterRegion;
     rasterRegion.SetSize(rasterResampleSize);
-    rasterRegion.SetIndex( m_InternalResampledForReflectiveComputationImage->GetLargestPossibleRegion().GetIndex() );
-    itk::ImageRegionConstIteratorWithIndex<SImageType> halfIt(m_InternalResampledForReflectiveComputationImage,
+    rasterRegion.SetIndex( internalResampledForReflectiveComputationImage->GetLargestPossibleRegion().GetIndex() );
+    itk::ImageRegionConstIteratorWithIndex<SImageType> halfIt(internalResampledForReflectiveComputationImage,
                                                               rasterRegion);
 
     CompensatedSummationType  CS_sumVoxelValuesQR;
@@ -399,7 +392,7 @@ public:
         }
       SImageType::IndexType ReflectedIndex = halfIt.GetIndex();
       ReflectedIndex[0] = xMaxIndexResampleSize - ReflectedIndex[0];
-      const double g = m_InternalResampledForReflectiveComputationImage->GetPixel(ReflectedIndex);
+      const double g = internalResampledForReflectiveComputationImage->GetPixel(ReflectedIndex);
       if( g < this->m_BackgroundValue )  // don't worry about background voxels.
         {
         continue;
@@ -486,53 +479,19 @@ public:
     std::cout << doubleToString(this->m_params[0] * 180.0 / vnl_math::pi) << " "
               << doubleToString(this->m_params[1] * 180.0 / vnl_math::pi) << " "
               << this->m_params[2] << " cc= "
-              << doubleToString(m_cc) << " iters= " << this->GetIterations()
+              << doubleToString(m_cc) << " iters= " << this->m_Optimizer->GetCurrentIteration()
               << std::endl;
   }
 
 private:
   typedef itk::ResampleImageFilter<SImageType, SImageType> ResampleFilterType;
 
-  SImageType::Pointer SimpleResampleImage(SImageType::Pointer image, RigidTransformType::Pointer EulerAngles3DT)
-  {
-    m_ResampleFilter = ResampleFilterType::New();
-    LinearInterpolatorType::Pointer interpolator = LinearInterpolatorType::New();
-    m_ResampleFilter->SetInterpolator(interpolator);
-    m_ResampleFilter->SetDefaultPixelValue(0);
-    m_ResampleFilter->SetOutputSpacing(m_OutputImageSpacing);
-    m_ResampleFilter->SetSize(m_OutputImageSize);
-    m_ResampleFilter->SetOutputDirection(m_OutputImageDirection);
-    m_ResampleFilter->SetOutputStartIndex(m_OutputImageStartIndex);
-    m_ResampleFilter->SetInput(image);
-    m_ResampleFilter->SetTransform(EulerAngles3DT);
-
-    // Move the physical center of image to the physical origin
-    m_OutputImageOrigin[0] = -0.5 * ( m_OutputImageSize[0] - 1 ) * m_OutputImageSpacing[0];
-    m_OutputImageOrigin[1] = -0.5 * ( m_OutputImageSize[1] - 1 ) * m_OutputImageSpacing[1];
-    m_OutputImageOrigin[2] = -0.5 * ( m_OutputImageSize[2] - 1 ) * m_OutputImageSpacing[2];
-    m_ResampleFilter->SetOutputOrigin(m_OutputImageOrigin);
-
-    m_ResampleFilter->Update();
-
-    SImageType::Pointer returnImage = m_ResampleFilter->GetOutput();
-    returnImage->DisconnectPipeline();
-    return returnImage;
-  }
-
   ParametersType                    m_params;
   SImageType::Pointer               m_OriginalImage;
-  SImageType::SpacingType           m_OutputImageSpacing;
-  SImageType::DirectionType         m_OutputImageDirection;
-  SImageType::IndexType             m_OutputImageStartIndex;
-  SImageType::SizeType              m_OutputImageSize;
-  SImageType::PointType             m_OutputImageOrigin;
   SImageType::PointType             m_CenterOfHeadMass;
-  SImageType::Pointer               m_InternalResampledForReflectiveComputationImage;
-  ResampleFilterType::Pointer       m_ResampleFilter;
   SImageType::PixelType             m_BackgroundValue;
   SImageType::PointType             m_CenterOfImagePoint;
   SImageType::PointType::VectorType m_Translation;
-  int                               m_Iterations;
   OptimizerPointer                  m_Optimizer;
   LinearInterpolatorType::Pointer   m_imInterp;
   double                            m_cc;
