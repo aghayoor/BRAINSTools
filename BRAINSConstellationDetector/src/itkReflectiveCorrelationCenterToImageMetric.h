@@ -138,13 +138,13 @@ public:
                 << " HA= " << doubleToString(this->m_params[0] * 180.0 / vnl_math::pi)
                 << " BA= " << doubleToString(this->m_params[1] * 180.0 / vnl_math::pi)
                 << " XO= " << doubleToString(this->m_params[2])
-                << " cc="  <<  doubleToString(this->f(this->m_params) )
+                << " cc="  <<  doubleToString(this->GetValue())
                 << " iterations=" << this->GetIterations()
                 << std::endl;
       }
   }
 
-  virtual MeasureType GetValue() const
+  double f(const ParametersType & params)
   {
     const double        MaxUnpenalizedAllowedDistance = 8.0;
     const double        DistanceFromCenterOfMass = vcl_abs(m_params[2]);
@@ -176,6 +176,11 @@ public:
       }
 #endif
     return raw_finalcos_gamma;
+  }
+
+  virtual MeasureType GetValue() const
+  {
+    return f(this->m_params);
   }
 
   virtual void GetDerivative( DerivativeType & ) const
