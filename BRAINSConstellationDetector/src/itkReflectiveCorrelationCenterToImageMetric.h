@@ -27,10 +27,8 @@
 
 #include "itkPoint.h"
 #include "itkIdentityTransform.h"
-//#include <vnl/vnl_cost_function.h>
 
 #include "itkPowellOptimizerv4.h"
-//#include "vnl/algo/vnl_powell.h"
 #include "landmarksConstellationCommon.h"
 #include "GenericTransformImage.h"
 #include "itkStatisticsImageFilter.h"
@@ -74,12 +72,12 @@ public:
   m_cc(0.0),
   m_HasLocalSupport(false)
   {
-    this-m_Optimizer = OptimizerType::New();
-    this-m_Optimizer->SetMetric( &( *this ) );
-    this-m_Optimizer->SetStepLength( 10 );
-    this-m_Optimizer->SetStepTolerance( 0.01 );
-    this-m_Optimizer->SetValueTolerance( 0.1 );
-    this-m_Optimizer->SetMaximumIteration( 100 );
+    this->m_Optimizer = OptimizerType::New();
+    this->m_Optimizer->SetMetric( &( *this ) );
+    this->m_Optimizer->SetStepLength( 10 );
+    this->m_Optimizer->SetStepTolerance( 0.01 );
+    this->m_Optimizer->SetValueTolerance( 0.1 );
+    this->m_Optimizer->SetMaximumIteration( 100 );
 
     this->m_params.set_size(SpaceDimension);
     this->m_params.fill(0.0);
@@ -89,7 +87,7 @@ public:
 
   ////////////////////////
   // Mandatory metric functions
-  void Initialize(void)
+  virtual void Initialize(void) throw ( itk::ExceptionObject )
   {
     ParametersType params;
     params.set_size(SpaceDimension);
@@ -272,7 +270,7 @@ public:
       {
       std::cout << "Center Of Physical Point: " << this->m_CenterOfImagePoint << std::endl;
       std::cout << "Center Of Mass Point:" << this->m_CenterOfHeadMass << std::endl;
-      std::cout << "IntialTranslation: " << this->m_Translation << std::endl;
+      std::cout << "InitialTranslation: " << this->m_Translation << std::endl;
       }
   }
 
