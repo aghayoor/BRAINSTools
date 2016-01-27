@@ -69,9 +69,9 @@ public:
   {
     this->m_Optimizer = OptimizerType::New();
     this->m_Optimizer->SetMetric( &( *this ) );
-    this->m_Optimizer->SetStepLength( 10 );
-    this->m_Optimizer->SetStepTolerance( 0.01 );
-    this->m_Optimizer->SetValueTolerance( 0.1 );
+    this->m_Optimizer->SetStepLength( 0.1 );
+    this->m_Optimizer->SetStepTolerance( 1e-4 );
+    this->m_Optimizer->SetValueTolerance( 1e-4 );
     this->m_Optimizer->SetMaximumIteration( 100 );
 
     this->m_params.set_size(SpaceDimension);
