@@ -455,6 +455,7 @@ int main(int argc, char * *argv)
              << gridSize[2] << std::endl );
   muLogMacro(<< std::endl );
   muLogMacro(<< "=== Start Registration ===\n");
+  muLogMacro(<< "==========================\n");
 
   typedef itk::Transform<double, 3, 3> GenericTransformType;
   GenericTransformType::Pointer atlasToSubjectPreSegmentationTransform = ITK_NULLPTR;
@@ -502,17 +503,19 @@ int main(int argc, char * *argv)
       std::cerr << "STATUS:  Atlas image of type: " << elem.first
                 << " added with filename: " << temp << std::endl;
       }
+    /*
     else if( elem.first.compare("IDWI") == 0 ) // do not throw when IDWI is an input type
       {
       std::cerr << "WARNING: No atlas image of type IDWI." << std::endl;
       }
+    */
     else
       {
       std::cerr << "ERROR:  Atlas image of type: " << elem.first
                 << " not found in xml file." << std::endl;
       throw;
       }
-    for(AtlasRegType::StringVector::const_iterator imIt = elem.second.begin();
+    for(auto imIt = elem.second.begin();
         imIt != elem.second.end(); ++imIt)
       {
       templateVolumes[elem.first].push_back(temp);
@@ -559,10 +562,10 @@ int main(int argc, char * *argv)
   for(auto typeIt = inputVolumeMap.begin();
       typeIt != inputVolumeMap.end(); ++typeIt)
     {
-    for( AtlasRegType::StringVector::const_iterator imIt = typeIt->second.begin();
+    for( auto imIt = typeIt->second.begin();
          imIt != typeIt->second.end(); ++imIt,++i )
       {
-      muLogMacro(<< "Reading image " << ": " << (*imIt) << "...\n");
+      muLogMacro(<< "\n*** Reading image " << ": " << (*imIt) << " ...\n");
 
       LocalReaderPointer imgreader = LocalReaderType::New();
       imgreader->SetFileName( (*imIt).c_str() );
