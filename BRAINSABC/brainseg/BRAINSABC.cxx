@@ -171,9 +171,9 @@ CreateTypedMap(const AtlasRegType::StringVector &keys, const AtlasRegType::Strin
   auto keyIt(keys.begin());
   auto valueIt(values.begin());
 
-  AtlasRegType::StringVector firstVec = {(*valueIt)}
+  AtlasRegType::StringVector firstVec = {(*valueIt)};
   AtlasRegType::PairsOfStrAndStrVector firstPair((*keyIt),firstVec);
-  AtlasRegType::VectorOfPairsOfStrAndStrVectors rval = {firstPair}
+  AtlasRegType::VectorOfPairsOfStrAndStrVectors rval = {firstPair};
 
   ++keyIt;
   ++valueIt;
@@ -192,7 +192,7 @@ CreateTypedMap(const AtlasRegType::StringVector &keys, const AtlasRegType::Strin
       }
     if( !typeFound )
       {
-      AtlasRegType::StringVector newVec = {(*valueIt)}
+      AtlasRegType::StringVector newVec = {(*valueIt)};
       AtlasRegType::PairsOfStrAndStrVector newPair((*keyIt),newVec);
       rval.push_back(newPair);
       }
@@ -659,7 +659,7 @@ int main(int argc, char * *argv)
       }
       std::string intraSubjectTransformFileName  = outputDir
         + GetStrippedImageFileNameExtension((*imIt).c_str()) + "_to_"
-        + GetStrippedImageFileNameExtension(GetMapVectorFirstElement(inputVolumeOrderedMap)) + suffixstr
+        + GetStrippedImageFileNameExtension(GetOrderedMapFirstElement(inputVolumeOrderedMap)) + suffixstr
         + ".h5";
       intraSubjectTransformFileNames[typeIt->first].push_back(intraSubjectTransformFileName);
       }

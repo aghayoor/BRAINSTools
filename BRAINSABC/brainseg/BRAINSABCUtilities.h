@@ -260,6 +260,13 @@ GetMapVectorFirstElement(const TMap &map)
   return *(map.begin()->second.begin());
 }
 
+template <class TVec>
+const typename TVec::value_type::second_type::value_type &
+GetOrderedMapFirstElement(const TVec &vec)
+{
+  return *(vec.begin()->second.begin());
+}
+
 template <class ImageType>
 typename ImageType::Pointer
 CopyImage(const typename ImageType::Pointer & input )

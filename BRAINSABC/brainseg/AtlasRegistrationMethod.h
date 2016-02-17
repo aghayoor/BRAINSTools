@@ -187,7 +187,7 @@ public:
   typedef std::vector<std::string> StringVector;
   typedef std::map<std::string,StringVector >     MapOfStringVectors;
   typedef std::pair<std::string, StringVector>    PairsOfStrAndStrVector;
-  typedef std::vector<PairsOfStrAndStringVector>  VectorOfPairsOfStrAndStrVectors;
+  typedef std::vector<PairsOfStrAndStrVector>     VectorOfPairsOfStrAndStrVectors;
 
   typedef std::vector<InternalImagePointer> FloatImageVector;
   typedef std::map<std::string, FloatImageVector> MapOfFloatImageVectors;
