@@ -165,8 +165,21 @@ RescaleFunctionLocal( AtlasRegType::MapOfFloatImageVectors& localList)
 
 //
 // utility method for constructing map of vectors
-AtlasRegType::VectorOfPairsOfStrAndStrVectors
+AtlasRegType::MapOfStringVectors
 CreateTypedMap(const AtlasRegType::StringVector &keys, const AtlasRegType::StringVector &values)
+{
+  AtlasRegType::MapOfStringVectors rval;
+  auto keyIt(keys.begin());
+  auto valueIt(values.begin());
+  for( ; keyIt != keys.end() && valueIt != values.end(); ++keyIt, ++valueIt)
+    {
+    rval[(*keyIt)].push_back((*valueIt));
+    }
+  return rval;
+}
+
+AtlasRegType::VectorOfPairsOfStrAndStrVectors
+CreateOrderedTypedMap(const AtlasRegType::StringVector &keys, const AtlasRegType::StringVector &values)
 {
   auto keyIt(keys.begin());
   auto valueIt(values.begin());
@@ -284,12 +297,8 @@ int main(int argc, char * *argv)
   atlasDefinitionParser.DebugPrint();
 
   AtlasRegType::VectorOfPairsOfStrAndStrVectors inputVolumeOrderedMap =
-    CreateTypedMap(input_VolumeTypes,input_Volumes);
-  AtlasRegType::VectorOfPairsOfStrAndStrVectors outputVolumeOrderedMap;
-  if(output_Volumes.size() > 1)
-    {
-    outputVolumeOrderedMap = CreateTypedMap(input_VolumeTypes,output_Volumes);
-    }
+    CreateOrderedTypedMap(input_VolumeTypes,input_Volumes);
+
   // Create and start a new timer (for the whole process)
   //  EMSTimer* timer = new EMSTimer();
   itk::TimeProbe timer;
@@ -1180,8 +1189,8 @@ int main(int argc, char * *argv)
       muLogMacro(<< "Writing filtered and bias corrected images...\n");
       // std::vector<FloatImagePointer> imgset = segfilter->GetCorrected();
       AtlasRegType::MapOfFloatImageVectors imgset = segfilter->GetRawCorrected();
-      AtlasRegType::MapOfStringVectors outFileNames;
 
+      AtlasRegType::MapOfStringVectors outFileNames;
       if( output_Volumes.size() == 1 )
         {
         for(auto mapIt = imgset.begin();
@@ -1195,17 +1204,19 @@ int main(int argc, char * *argv)
             }
           }
         }
-      else if( TotalMapSize(imgset) != TotalMapSize(outputVolumeOrderedMap))
+      else if( output_Volumes.size() > 1 )
         {
-        std::cerr << TotalMapSize(imgset) << " images in filter output, but "
-                  << TotalMapSize(outputVolumeOrderedMap) << " names in output volumes list"
-                  << std::endl;
-        return EXIT_FAILURE;
+        outFileNames = CreateTypedMap(input_VolumeTypes,output_Volumes);
+
+        if( TotalMapSize(imgset) != TotalMapSize(outFileNames))
+          {
+          std::cerr << TotalMapSize(imgset) << " images in filter output, but "
+                    << TotalMapSize(outFileNames) << " names in output volumes list"
+                    << std::endl;
+          return EXIT_FAILURE;
+          }
         }
-      else
-        {
-        outFileNames = outputVolumeOrderedMap;
-        }
+
       for(auto mapIt = imgset.begin();
           mapIt != imgset.end(); ++mapIt)
         {
