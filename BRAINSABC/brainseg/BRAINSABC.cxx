@@ -165,16 +165,39 @@ RescaleFunctionLocal( AtlasRegType::MapOfFloatImageVectors& localList)
 
 //
 // utility method for constructing map of vectors
-AtlasRegType::MapOfStringVectors
+AtlasRegType::VectorOfPairsOfStrAndStrVectors
 CreateTypedMap(const AtlasRegType::StringVector &keys, const AtlasRegType::StringVector &values)
 {
-  AtlasRegType::MapOfStringVectors rval;
   auto keyIt(keys.begin());
   auto valueIt(values.begin());
+
+  AtlasRegType::StringVector firstVec = {(*valueIt)}
+  AtlasRegType::PairsOfStrAndStrVector firstPair((*keyIt),firstVec);
+  AtlasRegType::VectorOfPairsOfStrAndStrVectors rval = {firstPair}
+
+  ++keyIt;
+  ++valueIt;
+
+  bool typeFound = false;
   for( ; keyIt != keys.end() && valueIt != values.end(); ++keyIt, ++valueIt)
     {
-    rval[(*keyIt)].push_back((*valueIt));
+    for(auto & element: rval )
+      {
+      if( (*keyIt) == element.first )
+        {
+        element.second.push_back((*valueIt));
+        typeFound = true;
+        break;
+        }
+      }
+    if( !typeFound )
+      {
+      AtlasRegType::StringVector newVec = {(*valueIt)}
+      AtlasRegType::PairsOfStrAndStrVector newPair((*keyIt),newVec);
+      rval.push_back(newPair);
+      }
     }
+
   return rval;
 }
 
@@ -260,9 +283,9 @@ int main(int argc, char * *argv)
   ;
   atlasDefinitionParser.DebugPrint();
 
-  AtlasRegType::MapOfStringVectors inputVolumeMap =
+  AtlasRegType::VectorOfPairsOfStrAndStrVectors inputVolumeMap =
     CreateTypedMap(input_VolumeTypes,input_Volumes);
-  AtlasRegType::MapOfStringVectors outputVolumeMap;
+  AtlasRegType::VectorOfPairsOfStrAndStrVectors outputVolumeMap;
   if(output_Volumes.size() > 1)
     {
     outputVolumeMap = CreateTypedMap(input_VolumeTypes,output_Volumes);
