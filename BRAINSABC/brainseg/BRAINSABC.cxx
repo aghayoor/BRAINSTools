@@ -1184,7 +1184,7 @@ int main(int argc, char * *argv)
 
       if( output_Volumes.size() == 1 )
         {
-        for(AtlasRegType::MapOfFloatImageVectors::const_iterator mapIt = imgset.begin();
+        for(auto mapIt = imgset.begin();
             mapIt != imgset.end(); ++mapIt)
           {
           for( unsigned i = 0; i < mapIt->second.size(); i++ )
@@ -1206,7 +1206,7 @@ int main(int argc, char * *argv)
         {
         outFileNames = outputVolumeOrderedMap;
         }
-      for(AtlasRegType::MapOfFloatImageVectors::const_iterator mapIt = imgset.begin();
+      for(auto mapIt = imgset.begin();
           mapIt != imgset.end(); ++mapIt)
         {
         for( unsigned i = 0; i < mapIt->second.size(); i++ )
