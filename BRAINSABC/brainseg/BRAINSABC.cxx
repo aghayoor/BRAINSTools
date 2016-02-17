@@ -283,7 +283,7 @@ int main(int argc, char * *argv)
   ;
   atlasDefinitionParser.DebugPrint();
 
-  AtlasRegType::VectorOfPairsOfStrAndStrVectors inputVolumeMap =
+  AtlasRegType::VectorOfPairsOfStrAndStrVectors inputVolumeOrderedMap =
     CreateTypedMap(input_VolumeTypes,input_Volumes);
   AtlasRegType::VectorOfPairsOfStrAndStrVectors outputVolumeMap;
   if(output_Volumes.size() > 1)
@@ -516,7 +516,7 @@ int main(int argc, char * *argv)
 
   AtlasRegType::MapOfStringVectors templateVolumes;
   const AtlasDefinition::TemplateMap &tm = atlasDefinitionParser.GetTemplateVolumes();
-  for(auto & elem : inputVolumeMap)
+  for(auto & elem : inputVolumeOrderedMap)
     {
     auto ti = tm.find(elem.first);
     std::string temp;
@@ -582,8 +582,8 @@ int main(int argc, char * *argv)
 
   AtlasRegType::MapOfStringVectors intraSubjectTransformFileNames;
   unsigned int i = 0;
-  for(auto typeIt = inputVolumeMap.begin();
-      typeIt != inputVolumeMap.end(); ++typeIt)
+  for(auto typeIt = inputVolumeOrderedMap.begin();
+      typeIt != inputVolumeOrderedMap.end(); ++typeIt)
     {
     for( auto imIt = typeIt->second.begin();
          imIt != typeIt->second.end(); ++imIt,++i )
@@ -659,7 +659,7 @@ int main(int argc, char * *argv)
       }
       std::string intraSubjectTransformFileName  = outputDir
         + GetStrippedImageFileNameExtension((*imIt).c_str()) + "_to_"
-        + GetStrippedImageFileNameExtension(GetMapVectorFirstElement(inputVolumeMap)) + suffixstr
+        + GetStrippedImageFileNameExtension(GetMapVectorFirstElement(inputVolumeOrderedMap)) + suffixstr
         + ".h5";
       intraSubjectTransformFileNames[typeIt->first].push_back(intraSubjectTransformFileName);
       }
@@ -1005,7 +1005,7 @@ int main(int argc, char * *argv)
         rescaler->Update();
 
         std::string fn = outputDir
-          + GetStrippedImageFileNameExtension(inputVolumeMap[elem.first][i])
+          + GetStrippedImageFileNameExtension(inputVolumeOrderedMap[elem.first][i])
           + std::string("_registered") + suffstr;
 
         typedef itk::ImageFileWriter<ShortImageType> ShortWriterType;
@@ -1279,7 +1279,7 @@ int main(int argc, char * *argv)
 
           const std::string fn = outputDir
             + GetStrippedImageFileNameExtension(templateVolumes[elem.first][index]) + std::string("_to_")
-            + GetStrippedImageFileNameExtension( ( inputVolumeMap[elem.first][index] ) )
+            + GetStrippedImageFileNameExtension( ( inputVolumeOrderedMap[elem.first][index] ) )
             + std::string("_warped") + std::string(".nii.gz");
 
           muLogMacro(<< "Writing warped template images... " << fn << std::endl );
@@ -1318,7 +1318,7 @@ int main(int argc, char * *argv)
     if( outputLabels == "" )
       {
       fn = outputDir;
-      fn += GetStrippedImageFileNameExtension(inputVolumeMap.begin()->second[0]);
+      fn += GetStrippedImageFileNameExtension(inputVolumeOrderedMap.begin()->second[0]);
       fn += std::string("_DirtyLabels");
       fn += suffstr;
       }
@@ -1338,7 +1338,7 @@ int main(int argc, char * *argv)
     if( outputLabels == "" )
       {
       fn = outputDir;
-      fn += GetStrippedImageFileNameExtension(inputVolumeMap.begin()->second[0]);
+      fn += GetStrippedImageFileNameExtension(inputVolumeOrderedMap.begin()->second[0]);
       fn += std::string("_labels");
       fn += suffstr;
       }
@@ -1394,7 +1394,7 @@ int main(int argc, char * *argv)
       if( posteriorTemplate == "" )
         {
         fn = outputDir;
-        fn += GetStrippedImageFileNameExtension(inputVolumeMap.begin()->second[0]);
+        fn += GetStrippedImageFileNameExtension(inputVolumeOrderedMap.begin()->second[0]);
         fn += "_POSTERIOR_";
         fn += PriorNames[probabilityIndex];
         fn += suffstr;
