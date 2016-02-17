@@ -992,6 +992,15 @@ int main(int argc, char * *argv)
       }
     for(auto & elem : intraSubjectRegisteredRawImageMap)
       {
+      AtlasRegType::StringVector currentTypeList;
+      for(auto & e : inputVolumeOrderedMap)
+        {
+        if( e.first == elem.first )
+          {
+          currentTypeList = e.second;
+          break;
+          }
+        }
 
       for(unsigned i = 0; i < elem.second.size(); ++i)
         {
@@ -1005,7 +1014,7 @@ int main(int argc, char * *argv)
         rescaler->Update();
 
         std::string fn = outputDir
-          + GetStrippedImageFileNameExtension(inputVolumeOrderedMap[elem.first][i])
+          + GetStrippedImageFileNameExtension(currentTypeList[i])
           + std::string("_registered") + suffstr;
 
         typedef itk::ImageFileWriter<ShortImageType> ShortWriterType;
@@ -1261,8 +1270,19 @@ int main(int argc, char * *argv)
     if( !atlasWarpingOff )
       {
       SegFilterType::MapOfInputImageVectors WarpedAtlasList = segfilter->GenerateWarpedAtlasImages();
+
       for(auto & elem : WarpedAtlasList)
         {
+        AtlasRegType::StringVector currentTypeList;
+        for(auto & e : inputVolumeOrderedMap)
+          {
+          if( e.first == elem.first )
+            {
+            currentTypeList = e.second;
+            break;
+            }
+          }
+
         for( unsigned int index = 0; index < elem.second.size(); index++ )
           {
           typedef itk::RescaleIntensityImageFilter<FloatImageType, ByteImageType>
@@ -1279,7 +1299,7 @@ int main(int argc, char * *argv)
 
           const std::string fn = outputDir
             + GetStrippedImageFileNameExtension(templateVolumes[elem.first][index]) + std::string("_to_")
-            + GetStrippedImageFileNameExtension( ( inputVolumeOrderedMap[elem.first][index] ) )
+            + GetStrippedImageFileNameExtension( ( currentTypeList[index] ) )
             + std::string("_warped") + std::string(".nii.gz");
 
           muLogMacro(<< "Writing warped template images... " << fn << std::endl );

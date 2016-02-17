@@ -184,7 +184,7 @@ public:
 
   typedef itk::Array<unsigned char> FlagArrayType;
 
-  typedef std::vector<std::string> StringVector;
+  typedef std::vector<std::string>                StringVector;
   typedef std::map<std::string,StringVector >     MapOfStringVectors;
   typedef std::pair<std::string, StringVector>    PairsOfStrAndStrVector;
   typedef std::vector<PairsOfStrAndStrVector>     VectorOfPairsOfStrAndStrVectors;
