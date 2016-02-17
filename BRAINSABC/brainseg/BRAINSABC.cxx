@@ -285,10 +285,10 @@ int main(int argc, char * *argv)
 
   AtlasRegType::VectorOfPairsOfStrAndStrVectors inputVolumeOrderedMap =
     CreateTypedMap(input_VolumeTypes,input_Volumes);
-  AtlasRegType::VectorOfPairsOfStrAndStrVectors outputVolumeMap;
+  AtlasRegType::VectorOfPairsOfStrAndStrVectors outputVolumeOrderedMap;
   if(output_Volumes.size() > 1)
     {
-    outputVolumeMap = CreateTypedMap(input_VolumeTypes,output_Volumes);
+    outputVolumeOrderedMap = CreateTypedMap(input_VolumeTypes,output_Volumes);
     }
   // Create and start a new timer (for the whole process)
   //  EMSTimer* timer = new EMSTimer();
@@ -1195,16 +1195,16 @@ int main(int argc, char * *argv)
             }
           }
         }
-      else if( TotalMapSize(imgset) != TotalMapSize(outputVolumeMap))
+      else if( TotalMapSize(imgset) != TotalMapSize(outputVolumeOrderedMap))
         {
         std::cerr << TotalMapSize(imgset) << " images in filter output, but "
-                  << TotalMapSize(outputVolumeMap) << " names in output volumes list"
+                  << TotalMapSize(outputVolumeOrderedMap) << " names in output volumes list"
                   << std::endl;
         return EXIT_FAILURE;
         }
       else
         {
-        outFileNames = outputVolumeMap;
+        outFileNames = outputVolumeOrderedMap;
         }
       for(AtlasRegType::MapOfFloatImageVectors::const_iterator mapIt = imgset.begin();
           mapIt != imgset.end(); ++mapIt)

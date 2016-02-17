@@ -209,10 +209,10 @@ template <class TMap>
 unsigned int TotalMapSize(const TMap &map)
 {
   unsigned int rval = 0;
-  for(typename TMap::const_iterator mapIt = map.begin();
+  for(auto mapIt = map.begin();
       mapIt != map.end(); ++mapIt)
     {
-    for(typename TMap::mapped_type::const_iterator listIt =
+    for(auto listIt =
           mapIt->second.begin(); listIt != mapIt->second.end(); ++listIt)
       {
       ++rval;
