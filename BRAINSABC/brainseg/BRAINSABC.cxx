@@ -131,15 +131,18 @@ GetStrippedImageFileNameExtension(const std::string & ImageFileName)
 }
 
 
-static AtlasRegType::MapOfFloatImageVectors
-RescaleFunctionLocal( AtlasRegType::MapOfFloatImageVectors& localList)
+static AtlasRegType::VectorOfPairsOfStrAndFloatImageVectors
+RescaleFunctionLocal( AtlasRegType::VectorOfPairsOfStrAndFloatImageVectors& localList)
 {
-  AtlasRegType::MapOfFloatImageVectors rval;
+  AtlasRegType::VectorOfPairsOfStrAndFloatImageVectors rval( localList.size() );
 
-  for(auto & elem : localList)
+  for( size_t typeIndex = 0; typeIndex < localList.size() ; ++typeIndex )
     {
-    for(auto imIt = elem.second.begin();
-        imIt != elem.second.end(); ++imIt)
+    AtlasRegType::PairsOfStrAndStrVector currPair(localList[typeIndex].first,
+                                                  AtlasRegType::StringVector::empty);
+    rval[typeIndex] = currPair;
+    for(auto imIt = localList[typeIndex].second.begin();
+        imIt != localList[typeIndex].second.end(); ++imIt)
       {
       typedef itk::RescaleIntensityImageFilter<FloatImageType, FloatImageType>
         RescaleType;
@@ -153,7 +156,7 @@ RescaleFunctionLocal( AtlasRegType::MapOfFloatImageVectors& localList)
       FloatImageType::Pointer tmp = (*imIt);
       rescaler->SetInput(tmp);
       rescaler->Update();
-      rval[elem.first].push_back(rescaler->GetOutput());
+      rval[typeIndex].second.push_back(rescaler->GetOutput());
 // #if !defined( INPLACE_RESCALER)
 //       (*imIt)  = rescaler->GetOutput();
 // #endif
@@ -492,7 +495,7 @@ int main(int argc, char * *argv)
   typedef itk::Transform<double, 3, 3> GenericTransformType;
   GenericTransformType::Pointer atlasToSubjectPreSegmentationTransform = ITK_NULLPTR;
 
-  AtlasRegType::MapOfFloatImageVectors atlasOriginalImageList;
+  AtlasRegType::VectorOfPairsOfStrAndFloatImageVectors atlasOriginalImageList;
   ByteImagePointer               atlasBrainMask;
   { // Read template images needed for atlas registration
   // muLogMacro(<< "Read template mask");
@@ -519,8 +522,8 @@ int main(int argc, char * *argv)
   atlasBrainMask = imgreader->GetOutput();
   }
 
-  AtlasRegType::MapOfFloatImageVectors intraSubjectRegisteredImageMap;
-  AtlasRegType::MapOfFloatImageVectors intraSubjectRegisteredRawImageMap;
+  AtlasRegType::VectorOfPairsOfStrAndFloatImageVectors intraSubjectRegisteredImageMap;
+  AtlasRegType::VectorOfPairsOfStrAndFloatImageVectors intraSubjectRegisteredRawImageMap;
   std::vector<std::string>       priorfnlist;
 
   AtlasRegType::VectorOfPairsOfStrAndStrVectors templateVolumes(inputVolumeOrderedMap.size());
@@ -575,8 +578,8 @@ int main(int argc, char * *argv)
     }
 
   {
-  AtlasRegType::MapOfFloatImageVectors intraSubjectRawImageMap;
-  AtlasRegType::MapOfFloatImageVectors intraSubjectNoiseRemovedImageMap;
+  AtlasRegType::VectorOfPairsOfStrAndFloatImageVectors intraSubjectRawImageMap;
+  AtlasRegType::VectorOfPairsOfStrAndFloatImageVectors intraSubjectNoiseRemovedImageMap;
 
 
   { // StartOriginalImagesList
@@ -693,12 +696,12 @@ int main(int argc, char * *argv)
   typedef itk::ImageFileReader<FloatImageType> LocalReaderType;
   typedef LocalReaderType::Pointer             LocalReaderPointer;
 
-
-  for(auto mapIt = templateVolumes.begin();
-      mapIt != templateVolumes.end(); ++mapIt)
+  for(size_t typeIndex = 0; typeIndex < templateVolumes.size(); ++typeIndex)
     {
-    const std::string curAtlasName = FindPathFromAtlasXML(*(mapIt->second.begin()),atlasDefinitionPath);
-    muLogMacro(<< "\n*** Reading atlas image " << mapIt->first << ": " << curAtlasName << "...\n");
+    const std::string curAtlasName =
+        FindPathFromAtlasXML(*(templateVolumes[typeIndex].second.begin()),atlasDefinitionPath);
+    muLogMacro(<< "\n*** Reading atlas image " << templateVolumes[typeIndex].first
+               << ": " << curAtlasName << "...\n");
     LocalReaderPointer imgreader = LocalReaderType::New();
     imgreader->SetFileName(curAtlasName.c_str());
     try
@@ -721,10 +724,10 @@ int main(int argc, char * *argv)
     muLogMacro( << "done." << std::endl );
     // the atlas pointers are all the same and parallel the input
     // image map of lists structure
-    for(auto nameIt = mapIt->second.begin();
-        nameIt != mapIt->second.end(); ++nameIt)
+    for(auto nameIt = templateVolumes[typeIndex].second.begin();
+        nameIt != templateVolumes[typeIndex].second.end(); ++nameIt)
       {
-      atlasOriginalImageList[mapIt->first].push_back(img_i);
+      atlasOriginalImageList[typeIndex].second.push_back(img_i);
       }
     if( debuglevel > 7 )
       {
@@ -732,7 +735,8 @@ int main(int argc, char * *argv)
       FloatWriterType::Pointer writer = FloatWriterType::New();
 
       std::stringstream write_atlas_index_stream("");
-      const std::string fn = outputDir + "RenormalizedAtlasTemplate_" + mapIt->first  + suffstr;
+      const std::string fn = outputDir + "RenormalizedAtlasTemplate_"
+                              + templateVolumes[typeIndex].first  + suffstr;
 
       writer->SetInput(img_i);
       writer->SetFileName( fn.c_str() );
@@ -979,7 +983,7 @@ int main(int argc, char * *argv)
       typedef ResampleType::Pointer                                    ResamplePointer;
       ResamplePointer resampler = ResampleType::New();
 
-      resampler->SetInput(GetMapVectorFirstElement(atlasOriginalImageList));
+      resampler->SetInput(GetOrderedMapFirstElement(atlasOriginalImageList));
       resampler->SetTransform(atlasToSubjectPreSegmentationTransform);
 
       resampler->SetOutputParametersFromImage

@@ -73,8 +73,10 @@ public:
 
   typedef std::vector<InputImagePixelType> BackgroundValueVector;
 
-  typedef std::vector<InputImagePointer> InputImageVector;
-  typedef std::map<std::string, InputImageVector> MapOfInputImageVectors;
+  typedef std::vector<InputImagePointer>              InputImageVector;
+  typedef std::map<std::string, InputImageVector>     MapOfInputImageVectors;
+  typedef std::pair<std::string, InputImageVector>    PairsOfStrAndInputImageVector;
+  typedef std::vector<PairsOfStrAndInputImageVector>  VectorOfPairsOfStrAndInputImageVector;
 
   typedef typename ByteImageType::Pointer    ByteImagePointer;
   typedef typename ByteImageType::IndexType  ByteImageIndexType;
@@ -166,7 +168,7 @@ public:
 
   void SetRawInputImages(const MapOfInputImageVectors newInputImages);
 
-  void SetOriginalAtlasImages(const MapOfInputImageVectors newTemplateImages);
+  void SetOriginalAtlasImages(const VectorOfPairsOfStrAndInputImageVector newTemplateImages);
 
   //
   //  itkGetMacro(WarpedAtlasImages,std::vector<InputImagePointer>);

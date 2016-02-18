@@ -851,7 +851,7 @@ EMSegmentationFilter<TInputImage, TProbabilityImage>
 template <class TInputImage, class TProbabilityImage>
 void
 EMSegmentationFilter<TInputImage, TProbabilityImage>
-::SetOriginalAtlasImages(const MapOfInputImageVectors newAtlasImages)
+::SetOriginalAtlasImages(const VectorOfPairsOfStrAndInputImageVector newAtlasImages)
 {
   muLogMacro(<< "SetAtlasImages" << std::endl);
 
