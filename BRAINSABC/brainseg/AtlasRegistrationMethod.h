@@ -189,8 +189,10 @@ public:
   typedef std::pair<std::string, StringVector>    PairsOfStrAndStrVector;
   typedef std::vector<PairsOfStrAndStrVector>     VectorOfPairsOfStrAndStrVectors;
 
-  typedef std::vector<InternalImagePointer> FloatImageVector;
-  typedef std::map<std::string, FloatImageVector> MapOfFloatImageVectors;
+  typedef std::vector<InternalImagePointer>           FloatImageVector;
+  typedef std::map<std::string, FloatImageVector>     MapOfFloatImageVectors;
+  typedef std::pair<std::string, FloatImageVector>    PairsOfStrAndFloatImageVectors;
+  typedef std::vector<PairsOfStrAndFloatImageVectors> VectorOfPairsOfStrAndFloatImageVectors;
 
   typedef std::vector<GenericTransformType::Pointer> TransformList;
   typedef std::map<std::string,TransformList>        MapOfTransformLists;
@@ -209,7 +211,7 @@ public:
     }
   InternalImagePointer GetSecondModalityAtlasOriginalImage(const std::string & type)
     {
-      MapOfFloatImageVectors::iterator test_map_location = this->m_AtlasOriginalImageList.find( type );
+      auto test_map_location = this->m_AtlasOriginalImageList.find( type );
       if( test_map_location == this->m_AtlasOriginalImageList.end() )
         {
         return ITK_NULLPTR;
@@ -217,9 +219,9 @@ public:
       return *(test_map_location->second.begin());
     }
 
-  void SetAtlasOriginalImageList(MapOfFloatImageVectors & NewAtlasList);
+  void SetAtlasOriginalImageList(VectorOfPairsOfStrAndFloatImageVectors & NewAtlasList);
 
-  void SetIntraSubjectOriginalImageList(MapOfFloatImageVectors & NewImageList);
+  void SetIntraSubjectOriginalImageList(VectorOfPairsOfStrAndFloatImageVectors & NewImageList);
 
   // itkSetMacro( IntraSubjectTransformFileNames, std::vector<std::string> );
   itkSetMacro( AtlasToSubjectTransformFileName, std::string );
@@ -303,9 +305,9 @@ private:
   std::string m_OutputDebugDir;
 
   //  ByteImagePointer                  m_AtlasOriginalMask;
-  MapOfFloatImageVectors m_AtlasOriginalImageList;
-  MapOfFloatImageVectors m_IntraSubjectOriginalImageList;
-  MapOfFloatImageVectors m_RegisteredIntraSubjectImagesList;
+  VectorOfPairsOfStrAndFloatImageVectors m_AtlasOriginalImageList;
+  VectorOfPairsOfStrAndFloatImageVectors m_IntraSubjectOriginalImageList;
+  VectorOfPairsOfStrAndFloatImageVectors m_RegisteredIntraSubjectImagesList;
   FloatImageVector       m_ModalityAveragedOfIntraSubjectImages;
 
   ByteImagePointer m_InputImageTissueRegion;

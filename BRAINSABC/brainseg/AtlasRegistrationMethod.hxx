@@ -90,7 +90,7 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
 template <class TOutputPixel, class TProbabilityPixel>
 void
 AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
-::SetAtlasOriginalImageList(MapOfFloatImageVectors & NewAtlasList)
+::SetAtlasOriginalImageList(VectorOfPairsOfStrAndFloatImageVectors & NewAtlasList)
 {
   m_AtlasOriginalImageList = NewAtlasList;
   m_AtlasToSubjectTransform = MakeRigidIdentity();
@@ -101,7 +101,7 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
 template <class TOutputPixel, class TProbabilityPixel>
 void
 AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
-::SetIntraSubjectOriginalImageList(MapOfFloatImageVectors &NewIntraSubjectOriginalImageList)
+::SetIntraSubjectOriginalImageList(VectorOfPairsOfStrAndFloatImageVectors &NewIntraSubjectOriginalImageList)
 {
   muLogMacro(<< "Set Intrasubject original image list" << std::endl);
 
@@ -145,7 +145,7 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
   muLogMacro(<< "Register Intra subject images" << std::endl);
 
   int i = 0;
-  for(MapOfFloatImageVectors::iterator mapOfModalImageListsIt = this->m_IntraSubjectOriginalImageList.begin();
+  for(auto mapOfModalImageListsIt = this->m_IntraSubjectOriginalImageList.begin();
       mapOfModalImageListsIt != this->m_IntraSubjectOriginalImageList.end();
       ++mapOfModalImageListsIt)
     {
@@ -340,7 +340,7 @@ AtlasRegistrationMethod<TOutputPixel, TProbabilityPixel>
   this->m_ModalityAveragedOfIntraSubjectImages.clear(); //Ensure that pushing onto clean list
   this->m_ModalityAveragedOfIntraSubjectImages.resize(0); //Ensure that pushing onto clean list
 
-  for(MapOfFloatImageVectors::iterator mapOfRegisteredModalImageListsIt = this->m_RegisteredIntraSubjectImagesList.begin();
+  for(auto mapOfRegisteredModalImageListsIt = this->m_RegisteredIntraSubjectImagesList.begin();
       mapOfRegisteredModalImageListsIt != this->m_RegisteredIntraSubjectImagesList.end();
       ++mapOfRegisteredModalImageListsIt)
     {
