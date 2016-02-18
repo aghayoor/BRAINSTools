@@ -548,14 +548,15 @@ int main(int argc, char * *argv)
       throw;
       }
 
-    templateVolumes[typeIndex] =
-        AtlasRegType::PairsOfStrAndStrVector(inputVolumeOrderedMap[typeIndex].first,
-                                             AtlasRegType::StringVector(0,temp));
+    AtlasRegType::StringVector firstVec = {temp};
+    AtlasRegType::PairsOfStrAndStrVector currPair(inputVolumeOrderedMap[typeIndex].first,firstVec);
+    templateVolumes[typeIndex] = currPair;
     for(size_t i=0; i<inputVolumeOrderedMap[typeIndex].second.size()-1; ++i)
       {
       templateVolumes[typeIndex].second.push_back(temp);
       }
     }
+
   std::vector<bool> candidateDuplicatesList;
   {
   AtlasRegType::Pointer atlasreg = AtlasRegType::New();
@@ -697,7 +698,7 @@ int main(int argc, char * *argv)
       mapIt != templateVolumes.end(); ++mapIt)
     {
     const std::string curAtlasName = FindPathFromAtlasXML(*(mapIt->second.begin()),atlasDefinitionPath);
-    muLogMacro(<< "Reading atlas image " << mapIt->first << ": " << curAtlasName << "...\n");
+    muLogMacro(<< "\n*** Reading atlas image " << mapIt->first << ": " << curAtlasName << "...\n");
     LocalReaderPointer imgreader = LocalReaderType::New();
     imgreader->SetFileName(curAtlasName.c_str());
     try
