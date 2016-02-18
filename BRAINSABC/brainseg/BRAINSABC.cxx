@@ -523,34 +523,37 @@ int main(int argc, char * *argv)
   AtlasRegType::MapOfFloatImageVectors intraSubjectRegisteredRawImageMap;
   std::vector<std::string>       priorfnlist;
 
-  AtlasRegType::MapOfStringVectors templateVolumes;
+  AtlasRegType::VectorOfPairsOfStrAndStrVectors templateVolumes(inputVolumeOrderedMap.size());
   const AtlasDefinition::TemplateMap &tm = atlasDefinitionParser.GetTemplateVolumes();
-  for(auto & elem : inputVolumeOrderedMap)
+  for(size_t typeIndex=0; typeIndex<inputVolumeOrderedMap.size(); ++typeIndex)
     {
-    auto ti = tm.find(elem.first);
+    auto ti = tm.find(inputVolumeOrderedMap[typeIndex].first);
     std::string temp;
     if( ti != tm.end() )
       {
       temp = ti->second;
-      std::cerr << "STATUS:  Atlas image of type: " << elem.first
+      std::cout << "STATUS:  Atlas image of type: " << inputVolumeOrderedMap[typeIndex].first
                 << " added with filename: " << temp << std::endl;
       }
     /*
-    else if( elem.first.compare("IDWI") == 0 ) // do not throw when IDWI is an input type
+    else if( inputVolumeOrderedMap[typeIndex].first.compare("IDWI") == 0 ) // do not throw when IDWI is an input type
       {
       std::cerr << "WARNING: No atlas image of type IDWI." << std::endl;
       }
     */
     else
       {
-      std::cerr << "ERROR:  Atlas image of type: " << elem.first
+      std::cerr << "ERROR:  Atlas image of type: " << inputVolumeOrderedMap[typeIndex].first
                 << " not found in xml file." << std::endl;
       throw;
       }
-    for(auto imIt = elem.second.begin();
-        imIt != elem.second.end(); ++imIt)
+
+    templateVolumes[typeIndex] =
+        AtlasRegType::PairsOfStrAndStrVector(inputVolumeOrderedMap[typeIndex].first,
+                                             AtlasRegType::StringVector(0,temp));
+    for(size_t i=0; i<inputVolumeOrderedMap[typeIndex].second.size()-1; ++i)
       {
-      templateVolumes[elem.first].push_back(temp);
+      templateVolumes[typeIndex].second.push_back(temp);
       }
     }
   std::vector<bool> candidateDuplicatesList;
