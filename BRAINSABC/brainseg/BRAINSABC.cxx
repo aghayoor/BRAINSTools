@@ -685,7 +685,7 @@ int main(int argc, char * *argv)
   // muLogMacro(<< "Read template images");
   if( templateVolumes.empty() )
     {
-    muLogMacro( <<  "No data images specified" << std::endl );
+    muLogMacro( <<  "No atlas images specified" << std::endl );
     return EXIT_FAILURE;
     }
 
@@ -1287,12 +1287,12 @@ int main(int argc, char * *argv)
 
       for(auto & elem : WarpedAtlasList)
         {
-        AtlasRegType::StringVector currentTypeList;
-        for(auto & e : inputVolumeOrderedMap)
+        size_t currElemIndex;
+        for(size_t i=0; i<inputVolumeOrderedMap.size(); ++i)
           {
-          if( e.first == elem.first )
+          if( inputVolumeOrderedMap[i].first == elem.first )
             {
-            currentTypeList = e.second;
+            currElemIndex = i;
             break;
             }
           }
@@ -1312,8 +1312,9 @@ int main(int argc, char * *argv)
           ByteWriterType::Pointer writer = ByteWriterType::New();
 
           const std::string fn = outputDir
-            + GetStrippedImageFileNameExtension(templateVolumes[elem.first][index]) + std::string("_to_")
-            + GetStrippedImageFileNameExtension( ( currentTypeList[index] ) )
+            + GetStrippedImageFileNameExtension( templateVolumes[currElemIndex].second[index] )
+            + std::string("_to_")
+            + GetStrippedImageFileNameExtension( inputVolumeOrderedMap[currElemIndex].second[index] )
             + std::string("_warped") + std::string(".nii.gz");
 
           muLogMacro(<< "Writing warped template images... " << fn << std::endl );
