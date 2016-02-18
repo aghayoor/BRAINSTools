@@ -762,7 +762,7 @@ int main(int argc, char * *argv)
   else
     {
     atlasTransformFileName = outputDir
-      + GetStrippedImageFileNameExtension(GetMapVectorFirstElement(templateVolumes))
+      + GetStrippedImageFileNameExtension(GetOrderedMapFirstElement(templateVolumes))
       + std::string("_to_")
       + GetStrippedImageFileNameExtension(input_Volumes[0]) + suffixstr
       + std::string("PreSegmentation.h5");
