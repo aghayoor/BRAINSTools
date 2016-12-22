@@ -290,7 +290,7 @@ BRAINSHoughEyeDetector<TInputImage, TOutputImage>
     this->m_Ipd = std::sqrt( this->m_Ipd );
     std::cout << "The resulted interpupilary distance is " << this->m_Ipd << " mm" << std::endl;
 
-    if( this->m_Ipd < 40 or this->m_Ipd > 85 )
+    if( this->m_Ipd < 40 || this->m_Ipd > 85 )
       {
       std::cerr << "WARNING: The distance is abnormal! Get ready to use a GUI corrector next." << std::endl;
       this->m_Failure = true;
