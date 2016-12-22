@@ -83,7 +83,7 @@ benefits more from readability than speed.
 #include <sstream>
 #include <algorithm>
 
-#include <glob.h>
+//#include <glob.h>
 #include <wordexp.h>
 
 #include "Slicer3LandmarkIO.h"
