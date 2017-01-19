@@ -31,7 +31,7 @@
 
 extern "C" MODULE_IMPORT int ModuleEntryPoint(int, char * []);
 
-int BRAINSAlignMSPTest(int argc, char* * argv)
+int BRAINSAlignMSPTest(int argc, char* * const argv)
 {
   return ModuleEntryPoint(argc, argv);
 }

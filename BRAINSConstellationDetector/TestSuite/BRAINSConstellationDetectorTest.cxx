@@ -31,7 +31,7 @@
 
 extern "C" MODULE_IMPORT int ModuleEntryPoint(int, char * []);
 
-int BRAINSConstellationDetectorTest(int argc, char* * argv)
+int BRAINSConstellationDetectorTest(int argc, char* * const argv)
 {
   return ModuleEntryPoint(argc, argv);
 }
