@@ -84,7 +84,12 @@ benefits more from readability than speed.
 #include <algorithm>
 
 //#include <glob.h>
+#ifdef WIN32
+#include <windows.h>
+#include <winbase.h>
+#else
 #include <wordexp.h>
+#endif
 
 #include "Slicer3LandmarkIO.h"
 #include "vnl/vnl_matrix.h"
@@ -218,16 +223,31 @@ static void print_arguments_for_user(const std::string& file_glob_string, const 
 // Build up list of subjectid/filename tuples
 SubjectFilenameVector get_subject_filename_tuples(const std::string& file_glob_string)
 {
+  std::vector<std::string> files;
+
+#ifdef WIN32
+  HANDLE hFind;
+  WIN32_FIND_DATA FData;
+  if( (hFind = FindFirstFile(file_glob_string.c_str(), &FData)) != INVALID_HANDLE_VALUE )
+    {
+    do
+     {
+     files.push_back(FData.cFileName);
+     }
+    while( FindNextFile(hFind, &FData) );
+    FindClose(hFind);
+    }
+#else
   wordexp_t p;
 
   wordexp(file_glob_string.c_str(), &p, 0);
   char* *                  w = p.we_wordv;
-  std::vector<std::string> files;
   for( unsigned int i = 0; i < p.we_wordc; i++ )
     {
     files.push_back(w[i]);
     // std::cout << "Adding file to processing list: " << w[i] << std::endl;
     }
+#endif
 
   std::vector<std::pair<std::string, std::string> > subjects;
   for( std::vector<std::string>::const_iterator file_iter = files.begin(); file_iter != files.end(); ++file_iter )
