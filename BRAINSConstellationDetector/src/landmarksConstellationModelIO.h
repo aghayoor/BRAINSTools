@@ -41,6 +41,8 @@
 
 #include "BRAINSConstellationDetectorVersion.h"
 
+//#define __USE_OFFSET_DEBUGGING_CODE__
+
 ////
 inline void
 defineTemplateIndexLocations
@@ -254,7 +256,7 @@ public:
     //
     // //////////////////////////////////////////////////////////////////////////
     itk::NumberToString<double> doubleToString;
-    std::ofstream  output( filename.c_str() ); // open setup file for reading
+    std::ofstream  output( filename.c_str(), std::ios::out | std::ios::binary ); // open setup file for reading
 
     if( !output.is_open() )
       {
@@ -372,7 +374,7 @@ public:
     //
     // //////////////////////////////////////////////////////////////////////////
 
-    std::ifstream input( filename.c_str() ); // open setup file for reading
+    std::ifstream input( filename.c_str(), std::ios::in | std::ios::binary ); // open setup file for reading
 
     if( !input.is_open() )
       {
