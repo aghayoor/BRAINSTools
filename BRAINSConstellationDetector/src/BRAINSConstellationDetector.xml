@@ -38,6 +38,14 @@
             <description>Linear least squares model filename in HD5 format</description>
             <channel>input</channel>
         </file>
+         <file fileExtensions=".txt">
+             <name>completionFile</name>
+             <label>Out log file in text format</label>
+             <default></default>
+             <longflag>completionFile</longflag>
+             <description>A log file written to the disk that shows the completion of the program</description>
+             <channel>output</channel>
+        </file>
         <image>
             <name>inputVolume</name>
             <flag>i</flag>

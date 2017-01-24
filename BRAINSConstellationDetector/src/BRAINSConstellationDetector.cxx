@@ -168,5 +168,18 @@ int main( int argc, char *argv[] )
     return EXIT_FAILURE;
     }
 
+  // write out a completion text file
+  if( completionFile.compare( "" ) != 0 )
+    {
+    std::ofstream completionLogScript;
+    completionLogScript.open( completionFile );
+    if( !completionLogScript.is_open() )
+      {
+      std::cerr << "Error: Can't write completion log file: " <<  completionFile << std::endl;
+      std::cerr.flush();
+      }
+    completionLogScript.close();
+    }
+
   return 0;
 }
