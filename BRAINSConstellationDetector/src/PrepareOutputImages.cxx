@@ -49,7 +49,8 @@ namespace itk
     const short int BackgroundFillValue,
     const std::string & lInterpolationMode,
     const bool lCutOutHeadInOutputVolume,
-    const double lOtsuPercentileThreshold
+    const double lOtsuPercentileThreshold,
+    const std::string resultsDir
   )
     {
     typedef ResampleInPlaceImageFilter<SImageType, SImageType> ResampleIPFilterType;
@@ -99,6 +100,8 @@ namespace itk
         ZeroOneImage->Allocate();
         ZeroOneImage->FillBuffer(1);
         ChopImageBelowLowerBound<SImageType>(ZeroOneImage, BackgroundFillValue, PhysicalLowerBound);
+        // write out the chopping mask
+        itkUtil::WriteImage<SImageType>( ZeroOneImage, resultsDir + "/ClippingIstropicMask.mhd" );
 
         if( lCutOutHeadInOutputVolume )  // Restrict mask to head
           // tissue region if necessary

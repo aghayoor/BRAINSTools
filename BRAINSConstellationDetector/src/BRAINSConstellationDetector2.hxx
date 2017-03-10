@@ -330,7 +330,8 @@ BRAINSConstellationDetector2<TInputImage, TOutputImage>
     BackgroundFillValue, //Input RO
     this->m_InterpolationMode, //Input RO
     this->m_CutOutHeadInOutputVolume, //Input RO
-    this->m_OtsuPercentileThreshold //Input RO
+    this->m_OtsuPercentileThreshold, //Input RO
+    this->m_ResultsDir
   );
 
 

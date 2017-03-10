@@ -38,7 +38,8 @@ namespace itk
     const short int BackgroundFillValue,
     const std::string & lInterpolationMode,
     const bool lCutOutHeadInOutputVolume,
-    const double lOtsuPercentileThreshold
+    const double lOtsuPercentileThreshold,
+    const std::string resultsDir
   );
 
   extern void ApplyInverseOfTransformToLandmarks(
