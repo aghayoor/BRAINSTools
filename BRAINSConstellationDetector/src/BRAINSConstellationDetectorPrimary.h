@@ -281,6 +281,16 @@ public:
     return this->m_outputLandmarksInACPCAlignedSpaceMap;
   }
 
+  const double GetIntensityStandardizationSlope(void)
+  {
+    return this->m_IntensityStandardizationSlope;
+  }
+
+  const double GetIntensityStandardizationIntercept(void)
+  {
+    return this->m_IntensityStandardizationIntercept;
+  }
+
   bool Compute(void);
 
 private:
@@ -333,6 +343,9 @@ private:
 
   LandmarksMapType m_outputLandmarksInInputSpaceMap;
   LandmarksMapType m_outputLandmarksInACPCAlignedSpaceMap;
+
+  double m_IntensityStandardizationSlope;
+  double m_IntensityStandardizationIntercept;
 };
 
 #endif

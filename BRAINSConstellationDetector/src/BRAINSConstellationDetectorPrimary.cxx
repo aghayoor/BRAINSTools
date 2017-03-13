@@ -70,6 +70,9 @@ BRAINSConstellationDetectorPrimary::BRAINSConstellationDetectorPrimary()
 
   this->m_outputLandmarksInInputSpaceMap.clear();
   this->m_outputLandmarksInACPCAlignedSpaceMap.clear();
+
+  this->m_IntensityStandardizationSlope = 0;
+  this->m_IntensityStandardizationIntercept = 0;
 }
 
 bool BRAINSConstellationDetectorPrimary::Compute( void )
@@ -123,7 +126,9 @@ bool BRAINSConstellationDetectorPrimary::Compute( void )
                                                           ITK_NULLPTR,
                                                           0.0005, 1.0 - 0.0005,
                                                           1, 0.95 * MAX_IMAGE_OUTPUT_VALUE,
-                                                          0, MAX_IMAGE_OUTPUT_VALUE);
+                                                          0, MAX_IMAGE_OUTPUT_VALUE,
+                                                          this->m_IntensityStandardizationSlope, // output
+                                                          this->m_IntensityStandardizationIntercept); // output
 
   typedef itk::CastImageFilter<DImageType3D, SImageType> CasterType;
   CasterType::Pointer caster = CasterType::New();

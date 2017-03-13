@@ -171,6 +171,13 @@ int main( int argc, char *argv[] )
   // write out a completion text file
   if( completionFile.compare( "" ) != 0 )
     {
+    const double slope = BCD.GetIntensityStandardizationSlope();
+    const double b0 = BCD.GetIntensityStandardizationIntercept();
+    std::stringstream completionStream;
+    completionStream << "Slope = " << slope << std::endl;
+    completionStream << "Intercept = " << b0 << std::endl;
+    completionStream << "ClipMax = " << MAX_IMAGE_OUTPUT_VALUE << std::endl;
+    completionStream << "ClipMin = 0" << std::endl;
     std::ofstream completionLogScript;
     completionLogScript.open( completionFile );
     if( !completionLogScript.is_open() )
@@ -178,6 +185,7 @@ int main( int argc, char *argv[] )
       std::cerr << "Error: Can't write completion log file: " <<  completionFile << std::endl;
       std::cerr.flush();
       }
+    completionLogScript << completionStream.str();
     completionLogScript.close();
     }
 

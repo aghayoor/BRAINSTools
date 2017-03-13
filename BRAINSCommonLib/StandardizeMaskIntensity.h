@@ -121,7 +121,9 @@ typename ImageType::Pointer StandardizeMaskIntensity(
   const typename ImageType::PixelType lowerPeggedValue,
   const typename ImageType::PixelType upperPeggedValue,
   const typename ImageType::PixelType clipMin,
-  const typename ImageType::PixelType clipMax)
+  const typename ImageType::PixelType clipMax,
+  double & slope, // output
+  double & intercept) // output
 {
   // the asserts, if you want them, go like this:
   // ImageType::PixelType is scalar.
@@ -222,6 +224,9 @@ typename ImageType::Pointer StandardizeMaskIntensity(
     intensityMapper->SetWindowMaximum(adjustedWindowMaxForClipping);
     intensityMapper->SetOutputMinimum(clipMin);
     intensityMapper->SetOutputMaximum(clipMax);
+
+    slope = windowSlope;
+    intercept = windowIntercept;
     }
   intensityMapper->Update();
   typename ImageType::Pointer remappedImage = intensityMapper->GetOutput();
