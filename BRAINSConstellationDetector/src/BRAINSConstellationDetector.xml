@@ -43,7 +43,15 @@
              <label>Out log file in text format</label>
              <default></default>
              <longflag>completionFile</longflag>
-             <description>A log file written to the disk that shows the completion of the program</description>
+             <description>A log file written to the disk that shows the completion of the program. This file includes the slope and intercept parameters for standardization of intensity</description>
+             <channel>output</channel>
+        </file>
+        <file fileExtensions=".txt">
+             <name>failureFile</name>
+             <label>Out log file in text format</label>
+             <default></default>
+             <longflag>failureFile</longflag>
+             <description>An output log file written to the disk when BCD fails to complete its process. This file includes the exception error description</description>
              <channel>output</channel>
         </file>
         <image>

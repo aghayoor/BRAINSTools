@@ -156,7 +156,14 @@ int main( int argc, char *argv[] )
     std::stringstream failureLogFileStream;
     failureLogFileStream << err;
     std::ofstream failureLogScript;
-    failureLogScript.open("BCD_FAILED.txt");
+    if( failureFile.compare( "" ) != 0 )
+      {
+      failureLogScript.open( failureFile );
+      }
+    else
+      {
+      failureLogScript.open( "BCD_FAILED.txt" );
+      }
     if( !failureLogScript.is_open() )
       {
       std::cerr << "Error: Can't write failure log file: BCD_FAILED.txt " << std::endl;
