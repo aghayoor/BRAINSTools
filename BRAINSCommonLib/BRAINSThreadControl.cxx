@@ -22,8 +22,9 @@
 
 namespace BRAINSUtils
 {
-StackPushITKDefaultNumberOfThreads::StackPushITKDefaultNumberOfThreads(const int desiredCount) :
-  m_originalThreadValue( itk::MultiThreader::GetGlobalDefaultNumberOfThreads() )
+StackPushITKDefaultNumberOfThreads::StackPushITKDefaultNumberOfThreads(const int desiredCount, const int priorityNumber) :
+  m_originalThreadValue( itk::MultiThreader::GetGlobalDefaultNumberOfThreads() ),
+  m_originalThreadPriority( itk::MultiThreader::GetGlobalThreadPriority() )
 {
   int threadCount(-1);
 
@@ -61,11 +62,23 @@ StackPushITKDefaultNumberOfThreads::StackPushITKDefaultNumberOfThreads(const int
   if( threadCount > 0 )
     {
     itk::MultiThreader::SetGlobalDefaultNumberOfThreads(threadCount);
+    itk::MultiThreader::SetGlobalMaximumNumberOfThreads(threadCount);
+    }
+
+  if( priorityNumber > 0 && priorityNumber < 3 )
+    {
+    itk::MultiThreader::SetGlobalThreadPriority(priorityNumber);
+    }
+  else
+    {
+    itk::MultiThreader::SetGlobalThreadPriority(this->m_originalThreadPriority);
     }
 }
 
 StackPushITKDefaultNumberOfThreads::~StackPushITKDefaultNumberOfThreads()
 {
   itk::MultiThreader::SetGlobalDefaultNumberOfThreads(this->m_originalThreadValue);
+  itk::MultiThreader::SetGlobalMaximumNumberOfThreads(this->m_originalThreadValue);
+  itk::MultiThreader::SetGlobalThreadPriority(this->m_originalThreadPriority);
 }
 }

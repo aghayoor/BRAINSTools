@@ -26,6 +26,7 @@ BRAINSConstellationDetectorPrimary::BRAINSConstellationDetectorPrimary()
   this->m_mspQualityLevel = 2;
   this->m_writedebuggingImagesLevel = 0;
   this->m_numberOfThreads = -1;
+  this->m_threadsPriority = 1;
   this->m_otsuPercentileThreshold = 0.01;
   this->m_acLowerBound = 1000.0;
   this->m_trimRescaledIntensities = 4.4172;
@@ -77,7 +78,7 @@ BRAINSConstellationDetectorPrimary::BRAINSConstellationDetectorPrimary()
 
 bool BRAINSConstellationDetectorPrimary::Compute( void )
 {
-  const BRAINSUtils::StackPushITKDefaultNumberOfThreads TempDefaultNumberOfThreadsHolder(this->m_numberOfThreads);
+  const BRAINSUtils::StackPushITKDefaultNumberOfThreads TempDefaultNumberOfThreadsHolder(this->m_numberOfThreads,this->m_threadsPriority);
 
   // ------------------------------------
   // Read external files

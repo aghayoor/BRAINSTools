@@ -91,6 +91,11 @@ public:
     this->m_numberOfThreads = numberOfThreads;
   }
 
+  void SetThreadsPriority(unsigned int threadsPriority)
+  {
+    this->m_threadsPriority = threadsPriority;
+  }
+
   void SetOtsuPercentileThreshold(double otsuPercentileThreshold)
   {
     this->m_otsuPercentileThreshold = otsuPercentileThreshold;
@@ -297,7 +302,8 @@ private:
   int          m_houghEyeDetectorMode;      // 1
   unsigned int m_mspQualityLevel;           // 2
   unsigned int m_writedebuggingImagesLevel; // 0
-  unsigned int m_numberOfThreads;           // 1
+  unsigned int m_numberOfThreads;           // -1
+  unsigned int m_threadsPriority;            // 1
   double       m_otsuPercentileThreshold;   // 0.01
   double       m_acLowerBound;              // 1000.0
   double       m_trimRescaledIntensities;   // 4.4172
